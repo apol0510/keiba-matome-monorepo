@@ -1,0 +1,98 @@
+name: Yosou Nankan Daily (南関メインレース予想)
+
+on:
+  schedule:
+    # 月〜金 朝6時（JST）に実行
+    # 日〜木の21時UTC = 月〜金の6時JST
+    - cron: '0 21 * * 0-4'
+  workflow_dispatch:
+    inputs:
+      skip_comments:
+        description: 'コメント生成をスキップ'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  generate-nankan-prediction:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/yosou-keiba-matome
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        working-directory: .
+        run: npm install
+
+      - name: Check nankan-analytics data
+        id: check_data
+        run: |
+          DATA_FILE="../../../nankan-analytics/astro-site/src/data/allRacesPrediction.json"
+          if [ ! -f "$DATA_FILE" ]; then
+            echo "status=no_data" >> $GITHUB_OUTPUT
+            echo "⚠️ nankan-analyticsのデータファイルが見つかりません"
+          else
+            echo "status=ok" >> $GITHUB_OUTPUT
+            echo "✅ nankan-analyticsのデータファイルを確認"
+          fi
+
+      - name: Scrape nankan-analytics daily prediction
+        if: steps.check_data.outputs.status == 'ok'
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.YOSOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
+        run: node scripts/scrape-nankan-daily.cjs
+
+      - name: Generate 2ch-style comments
+        if: steps.check_data.outputs.status == 'ok' && github.event.inputs.skip_comments != 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.YOSOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
+        run: node ../shared/scripts/generate-2ch-comments.cjs
+
+      - name: Trigger Netlify Build Hook
+        if: success()
+        env:
+          NETLIFY_BUILD_HOOK: ${{ secrets.YOSOU_KEIBA_NETLIFY_BUILD_HOOK }}
+        run: |
+          if [ -n "$NETLIFY_BUILD_HOOK" ]; then
+            echo "🚀 Netlifyへのデプロイをトリガー中..."
+            curl -sS -X POST -H "Content-Type: application/json" -d '{}' "$NETLIFY_BUILD_HOOK"
+            echo "✅ デプロイリクエスト送信完了"
+          else
+            echo "⏭️  NETLIFY_BUILD_HOOK未設定のためスキップ"
+          fi
+
+      - name: Discord notification
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: ${{ job.status }}
+          title: "【南関メイン】2ch風予想まとめ"
+          description: |
+            平日メインレース予想を投稿
+            🌐 Netlifyデプロイ: トリガー済み
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ 【南関メイン】2ch風予想まとめ投稿完了"
+          echo "🌐 Netlifyデプロイ: トリガー済み"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ 【南関メイン】予想まとめ投稿に失敗しました"
+          exit 1
