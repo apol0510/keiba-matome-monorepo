@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "npm run build --workspace=packages/yosou-keiba-matome"
   publish = "dist"
 
 [functions]
