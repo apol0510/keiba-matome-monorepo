@@ -2,15 +2,6 @@
   command = "npm run build --workspace=packages/yosou-keiba-matome"
   publish = "packages/yosou-keiba-matome/dist"
 
-# Netlifyのキャッシュ最適化
-[[plugins]]
-  package = "@netlify/plugin-cache"
-  [plugins.inputs]
-    paths = [
-      "node_modules",
-      ".npm"
-    ]
-
 [functions]
   directory = "netlify/functions"
 
