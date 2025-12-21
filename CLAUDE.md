@@ -263,6 +263,28 @@ SITE_URL=https://chihou.keiba-matome.jp
 - [ ] 地方競馬特化の用語（南関東4競馬、トゥインクル、TCKなど）に対応済み
 - [ ] 両プロジェクトで動作確認すること
 
+### ⚠️ Netlifyデプロイ時の必須チェック（2025-12-22追加）
+
+**Netlifyにpushする前に以下をチェック:**
+
+```bash
+# 1. ローカルビルド確認
+cd packages/[project-name] && npm run build && ls -la dist/
+
+# 2. netlify.toml検証
+# - publish = "packages/[project-name]/dist"  ← リポジトリルートからのパス
+# - command = "npm run build --workspace=packages/[project-name]"
+
+# 3. クロスプラットフォームバイナリ（Astro/Viteの場合）
+# package.jsonに以下を追加:
+# "optionalDependencies": {
+#   "@rollup/rollup-linux-x64-gnu": "^4.30.1",
+#   "@rollup/rollup-darwin-x64": "^4.30.1"
+# }
+```
+
+**⚠️ 絶対にやらないこと**: Netlifyで試行錯誤（1回10分かかる） → 必ずローカルで検証してからpush
+
 ---
 
 ## 作業履歴

@@ -382,6 +382,129 @@ JSON配列で出力してください。
 
 ---
 
+## ⚠️ Netlifyデプロイの教訓（重要）
+
+### 2025-12-22: 初回デプロイで学んだこと
+
+**問題**: Netlifyデプロイに複数回失敗し、非効率な試行錯誤が発生した（約1時間）
+
+#### エラー1: Rollupネイティブバイナリ不足
+**症状**: `Cannot find module @rollup/rollup-linux-x64-gnu`
+**原因**: macOS用バイナリ（darwin-x64）のみインストールされ、Linux用（linux-x64-gnu）が不足
+**解決策**: package.jsonに `optionalDependencies` を追加
+```json
+"optionalDependencies": {
+  "@rollup/rollup-linux-x64-gnu": "^4.30.1",
+  "@rollup/rollup-darwin-x64": "^4.30.1"
+}
+```
+
+#### エラー2: デプロイディレクトリパス間違い
+**症状**: `Deploy directory 'dist' does not exist`
+**原因**: monorepo構造でビルドは成功していたが、publishパスが相対パスになっていた
+**解決策**: netlify.tomlのpublishパスを修正
+```toml
+publish = "packages/yosou-keiba-matome/dist"  # 正しい
+publish = "dist"  # 間違い
+```
+
+#### エラー3: ビルド時間が長すぎる（10分）
+**症状**: npm installだけで10分かかる
+**原因**:
+- キャッシュが効いていない
+- 古いPuppeteer（21.x）が重複インストールされていた
+**解決策**:
+1. Netlifyキャッシュプラグイン追加
+2. 依存関係の統一（Puppeteer 24.x）
+
+### 今後のClaudeへの指示（必読）
+
+#### ✅ Netlifyデプロイ前の必須チェックリスト
+
+1. **ローカルビルドテスト**
+   ```bash
+   cd packages/yosou-keiba-matome
+   npm run build
+   ls -la dist/  # distディレクトリが生成されるか確認
+   ```
+
+2. **netlify.toml検証**
+   - [ ] `publish` パスがmonorepo構造に対応しているか
+   - [ ] `command` がワークスペース指定しているか
+   - [ ] クロスプラットフォームバイナリが必要か（Rollup、esbuildなど）
+
+3. **依存関係の最適化**
+   - [ ] package-lock.jsonが最新か
+   - [ ] 古いバージョンの依存関係が残っていないか
+   - [ ] `npm audit` で脆弱性チェック
+
+4. **Netlifyキャッシュ設定**
+   - [ ] キャッシュプラグインが設定されているか
+   - [ ] 2回目以降のビルド時間短縮策があるか
+
+#### ❌ やってはいけないこと
+
+1. **試行錯誤的なデバッグ**
+   - Netlifyで何度もデプロイを繰り返さない（1回10分かかる）
+   - ローカルで検証してからpushする
+
+2. **不完全なpackage.json**
+   - プラットフォーム固有のバイナリを見落とさない
+   - `optionalDependencies` を活用する
+
+3. **monorepoパスの勘違い**
+   - Netlifyは常にリポジトリルートから実行される
+   - 相対パスではなく、ルートからの絶対パスを指定する
+
+#### 🔧 効率的なデバッグ方法
+
+1. **ローカルで再現**
+   - Netlifyのエラーはローカルでも再現できることが多い
+   - `npm run build` でローカルビルドを確認
+
+2. **段階的な検証**
+   - Step 1: ローカルビルド成功
+   - Step 2: netlify.toml設定確認
+   - Step 3: 依存関係チェック
+   - Step 4: Netlifyデプロイ
+
+3. **ログの読み方**
+   - エラーメッセージの**最初**と**最後**を読む
+   - 中間の警告は無視してよい場合が多い
+
+### 参考: 成功したnetlify.toml
+
+```toml
+[build]
+  command = "npm run build --workspace=packages/yosou-keiba-matome"
+  publish = "packages/yosou-keiba-matome/dist"
+
+# Netlifyのキャッシュ最適化
+[[plugins]]
+  package = "@netlify/plugin-cache"
+  [plugins.inputs]
+    paths = [
+      "node_modules",
+      ".npm"
+    ]
+
+[functions]
+  directory = "netlify/functions"
+```
+
+### 参考: 成功したpackage.json（抜粋）
+
+```json
+{
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.30.1",
+    "@rollup/rollup-darwin-x64": "^4.30.1"
+  }
+}
+```
+
+---
+
 ## 参照ドキュメント
 
 - packages/keiba-matome/CLAUDE.md: 中央競馬ニュースサイトの詳細
