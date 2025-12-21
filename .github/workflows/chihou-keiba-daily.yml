@@ -1,0 +1,122 @@
+name: Chihou-Keiba Daily News (地方競馬)
+
+on:
+  schedule:
+    # 毎日 AM 6:00, 12:00, 18:00 JST（UTC 21:00, 3:00, 9:00）に実行
+    - cron: '0 21 * * *'  # AM 6:00 JST
+    - cron: '0 3 * * *'   # PM 12:00 JST
+    - cron: '0 9 * * *'   # PM 18:00 JST
+  workflow_dispatch:
+    inputs:
+      netkeiba_count:
+        description: 'netkeiba記事数'
+        required: false
+        default: '5'
+        type: string
+      other_count:
+        description: 'その他メディア記事数'
+        required: false
+        default: '4'
+        type: string
+
+jobs:
+  generate-news:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: packages/chihou-keiba-matome
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        working-directory: .
+        run: npm install
+
+      - name: 1️⃣ Scrape netkeiba（最優先 - 5 articles）
+        env:
+          ARTICLE_COUNT: ${{ github.event.inputs.netkeiba_count || '5' }}
+          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
+        run: node scripts/scrape-netkeiba-chihou.cjs
+
+      - name: 2️⃣ Scrape Yahoo!ニュース（優先度2 - 4 articles）
+        env:
+          ARTICLE_COUNT: ${{ github.event.inputs.other_count || '4' }}
+          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
+        run: node scripts/scrape-yahoo-chihou.cjs
+
+      - name: 3️⃣ Scrape Hochi（優先度3 - 4 articles）
+        env:
+          ARTICLE_COUNT: ${{ github.event.inputs.other_count || '4' }}
+          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
+        run: node scripts/scrape-hochi-chihou.cjs
+
+      - name: 4️⃣ Scrape Sponichi（優先度4 - 4 articles）
+        env:
+          ARTICLE_COUNT: ${{ github.event.inputs.other_count || '4' }}
+          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
+        run: node scripts/scrape-sponichi-chihou.cjs
+
+      - name: Generate 2ch-style comments
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
+        run: node ../shared/scripts/generate-2ch-comments.cjs
+
+      - name: Add comments to existing articles
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
+        run: node scripts/add-comments-to-published.cjs
+
+      - name: Trigger Netlify Build Hook
+        if: success()
+        env:
+          NETLIFY_BUILD_HOOK: ${{ secrets.CHIHOU_KEIBA_NETLIFY_BUILD_HOOK }}
+        run: |
+          if [ -n "$NETLIFY_BUILD_HOOK" ]; then
+            echo "🚀 Netlifyへのデプロイをトリガー中..."
+            curl -sS -X POST -H "Content-Type: application/json" -d '{}' "$NETLIFY_BUILD_HOOK"
+            echo "✅ デプロイリクエスト送信完了"
+          else
+            echo "⏭️  NETLIFY_BUILD_HOOK未設定のためスキップ"
+          fi
+
+      - name: Discord notification
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: ${{ job.status }}
+          title: "【地方競馬】2ch風ニュース生成"
+          description: |
+            netkeiba: ${{ github.event.inputs.netkeiba_count || '5' }}件
+            その他: 各${{ github.event.inputs.other_count || '4' }}件
+            🌐 Netlifyデプロイ: トリガー済み
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ 【地方競馬】2ch風ニュース生成が完了しました"
+          echo "netkeiba: ${{ github.event.inputs.netkeiba_count || '5' }}件"
+          echo "その他: 各${{ github.event.inputs.other_count || '4' }}件"
+          echo "🌐 Netlifyデプロイ: トリガー済み"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ 【地方競馬】ニュース生成に失敗しました"
+          exit 1

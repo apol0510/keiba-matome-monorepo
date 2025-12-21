@@ -3,8 +3,10 @@
 ## 🚨 プロジェクト識別
 
 **このプロジェクト**: keiba-matome (中央競馬ニュースまとめ)
-**作業ディレクトリ**: `/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/keiba-matome/`
-**リポジトリ**: https://github.com/apol0510/keiba-matome
+**作業ディレクトリ**: `/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/keiba-matome-monorepo/packages/keiba-matome/`
+**monorepoルート**: `/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/keiba-matome-monorepo/`
+**リポジトリ**: https://github.com/apol0510/keiba-matome-monorepo
+**旧リポジトリ**: https://github.com/apol0510/keiba-matome (アーカイブ済み)
 **Netlifyサイト**: https://keiba-matome.jp
 **X (Twitter)**: https://x.com/keiba_matome_jp
 
@@ -12,19 +14,42 @@
 
 ## 🏗️ monorepo構成（重要）
 
-**⚠️ 現在の状態**: 独立リポジトリ（monorepo化未実施）
+**✅ 現在の状態**: monorepo化完了（2025-12-21）
 
-**理想の状態（To-Be）**:
+**monorepo構成**:
 ```
 keiba-matome-monorepo/              ← 2ch風まとめ専用monorepo
+├── package.json (workspaces)      ← npm workspaces設定
+├── CLAUDE.md                       ← monorepo全体のドキュメント
 ├── packages/
 │   ├── shared/                    ← 共通ライブラリ
+│   │   ├── package.json
 │   │   └── scripts/
 │   │       └── generate-2ch-comments.cjs
 │   ├── keiba-matome/             ← このプロジェクト（中央競馬）
+│   │   ├── package.json           ("@keiba-matome/shared": "*")
+│   │   └── CLAUDE.md              ← このファイル
 │   └── chihou-keiba-matome/      ← 兄弟プロジェクト（地方競馬）
-└── package.json (workspaces)
+│       ├── package.json           ("@keiba-matome/shared": "*")
+│       └── CLAUDE.md
+└── .git/
 ```
+
+**monorepo主要コマンド**:
+```bash
+# monorepoルートから実行
+npm run dev:keiba-matome          # このプロジェクトの開発サーバー起動
+npm run dev:chihou                # 地方競馬プロジェクトの開発サーバー起動
+npm run build:all                 # 全プロジェクトを一括ビルド
+
+# このプロジェクトのディレクトリで実行
+npm run dev                       # 開発サーバー起動（従来通り）
+npm run build                     # ビルド（従来通り）
+```
+
+**共有コードの使用**:
+- `packages/shared/scripts/generate-2ch-comments.cjs`: 2ch風コメント生成スクリプト
+- 両プロジェクトから `../shared/scripts/generate-2ch-comments.cjs` で参照
 
 **review-platform-monorepoとの関係**:
 - ❌ **完全に独立**
@@ -33,12 +58,14 @@ keiba-matome-monorepo/              ← 2ch風まとめ専用monorepo
 - 理由: 口コミサイトと2ch風まとめサイトは目的が全く異なるため
 
 **Claudeへの指示（必読）**:
-- [ ] このプロジェクトは将来 keiba-matome-monorepo に統合予定
-- [ ] chihou-keiba-matome と共有コードがある（コメント生成、スクレイピング）
-- [ ] コメント生成の改善は両プロジェクトに適用すること
-- [ ] review-platform-monorepo とは完全に独立
+- [x] このプロジェクトは keiba-matome-monorepo に統合済み
+- [x] chihou-keiba-matome と共有コードがある（コメント生成）
+- [ ] コメント生成の改善は `packages/shared` で行い、両プロジェクトに適用すること
+- [x] review-platform-monorepo とは完全に独立
 
-**分離の経緯**: review-platform-monorepoから分離（2025-12-16）
+**monorepo化の経緯**:
+- 2025-12-16: review-platform-monorepoから分離（独立リポジトリとして運用開始）
+- 2025-12-21: keiba-matome-monorepo作成、chihou-keiba-matomeと統合
 
 ---
 
