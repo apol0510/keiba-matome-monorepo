@@ -1,0 +1,9 @@
+# keiba-matome robots.txt
+User-agent: *
+Allow: /
+
+# サイトマップ
+Sitemap: https://keiba-matome.jp/sitemap.xml
+
+# クロール最適化
+Crawl-delay: 1

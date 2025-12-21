@@ -1,0 +1,335 @@
+---
+// トップページは静的生成（SSG）
+export const prerender = true;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { config } from '../config';
+import { getLatestNews } from '../lib/news';
+
+// SEO設定
+const siteUrl = 'https://chihou.keiba-matome.jp';
+const siteName = '地方競馬ニュースまとめ';
+const siteDescription = '南関東4競馬（大井・船橋・川崎・浦和）や全国の地方競馬ニュースを2ch/5ch風にまとめています。';
+
+// 構造化データ（JSON-LD） - WebSite
+const websiteStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": siteName,
+  "url": siteUrl,
+  "description": siteDescription,
+  "inLanguage": "ja-JP",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": `${siteUrl}/search?q={search_term_string}`,
+    "query-input": "required name=search_term_string"
+  }
+};
+
+// Airtableから最新ニュースを取得
+let threads = [];
+
+try {
+  threads = await getLatestNews(50);
+  console.log(`✅ スレッドを${threads.length}件取得しました`);
+} catch (error) {
+  console.warn('Airtableからのデータ取得に失敗しました。');
+  console.error(error);
+  // モックデータ
+  threads = [
+    {
+      title: '【速報】G1有馬記念、アーモンドアイが引退レースで優勝',
+      slug: 'arima-kinen-almond-eye',
+      category: '速報',
+      publishedAt: new Date('2025-12-14T10:00:00'),
+      viewCount: 1234,
+      commentCount: 89,
+    },
+    {
+      title: '【悲報】競馬予想サイト「ウマダッシュ」が突然閉鎖、被害者多数',
+      slug: 'umadash-closed',
+      category: '炎上',
+      publishedAt: new Date('2025-12-14T09:30:00'),
+      viewCount: 567,
+      commentCount: 45,
+    },
+    {
+      title: '【議論】一番当たる競馬予想サイトってどこ？',
+      slug: 'best-keiba-site',
+      category: 'まとめ',
+      publishedAt: new Date('2025-12-14T08:00:00'),
+      viewCount: 890,
+      commentCount: 123,
+    },
+  ];
+}
+
+// 相対時間を計算
+function getRelativeTime(date: Date): string {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
+
+  if (hours < 1) {
+    const minutes = Math.floor(diff / (1000 * 60));
+    return `${minutes}分前`;
+  } else if (hours < 24) {
+    return `${hours}時間前`;
+  } else {
+    return `${days}日前`;
+  }
+}
+
+// 勢いを計算（24時間あたりのレス数）
+function calculateMomentum(commentCount: number, publishedAt: Date): number {
+  const now = new Date();
+  const diff = now.getTime() - publishedAt.getTime();
+  const hours = diff / (1000 * 60 * 60);
+
+  // 1時間未満の場合は1時間として計算
+  const elapsed = Math.max(hours, 1);
+
+  // 24時間あたりのレス数を計算
+  const momentum = Math.round((commentCount / elapsed) * 24);
+
+  return momentum;
+}
+---
+
+<BaseLayout title="トップ" description={siteDescription}>
+  <!-- SEO: 構造化データ（WebSite） -->
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(websiteStructuredData)} />
+
+  <!-- SEO: 構造化データ（ItemList - スレッド一覧） -->
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "itemListElement": threads.slice(0, 10).map((thread, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "url": `${siteUrl}/news/${thread.slug}/`,
+      "name": thread.title
+    }))
+  })} />
+
+  <!-- 板トップ -->
+  <div style="background-color: #e6e6dc; border: 1px solid #999; padding: 12px; margin-bottom: 16px;">
+    <h1 style="margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">地方競馬ニュース板</h1>
+    <p style="margin: 0; font-size: 12px; color: #666;">
+      南関東4競馬（大井・船橋・川崎・浦和）や全国の地方競馬ニュースをまとめています。<br />
+      新着スレッド一覧
+    </p>
+  </div>
+
+  <!-- スレッド一覧 -->
+  <style>
+    /* モバイル: カードレイアウト */
+    .thread-list-mobile {
+      display: block;
+    }
+    .thread-list-desktop {
+      display: none;
+    }
+    .thread-card {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .thread-card-title {
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .thread-card-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #666;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .thread-card-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* デスクトップ: テーブルレイアウト */
+    @media (min-width: 768px) {
+      .thread-list-mobile {
+        display: none;
+      }
+      .thread-list-desktop {
+        display: table;
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #fff;
+        border: 1px solid #999;
+        font-size: 13px;
+      }
+    }
+  </style>
+
+  <!-- モバイル版: カードレイアウト -->
+  <div class="thread-list-mobile">
+    {threads.map((thread) => (
+      <div class="thread-card">
+        <div class="thread-card-title">
+          <a
+            href={`/news/${thread.slug}/`}
+            style="color: #0000ff; text-decoration: none;"
+          >
+            {thread.title}
+          </a>
+          {thread.category && (
+            <span style="margin-left: 6px; padding: 2px 6px; background-color: #ea8b00; color: #fff; font-size: 10px; border-radius: 3px;">
+              {thread.category}
+            </span>
+          )}
+        </div>
+        <div class="thread-card-meta">
+          <div class="thread-card-meta-item">
+            <span>💬 {thread.commentCount || 10}レス</span>
+          </div>
+          <div class="thread-card-meta-item">
+            <span>🔥 {calculateMomentum(thread.commentCount || 10, thread.publishedAt)}</span>
+          </div>
+          <div class="thread-card-meta-item">
+            <span class="relative-time" data-timestamp={thread.publishedAt.getTime()}>
+              {getRelativeTime(thread.publishedAt)}
+            </span>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <!-- デスクトップ版: テーブルレイアウト -->
+  <table class="thread-list-desktop">
+    <thead>
+      <tr style="background-color: #e6e6dc; border-bottom: 1px solid #999;">
+        <th style="padding: 6px 8px; text-align: left; font-weight: normal;">スレッドタイトル</th>
+        <th style="padding: 6px 8px; text-align: center; width: 80px; font-weight: normal;">レス数</th>
+        <th style="padding: 6px 8px; text-align: center; width: 80px; font-weight: normal;">勢い</th>
+        <th style="padding: 6px 8px; text-align: center; width: 100px; font-weight: normal;">最終更新</th>
+      </tr>
+    </thead>
+    <tbody>
+      {threads.map((thread, index) => (
+        <tr style={`border-bottom: 1px solid #ddd; ${index % 2 === 0 ? 'background-color: #fafafa;' : 'background-color: #fff;'}`}>
+          <td style="padding: 8px;">
+            <a
+              href={`/news/${thread.slug}/`}
+              style="color: #0000ff; text-decoration: none;"
+              onmouseover="this.style.textDecoration='underline'"
+              onmouseout="this.style.textDecoration='none'"
+            >
+              {thread.title}
+            </a>
+            {thread.category && (
+              <span style="margin-left: 6px; padding: 2px 6px; background-color: #ea8b00; color: #fff; font-size: 10px; border-radius: 3px;">
+                {thread.category}
+              </span>
+            )}
+          </td>
+          <td style="padding: 8px; text-align: center; color: #666;">
+            {thread.commentCount || 10}
+          </td>
+          <td style="padding: 8px; text-align: center; color: #666;">
+            {calculateMomentum(thread.commentCount || 10, thread.publishedAt)}
+          </td>
+          <td style="padding: 8px; text-align: center; color: #999; font-size: 11px;">
+            <span class="relative-time" data-timestamp={thread.publishedAt.getTime()}>
+              {getRelativeTime(thread.publishedAt)}
+            </span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <!-- 注意書き -->
+  <div style="margin-top: 16px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffc107; font-size: 12px; color: #856404;">
+    <p style="margin: 0 0 4px 0; font-weight: bold;">⚠️ 注意事項</p>
+    <p style="margin: 0;">
+      ・このサイトはnetkeiba、スポーツ報知、スポニチなどの地方競馬ニュースや、各競馬場公式サイトの情報を引用し、2ch/5ch風のコメントを追加したまとめサイトです。<br />
+      ・コメントはAIによって自動生成されており、実在の人物・団体とは一切関係ありません。<br />
+      ・元記事の著作権は各配信元に帰属します。
+    </p>
+  </div>
+
+  <!-- クライアントサイドで相対時間を更新 -->
+  <script>
+    function updateRelativeTime() {
+      const elements = document.querySelectorAll('.relative-time');
+      const now = Date.now();
+
+      elements.forEach((el) => {
+        const timestamp = parseInt(el.getAttribute('data-timestamp') || '0');
+        if (!timestamp) return;
+
+        const diff = now - timestamp;
+        const minutes = Math.floor(diff / (1000 * 60));
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const days = Math.floor(hours / 24);
+
+        let text = '';
+        if (hours < 1) {
+          text = `${minutes}分前`;
+        } else if (hours < 24) {
+          text = `${hours}時間前`;
+        } else {
+          text = `${days}日前`;
+        }
+
+        el.textContent = text;
+      });
+    }
+
+    // 初回実行
+    updateRelativeTime();
+
+    // 1分ごとに更新
+    setInterval(updateRelativeTime, 60000);
+
+    // ページ遷移高速化: リンクホバー時にプリフェッチ
+    function setupPrefetch() {
+      const links = document.querySelectorAll('a[href^="/news/"]');
+      const prefetchedUrls = new Set();
+
+      links.forEach(link => {
+        link.addEventListener('mouseenter', function() {
+          const href = this.getAttribute('href');
+          if (href && !prefetchedUrls.has(href)) {
+            // プリフェッチリンクを作成
+            const prefetchLink = document.createElement('link');
+            prefetchLink.rel = 'prefetch';
+            prefetchLink.href = href;
+            document.head.appendChild(prefetchLink);
+
+            // 重複プリフェッチを防ぐ
+            prefetchedUrls.add(href);
+          }
+        }, { once: false });
+
+        // モバイル対応: touchstart時にもプリフェッチ
+        link.addEventListener('touchstart', function() {
+          const href = this.getAttribute('href');
+          if (href && !prefetchedUrls.has(href)) {
+            const prefetchLink = document.createElement('link');
+            prefetchLink.rel = 'prefetch';
+            prefetchLink.href = href;
+            document.head.appendChild(prefetchLink);
+            prefetchedUrls.add(href);
+          }
+        }, { passive: true, once: false });
+      });
+    }
+
+    // ページ読み込み完了後にプリフェッチ設定
+    window.addEventListener('load', setupPrefetch);
+  </script>
+</BaseLayout>

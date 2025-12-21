@@ -1,0 +1,333 @@
+---
+/**
+ * ニュースカードコンポーネント
+ * ニュース記事をカード形式で表示
+ */
+
+interface Props {
+  title: string;
+  slug: string;
+  category: string;
+  excerpt: string;
+  publishedAt: Date;
+  viewCount: number;
+  thumbnail?: string;
+  isFeatured?: boolean;
+  tags?: string[];
+}
+
+const { title, slug, category, excerpt, publishedAt, viewCount, thumbnail, isFeatured = false, tags = [] } = Astro.props;
+
+// 相対時間を計算
+function getRelativeTime(date: Date): string {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+
+  if (hours < 1) {
+    const minutes = Math.floor(diff / (1000 * 60));
+    return `${minutes}分前`;
+  } else if (hours < 24) {
+    return `${hours}時間前`;
+  } else {
+    const days = Math.floor(hours / 24);
+    return `${days}日前`;
+  }
+}
+
+// 閲覧数のフォーマット
+function formatViewCount(count: number): string {
+  if (count >= 10000) {
+    return `${(count / 10000).toFixed(1)}万`;
+  } else if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}k`;
+  }
+  return count.toString();
+}
+
+// カテゴリごとのバッジカラー
+const badgeColors: Record<string, string> = {
+  '速報': 'badge-breaking',
+  'ニュース': 'badge-news',
+  '炎上': 'badge-scandal',
+  'ランキング': 'badge-ranking',
+  'まとめ': 'badge-summary',
+  'G1レース': 'badge-g1'
+};
+
+const badgeClass = badgeColors[category] || 'badge-default';
+const relativeTime = getRelativeTime(publishedAt);
+const formattedViews = formatViewCount(viewCount);
+---
+
+<article class={`news-card ${isFeatured ? 'featured' : ''}`}>
+  {isFeatured && <div class="featured-ribbon">注目</div>}
+
+  {thumbnail && (
+    <a href={`/news/${slug}/`} class="thumbnail-link">
+      <div class="thumbnail-container">
+        <img
+          src={thumbnail}
+          alt={title}
+          loading="lazy"
+          decoding="async"
+          class="thumbnail-image"
+          width="400"
+          height="225"
+        />
+      </div>
+    </a>
+  )}
+
+  <div class="card-content">
+    <div class="card-header">
+      <span class={`badge ${badgeClass}`}>{category}</span>
+      {tags.map((tag: string) => (
+        <span class="tag">#{tag}</span>
+      ))}
+    </div>
+
+    <a href={`/news/${slug}/`} class="card-link">
+      <h3 class="card-title">{title}</h3>
+    </a>
+
+    <p class="card-excerpt">{excerpt}</p>
+
+    <div class="card-footer">
+      <div class="meta-info">
+        <span class="meta-item">
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {relativeTime}
+        </span>
+        <span class="meta-item">
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          {formattedViews}
+        </span>
+      </div>
+      <a href={`/news/${slug}/`} class="read-more">
+        続きを読む →
+      </a>
+    </div>
+  </div>
+</article>
+
+<style>
+  .news-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px 0 rgba(56, 189, 248, 0.1);
+  }
+
+  /* サムネイル画像 */
+  .thumbnail-link {
+    display: block;
+    text-decoration: none;
+  }
+
+  .thumbnail-container {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 12px 12px 0 0;
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    position: relative;
+  }
+
+  .thumbnail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: block;
+  }
+
+  .thumbnail-link:hover .thumbnail-image {
+    transform: scale(1.05);
+  }
+
+  /* サムネイルがある場合の調整 */
+  .card-content {
+    padding: 1.5rem;
+  }
+
+  .news-card:hover {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 12px 40px 0 rgba(56, 189, 248, 0.2);
+    transform: translateY(-4px);
+  }
+
+  .news-card.featured {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(56, 189, 248, 0.2);
+  }
+
+  .featured-ribbon {
+    position: absolute;
+    top: 15px;
+    right: -35px;
+    background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+    color: white;
+    padding: 5px 40px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    transform: rotate(45deg);
+    box-shadow: 0 4px 8px rgba(56, 189, 248, 0.3);
+  }
+
+  .card-header {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-breaking {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  .badge-news {
+    background: #dbeafe;
+    color: #2563eb;
+  }
+
+  .badge-scandal {
+    background: #fed7aa;
+    color: #ea580c;
+  }
+
+  .badge-ranking {
+    background: #e9d5ff;
+    color: #9333ea;
+  }
+
+  .badge-summary {
+    background: #d1fae5;
+    color: #059669;
+  }
+
+  .badge-g1 {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  .badge-default {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+    background: #f3f4f6;
+    border-radius: 6px;
+  }
+
+  .card-link {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.75rem 0;
+    line-height: 1.4;
+    transition: color 0.2s ease;
+  }
+
+  .card-link:hover .card-title {
+    color: #0ea5e9;
+  }
+
+  .card-excerpt {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 1rem 0;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .meta-info {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: #9ca3af;
+  }
+
+  .icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .read-more {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #38bdf8;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .read-more:hover {
+    color: #0ea5e9;
+  }
+
+  @media (max-width: 640px) {
+    .card-content {
+      padding: 1rem;
+    }
+
+    .card-title {
+      font-size: 1rem;
+    }
+
+    .card-footer {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+  }
+</style>

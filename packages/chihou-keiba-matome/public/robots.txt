@@ -1,0 +1,6 @@
+# chihou-keiba-matome robots.txt
+User-agent: *
+Allow: /
+
+# サイトマップ
+Sitemap: https://chihou.keiba-matome.jp/sitemap.xml

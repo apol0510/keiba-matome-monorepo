@@ -1,0 +1,160 @@
+---
+/**
+ * タイムラインコンポーネント
+ * リアルタイム更新風の表示
+ */
+
+interface TimelineItem {
+  time: string;
+  category: string;
+  title: string;
+  slug: string;
+}
+
+interface Props {
+  items: TimelineItem[];
+}
+
+const { items } = Astro.props;
+
+// カテゴリごとのアイコン
+const categoryIcons: Record<string, string> = {
+  '速報': '🔥',
+  'ニュース': '📰',
+  '炎上': '💥',
+  'ランキング': '📊',
+  'まとめ': '📝',
+  'G1レース': '🏇'
+};
+
+// カテゴリごとのカラー
+const categoryColors: Record<string, string> = {
+  '速報': 'text-red-500',
+  'ニュース': 'text-blue-500',
+  '炎上': 'text-orange-600',
+  'ランキング': 'text-purple-500',
+  'まとめ': 'text-green-500',
+  'G1レース': 'text-yellow-600'
+};
+---
+
+<div class="timeline-container">
+  <h2 class="timeline-header">
+    ⚡ リアルタイム更新
+  </h2>
+
+  <div class="timeline">
+    {items.map(item => {
+      const icon = categoryIcons[item.category] || '📰';
+      const color = categoryColors[item.category] || 'text-gray-500';
+
+      return (
+        <div class="timeline-item">
+          <span class="timeline-time">{item.time}</span>
+          <span class={`timeline-icon ${color}`}>{icon}</span>
+          <a href={`/news/${item.slug}/`} class="timeline-link">
+            <span class="timeline-category">[{item.category}]</span>
+            <span class="timeline-title">{item.title}</span>
+          </a>
+        </div>
+      );
+    })}
+  </div>
+</div>
+
+<style>
+  .timeline-container {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(220, 220, 220, 0.4);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow:
+      0 8px 32px 0 rgba(0, 0, 0, 0.08),
+      inset 0 0 20px rgba(255, 255, 255, 0.7);
+  }
+
+  .timeline-header {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #42a5f5;
+  }
+
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+  }
+
+  .timeline-item:hover {
+    background: rgba(100, 181, 246, 0.1);
+    backdrop-filter: blur(10px);
+  }
+
+  .timeline-time {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-weight: 600;
+    min-width: 50px;
+    font-family: 'Courier New', monospace;
+  }
+
+  .timeline-icon {
+    font-size: 1.25rem;
+  }
+
+  .timeline-link {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .timeline-category {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #42a5f5;
+    white-space: nowrap;
+  }
+
+  .timeline-title {
+    font-size: 0.875rem;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s ease;
+  }
+
+  .timeline-link:hover .timeline-title {
+    color: #42a5f5;
+  }
+
+  @media (max-width: 640px) {
+    .timeline-time {
+      min-width: 40px;
+      font-size: 0.625rem;
+    }
+
+    .timeline-title {
+      font-size: 0.75rem;
+    }
+  }
+</style>

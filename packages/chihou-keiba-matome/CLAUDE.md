@@ -1,0 +1,465 @@
+# chihou-keiba-matome: 地方競馬ニュースまとめ（2ch/5ch風）
+
+## 🚨 プロジェクト識別
+
+**このプロジェクト**: chihou-keiba-matome (地方競馬ニュースまとめ)
+**作業ディレクトリ**: `/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/chihou-keiba-matome/`
+**リポジトリ**: https://github.com/apol0510/chihou-keiba-matome
+**サブドメイン**: https://chihou.keiba-matome.jp
+
+---
+
+## 🏗️ monorepo構成（重要）
+
+**⚠️ 現在の状態**: 独立リポジトリ（monorepo化未実施）
+
+**理想の状態（To-Be）**:
+```
+keiba-matome-monorepo/              ← 2ch風まとめ専用monorepo
+├── packages/
+│   ├── shared/                    ← 共通ライブラリ
+│   │   └── scripts/
+│   │       └── generate-2ch-comments.cjs
+│   ├── keiba-matome/             ← 兄弟プロジェクト（中央競馬）
+│   └── chihou-keiba-matome/      ← このプロジェクト（地方競馬）
+└── package.json (workspaces)
+```
+
+**review-platform-monorepoとの関係**:
+- ❌ **完全に独立**
+- ❌ **共有コードなし**
+- ❌ **統合しない**
+- 理由: 口コミサイトと2ch風まとめサイトは目的が全く異なるため
+
+**Claudeへの指示（必読）**:
+- [ ] このプロジェクトは将来 keiba-matome-monorepo に統合予定
+- [ ] keiba-matome（中央競馬）と共有コードがある（コメント生成、スクレイピング）
+- [ ] コメント生成の改善は両プロジェクトに適用すること
+- [ ] review-platform-monorepo とは完全に独立
+
+**作成の経緯**: keiba-matomeをベースに作成（2025-12-20）
+
+---
+
+## プロジェクト概要
+
+**地方競馬ニュースまとめサイト - 4つのニュースソースに2ch/5ch風コメントを追加**
+
+### コンセプト
+
+**ニュース元**: netkeiba地方競馬、スポーツ報知、スポニチ、Yahoo!ニュース
+**独自要素**: 2ch/5ch風の匿名コメント・まとめ（AI生成）
+**デザイン**: 掲示板風のレイアウト（薄黄色背景、オレンジアクセント）
+
+### 対象範囲
+
+- **南関東4競馬**: 大井・船橋・川崎・浦和
+- **全国地方競馬**: 門別、盛岡、水沢、金沢など
+
+### コンテンツ構成
+
+1. **ニュース引用**
+   - 元記事のタイトル・要約
+   - 引用元URL
+   - 公開日時
+
+2. **2ch/5ch風コメント（AI生成）**
+   - 匿名ユーザーのコメント（Claude API生成）
+   - レス番号、匿名ID、投稿時間
+   - 「>>1」などのアンカー
+   - 15-35件/記事（ランダム）
+   - **地方競馬特有の用語**:
+     - 「南関」「TCK」「ナイター」「トゥインクル」
+     - 「大井の穴党」「川崎の鉄板」「船橋の逃げ馬」
+     - 「東京大賞典」「川崎記念」「帝王賞」「ジャパンダートダービー」
+
+### 他プロジェクトとの関係
+
+| 項目 | keiba-matome (中央) | chihou-keiba-matome (地方) |
+|------|---------------------|---------------------------|
+| 対象 | 中央競馬 | 地方競馬（南関東+全国） |
+| Airtable Base | appdHJSC4F9pTIoDj | appt25zmKxQDiSCwh |
+| ドメイン | keiba-matome.jp | chihou.keiba-matome.jp |
+| ポート | 4323 | 4324 |
+| 記事数/回 | 3件 | 17件（netkeiba 5 + 他各4） |
+
+**相互リンク**:
+- chihou → 中央競馬版へのリンク（ヘッダー）
+- 中央 → 地方競馬版へのリンク（サイドバー）
+
+---
+
+## 技術スタック
+
+- **フロントエンド**: Astro 5.x
+- **スタイリング**: インラインCSS（2ch風デザイン）
+- **データベース**: Airtable（Newsテーブル + Commentsテーブル）
+- **スクレイピング**: Puppeteer（netkeiba、hochi、sponichi、yahoo）
+- **コメント生成**: Anthropic Claude Sonnet 4.5（2ch風コメント自動生成）
+- **ホスティング**: Netlify
+- **ポート**: 4324（開発サーバー）
+
+---
+
+## 主要コマンド
+
+```bash
+# 開発サーバー起動
+npm run dev
+
+# ビルド
+npm run build
+
+# ニュース取得（手動）
+AIRTABLE_API_KEY="xxx" AIRTABLE_BASE_ID="xxx" npm run scrape:netkeiba  # 5件
+npm run scrape:hochi      # 4件
+npm run scrape:sponichi   # 4件
+npm run scrape:yahoo      # 4件
+
+# コメント自動生成（手動）
+ANTHROPIC_API_KEY="xxx" AIRTABLE_API_KEY="xxx" AIRTABLE_BASE_ID="xxx" npm run generate:comments
+```
+
+---
+
+## 環境変数
+
+```bash
+# Airtable（必須）
+AIRTABLE_API_KEY=pat***
+AIRTABLE_BASE_ID=appt25zmKxQDiSCwh
+AIRTABLE_NEWS_TABLE_ID=tblzB1TSKca0Hq81d
+AIRTABLE_COMMENTS_TABLE_ID=tblq8mMckpcuFvbf2
+
+# Claude API（コメント生成）
+ANTHROPIC_API_KEY=sk-ant-api03-***
+
+# サイト情報
+SITE_URL=https://chihou.keiba-matome.jp
+```
+
+**GitHub Secrets（設定済み）:**
+- AIRTABLE_API_KEY
+- AIRTABLE_BASE_ID
+- ANTHROPIC_API_KEY
+- NETLIFY_BUILD_HOOK（後で追加）
+
+---
+
+## データベース（Airtable）
+
+### chihou-keiba-matome専用ベース
+
+- **Base ID**: appt25zmKxQDiSCwh
+- **Base名**: 地方競馬ニュースまとめ
+
+### Newsテーブル (tblzB1TSKca0Hq81d)
+
+| フィールド名 | タイプ | 説明 |
+|-------------|--------|------|
+| Title | Single line text | スレタイ風タイトル（例: 【速報】...） |
+| Slug | Single line text | URLスラッグ（日本語） |
+| SourceTitle | Single line text | 元記事タイトル |
+| SourceURL | URL | 引用元URL |
+| SourceSite | Single select | 引用元（netkeiba-chihou/hochi/sponichi/yahoo） |
+| Summary | Long text | 記事要約 |
+| Category | Single select | カテゴリ（速報/炎上/まとめ/ランキング） |
+| Tags | Multiple select | タグ（大井競馬/船橋競馬/川崎競馬/浦和競馬/南関東/地方競馬/予想サイト/詐欺/炎上） |
+| Status | Single select | ステータス（published/draft） |
+| ViewCount | Number | 閲覧数 |
+| CommentCount | Number | コメント数 |
+| PublishedAt | Date | 公開日時 |
+
+### Commentsテーブル (tblq8mMckpcuFvbf2)
+
+| フィールド名 | タイプ | 説明 |
+|-------------|--------|------|
+| NewsID | Link to News | 関連ニュース |
+| Number | Number | コメント番号 |
+| Content | Long text | コメント本文 |
+| UserID | Single line text | 匿名ID（例: ID:abc123） |
+| IsOP | Checkbox | スレ主フラグ（常にfalse） |
+
+**現在のデータ数（2025-12-20）:**
+- News: 2件（published）
+- Comments: 65件（AI生成コメント）
+
+---
+
+## 完全自動化システム
+
+### GitHub Actions（完全放置運営）
+
+#### 記事取得+コメント生成（daily-news.yml）
+- **頻度**: 1日3回（6AM, 12PM, 6PM JST）
+- **処理内容**:
+  1. netkeibaから記事スクレイピング（5件）
+  2. hochi、sponichi、yahooから記事取得（各4件）
+  3. 各記事に2ch風コメント生成（15-35件/記事）
+  4. Netlify自動デプロイ
+
+**記事数シミュレーション:**
+- 1回あたり: netkeiba 5件 + hochi 4件 + sponichi 4件 + yahoo 4件 = 17件
+- 1日3回: 17件 × 3 = 51件
+- 月間: 51件 × 30日 = 1,530件（重複除く、実際は180-230記事程度）
+
+---
+
+## スクレイピング対象サイト
+
+1. **netkeiba地方競馬**（メインソース）
+   - `https://nar.netkeiba.com/top/news_list.html`
+   - 5件/回
+
+2. **スポーツ報知**
+   - `https://hochi.news/tag/%E5%9C%B0%E6%96%B9%E7%AB%B6%E9%A6%AC`
+   - 4件/回
+
+3. **スポニチ**
+   - `https://www.sponichi.co.jp/gamble/tokusyu/nar2021/`
+   - 4件/回
+
+4. **Yahoo!ニュース**
+   - `https://news.yahoo.co.jp/search?p=%E5%9C%B0%E6%96%B9%E7%AB%B6%E9%A6%AC`
+   - 4件/回
+
+---
+
+**現在のデータ数（2025-12-20）:**
+- News: 2件（published）
+- Comments: 66件（AI生成コメント）
+  - 川崎競馬記事: 34件
+  - 大井競馬記事: 32件
+
+---
+
+## 作業履歴
+
+### 2025-12-20
+
+1. ✅ **プロジェクト作成**
+   - keiba-matomeをベースにrsyncでコピー
+   - package.json更新（chihou-keiba-matome、ポート4324）
+   - astro.config.mjs更新（chihou.keiba-matome.jp）
+   - .env更新（Airtable Base ID: appt25zmKxQDiSCwh）
+   - 開発サーバー起動成功（http://localhost:4324/）
+
+2. ✅ **Airtable設定**
+   - Newsテーブル: 全フィールド設定完了
+   - Commentsテーブル: 全フィールド設定完了
+   - API Key更新（patCIn4iIx274YQZB...）
+
+3. ✅ **スクレイピング機能実装**
+   - 4つのスクレイピングスクリプト作成
+     - scrape-netkeiba-chihou.cjs（5件/回）
+     - scrape-hochi-chihou.cjs（4件/回）
+     - scrape-sponichi-chihou.cjs（4件/回）
+     - scrape-yahoo-chihou.cjs（4件/回）
+   - 地方競馬特化のカテゴリ判定・タグ判定
+   - モックデータフォールバック機能
+
+4. ✅ **コメント生成機能実装**
+   - generate-2ch-comments.cjs作成
+   - add-comments-to-published.cjs作成
+   - Claude Sonnet 4.5統合
+   - 地方競馬特有の用語対応
+
+5. ✅ **動作確認**
+   - 2件の記事作成成功
+   - 66件のコメント生成成功
+   - Comments table field test成功
+
+6. ✅ **GitHubリポジトリ作成**
+   - https://github.com/apol0510/chihou-keiba-matome
+   - 初回コミット・プッシュ完了
+   - GitHub Secrets設定完了（4つ）
+     - AIRTABLE_API_KEY
+     - AIRTABLE_BASE_ID
+     - ANTHROPIC_API_KEY
+     - NETLIFY_BUILD_HOOK
+
+7. ✅ **Netlifyデプロイ完了**
+   - プロジェクト名: chihou-keiba-matome
+   - カスタムドメイン: https://chihou.keiba-matome.jp
+   - デフォルトURL: https://chihou-keiba-matome.netlify.app
+   - 環境変数設定完了
+   - Build Hook設定完了
+
+8. ✅ **DNS設定完了**
+   - Cloudflare CNAME追加: chihou → chihou-keiba-matome.netlify.app
+   - DNS Proxy: OFF（グレー雲マーク）
+
+9. ✅ **初回デプロイ成功**
+   - サイト表示確認
+   - 2件の記事＋66件のコメント表示確認
+   - 2ch風デザイン適用確認
+
+10. ✅ **GitHub Actions初回実行成功（2025-12-21）**
+   - Ubuntu 24.04対応（libasound2 → libasound2t64）
+   - 4ソースからの記事スクレイピング成功
+   - 2ch風コメント自動生成成功
+   - Netlify自動デプロイ成功
+   - 完全自動化システム稼働開始
+
+11. ✅ **Slug長問題修正**
+   - 全スクレイピングスクリプトで50文字制限追加
+   - 既存3件の長いSlug修正（111-136文字 → 50文字）
+   - 404エラー解消
+
+12. ✅ **Google Analytics & Search Console設定完了**
+   - Google Analytics: G-HMBYF1PJ5K
+   - Google Tag: GT-5N2BB8LW
+   - Search Console: HTMLファイル認証完了（google89654457531021bb.html）
+   - robots.txt修正: サイトマップURL更新（chihou.keiba-matome.jp）
+   - 旧認証メタタグ削除
+
+13. ✅ **SEO対策完了（2025-12-21）**
+   - **サイトマップ**: https://chihou.keiba-matome.jp/sitemap.xml
+   - **Google Search Console**: 登録完了、サイトマップ送信済み
+   - **robots.txt**: サイトマップURL記載済み
+   - **XMLサイトマップ自動生成**: src/pages/sitemap.xml.ts実装済み
+   - **インデックス状況**: 数日〜数週間でGoogle検索に表示予定
+
+14. ✅ **Netlify設定整理（2025-12-21）**
+   - 重複プロジェクト `lucky-dusk-60500a` 削除完了
+   - `chihou-keiba-matome` プロジェクトに統一
+   - netlify.toml修正: chihou.keiba-matome.jp へのリダイレクト設定
+   - 不要なドメイン参照削除
+
+---
+
+## 運用開始
+
+✅ **完全自動化運用開始（2025-12-21）**
+- 1日3回（6AM, 12PM, 6PM JST）自動記事取得＆コメント生成
+- 4ソース × 17件/回 = 51件/日（重複除く）
+- 月間想定: 180-230記事
+- すべてのシステムが正常稼働中
+
+---
+
+## 作業履歴
+
+### 2025-12-21（午前）
+
+1. ✅ **タイトル・要約の長さ最適化（全4スクレイピングスクリプト）**
+   - **問題**:
+     - SourceTitleに「スポニチアネックス競馬12/21(土) 14:30」などのメディア名+日時が含まれる
+     - Summaryが長すぎてリスト表示が見づらい
+
+   - **実装内容（全スクリプト共通）**:
+     - `cleanTitle()` 関数追加:
+       - メディア名削除（スポニチアネックス、netkeiba、スポーツ報知、Yahoo!ニュースなど）
+       - 日時情報削除（競馬12/21(土) 14:30 など）
+       - 末尾の三点リーダー削除
+       - **タイトル: 50文字前後に調整**（60文字超の場合は50文字+...）
+
+     - Summary最適化:
+       - **要約: 150文字前後に調整**（160文字超の場合は150文字+...）
+
+     - 記事保存時の変更:
+       ```javascript
+       // タイトルをクリーンアップ（50文字前後）
+       const cleanedTitle = cleanTitle(article.sourceTitle);
+       const slug = generateSlug(cleanedTitle);
+       const title = generate2chTitle(cleanedTitle, article.category);
+
+       // Summaryを150文字前後に調整
+       let summary = article.summary || cleanedTitle;
+       if (summary.length > 160) {
+         summary = summary.substring(0, 150) + '...';
+       }
+
+       // Airtableに保存
+       SourceTitle: cleanedTitle,  // クリーンアップ済み
+       Summary: summary,           // 150文字前後
+       ```
+
+   - **修正したファイル**:
+     - `scripts/scrape-netkeiba-chihou.cjs` ✅
+     - `scripts/scrape-hochi-chihou.cjs` ✅
+     - `scripts/scrape-sponichi-chihou.cjs` ✅
+     - `scripts/scrape-yahoo-chihou.cjs` ✅
+
+   - **効果**:
+     - トップページのリスト表示が見やすくなる
+     - Slugが意味のある日本語になる（不正Slug問題の根本解決）
+     - 詳細ページのタイトルも簡潔に
+
+2. ✅ **同一ネタの優先順位制御（GitHub Actions実行順序変更）**
+   - **要件**: 同じネタが複数メディアにある場合、以下の優先順位で保存
+     1. netkeiba（最優先）
+     2. Yahoo!ニュース（優先度2）
+     3. hochi（優先度3）
+     4. sponichi（優先度4）
+
+   - **実装方法**:
+     - `.github/workflows/daily-news.yml` の実行順序を変更
+     - GitHub Actionsのステップは順次実行されるため、実行順序で優先順位を実現
+     - 各スクリプトは既にSlugベースの重複チェック機能を持っている
+
+   - **変更内容**:
+     ```yaml
+     - name: 1️⃣ Scrape netkeiba（最優先 - 5 articles）
+     - name: 2️⃣ Scrape Yahoo!ニュース（優先度2 - 4 articles）
+     - name: 3️⃣ Scrape Hochi（優先度3 - 4 articles）
+     - name: 4️⃣ Scrape Sponichi（優先度4 - 4 articles）
+     ```
+
+   - **動作例**:
+     | メディア | 実行順序 | 結果 |
+     |---------|---------|------|
+     | netkeiba | 1番目 | ✅ 保存される（Slug: `川崎記念の出走予定馬が発表`） |
+     | Yahoo | 2番目 | ⏭️ スキップ（同じSlug） |
+     | Hochi | 3番目 | ⏭️ スキップ（同じSlug） |
+     | Sponichi | 4番目 | ⏭️ スキップ（同じSlug） |
+
+   - **効果**:
+     - 信頼性の高いメディア（netkeiba）を優先
+     - 重複記事を自動で排除
+     - データ品質の向上
+
+3. ✅ **相互リンク強化（記事詳細ページCTAバナー追加）**
+   - **追加場所**: コメント投稿フォームの直前
+   - **デザイン**: グラデーション背景（#fffbea → #fff3cd）、2px オレンジボーダー
+   - **リンク先**:
+     - 🏇 中央競馬ニュースまとめ（keiba-matome.jp）
+     - ⭐ 競馬予想サイト口コミ評価（keiba-review.jp）
+   - **効果**:
+     - 内部リンク強化（SEO効果）
+     - トラフィック相互流入
+     - ユーザーエンゲージメント向上
+
+4. ✅ **コメント生成改善（地方競馬特化・大幅強化）**
+   - **地方競馬用語追加**:
+     - 南関東4競馬場の特徴（「TCK（大井）は穴が出る」「川崎は鉄板」「船橋の逃げ馬は信頼できる」「浦和は荒れる」）
+     - 地方G1・重賞（東京大賞典、川崎記念、帝王賞、ジャパンダートダービー、トゥインクルレース、羽田盃、黒潮盃）
+     - 地方競馬あるある（「ナイター競馬は仕事帰りに最高」「平日の南関は穴狙い」「地方は人気薄が来やすい」「南関のオッズは中央より素直」「TCKは金曜ナイターが熱い」）
+     - 競馬場ネタ（「大井のメガイルミ見ながら競馬最高」「川崎のもつ煮美味いよな」「船橋は坂がきつい」「浦和は馬場が重い」）
+
+   - **話題の自然な脱線**:
+     - 例: 記事の話 → 予想の話 → 競馬場のグルメの話
+     - 2chスレッドの自然な流れを再現
+
+   - **予想サイトへの導線拡充**（5パターン → 7パターン）:
+     - 「TCK特化の予想サイトあったら教えてくれ」
+     - 「地方競馬の情報サイトでオススメある？」
+
+   - **効果**:
+     - 地方競馬ファンのリアルな会話を再現
+     - コメントの多様性・リアリティ向上
+     - 自然な予想サイトへの導線
+
+---
+
+## 次のステップ
+
+1. **モニタリング** - 1週間の自動運用確認
+2. **SEO最適化** - サイトマップ送信、インデックス状況確認
+3. **中央競馬版との相互リンク強化** - keiba-matome.jpとの連携
+
+---
+
+## 参照ドキュメント
+
+- keiba-matome CLAUDE.md: `../keiba-matome/CLAUDE.md` （参照のみ）

@@ -1,0 +1,233 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+}
+
+const {
+  title,
+  description = '競馬ニュースまとめ - netkeiba/Yahoo!ニュースに2ch/5ch風コメント',
+  ogImage = '/og/default.png',
+} = Astro.props;
+
+const siteTitle = '競馬ニュースまとめ';
+const fullTitle = title === 'トップ' ? siteTitle : `${title} | ${siteTitle}`;
+const siteUrl = import.meta.env.SITE_URL || 'https://keiba-matome.jp';
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl);
+const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- モバイル最適化 -->
+    <meta name="theme-color" content="#ea8b00" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- リソースヒント（パフォーマンス向上） -->
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+
+    <!-- Google Search Console 認証 -->
+    <meta name="google-site-verification" content="eltW9iJZ4uV7v4LHvlZtC7BJDGJYkFBtJ6GOcWThQLc" />
+
+    <!-- OGP -->
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:site_name" content={siteTitle} />
+    <meta property="og:locale" content="ja_JP" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
+    <!-- Canonical -->
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-HMBYF1PJ5K"></script>
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-HMBYF1PJ5K');
+    </script>
+
+    <!-- Cloudflare Turnstile CAPTCHA -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+    <title>{fullTitle}</title>
+    <slot name="head" />
+
+    <!-- フォント最適化 -->
+    <style>
+      /* システムフォント優先（高速化） */
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Yu Gothic', 'Hiragino Sans', sans-serif;
+      }
+    </style>
+
+    <!-- レスポンシブ対応CSS -->
+    <style>
+      /* モバイルファースト: デフォルトはスマホ向け */
+      .header-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+
+      .header-nav {
+        display: flex;
+        gap: 12px;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+
+      .main-container {
+        max-width: 1000px;
+        margin: 8px auto;
+        padding: 0 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .main-content {
+        width: 100%;
+      }
+
+      .sidebar {
+        width: 100%;
+        order: 2;
+      }
+
+      /* タブレット以上: サイドバーを右側に配置 */
+      @media (min-width: 768px) {
+        .main-container {
+          flex-direction: row;
+          margin: 16px auto;
+        }
+
+        .main-content {
+          flex: 1;
+        }
+
+        .sidebar {
+          width: 280px;
+          flex-shrink: 0;
+          order: 0;
+        }
+
+        .header-nav {
+          font-size: 13px;
+          gap: 16px;
+          margin-top: 0;
+        }
+      }
+    </style>
+  </head>
+  <body style="background-color: #ffffee; color: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Yu Gothic', 'Hiragino Sans', sans-serif; margin: 0; padding: 0;">
+    <!-- 2ch風ヘッダー -->
+    <div style="background-color: #ea8b00; color: #fff; padding: 8px 16px; border-bottom: 2px solid #000;">
+      <div class="header-container">
+        <a href="/" style="color: #fff; text-decoration: none; font-size: 16px; font-weight: bold;">
+          競馬ニュースまとめ
+        </a>
+        <nav class="header-nav">
+          <a href="/" style="color: #fff; text-decoration: none;">板一覧</a>
+          <a href="/about/" style="color: #fff; text-decoration: none;">READ.ME</a>
+          <a href="/contact/" style="color: #fff; text-decoration: none;">お問い合わせ</a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-container">
+      <!-- メインコンテンツ -->
+      <div class="main-content">
+        <slot />
+      </div>
+
+      <!-- サイドバー（関連サイト） -->
+      <div class="sidebar">
+        <!-- 関連サイト -->
+        <div style="background-color: #e6e6dc; border: 1px solid #999; padding: 12px; margin-bottom: 16px;">
+          <h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: bold; border-bottom: 2px solid #ea8b00; padding-bottom: 4px;">
+            🔗 関連サイト
+          </h3>
+          <div style="font-size: 12px; line-height: 1.8;">
+            <div style="margin-bottom: 12px; padding: 8px; background-color: #fff; border: 1px solid #ddd;">
+              <a href="https://chihou.keiba-matome.jp/" target="_blank" rel="noopener" style="color: #0000ff; text-decoration: none; font-weight: bold; display: block; margin-bottom: 4px;">
+                🏇 地方競馬ニュースまとめ
+              </a>
+              <p style="margin: 0; color: #666; font-size: 11px;">南関東4競馬・全国地方競馬</p>
+            </div>
+            <div style="margin-bottom: 12px; padding: 8px; background-color: #fff; border: 1px solid #ddd;">
+              <a href="https://keiba-review.jp/" target="_blank" rel="noopener" style="color: #0000ff; text-decoration: none; font-weight: bold; display: block; margin-bottom: 4px;">
+                ⭐ 競馬予想サイト口コミ評価
+              </a>
+              <p style="margin: 0; color: #666; font-size: 11px;">500サイト以上の評判・口コミ</p>
+            </div>
+            <div style="margin-bottom: 12px; padding: 8px; background-color: #fff; border: 1px solid #ddd;">
+              <a href="https://keiba-b.netlify.app/" target="_blank" rel="noopener" style="color: #0000ff; text-decoration: none; font-weight: bold; display: block; margin-bottom: 4px;">
+                📰 競馬ニュース速報
+              </a>
+              <p style="margin: 0; color: #666; font-size: 11px;">最新情報をAIでまとめ</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTA: 予想サイト診断 -->
+        <div style="background-color: #fff3cd; border: 2px solid #ea8b00; padding: 12px; margin-bottom: 16px; text-align: center;">
+          <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: bold; color: #ea8b00;">
+            🏇 無料診断
+          </p>
+          <p style="margin: 0 0 10px 0; font-size: 11px; color: #666; line-height: 1.5;">
+            あなたに合った競馬予想サイトを500サイトから厳選
+          </p>
+          <a href="https://keiba-review.jp/"
+             target="_blank"
+             rel="noopener"
+             style="display: inline-block; padding: 8px 16px; background-color: #ea8b00; color: #fff; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 12px;">
+            診断する →
+          </a>
+        </div>
+
+        <!-- 注意書き -->
+        <div style="background-color: #fff; border: 1px solid #ddd; padding: 10px; font-size: 10px; color: #999; line-height: 1.6;">
+          <p style="margin: 0 0 6px 0; font-weight: bold; color: #666;">⚠️ 広告について</p>
+          <p style="margin: 0;">当サイトは口コミサイトやニュースサイトへのリンクを含みますが、すべて無料でご利用いただけます。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color: #e6e6dc; border-top: 1px solid #999; margin-top: 32px; padding: 16px; text-align: center; font-size: 11px; color: #666;">
+      <p style="margin: 4px 0;">© {new Date().getFullYear()} 競馬ニュースまとめ</p>
+      <p style="margin: 4px 0;">掲示板利用規約を守って、楽しくご利用ください。</p>
+    </div>
+  </body>
+</html>

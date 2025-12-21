@@ -1,0 +1,50 @@
+[build]
+  command = "npm install && npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+
+# 静的ファイルのキャッシュ（1年間）
+[[headers]]
+  for = "/screenshots/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/_astro/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# HTMLのキャッシュ（1時間、CDNで1日）
+[[headers]]
+  for = "/keiba-yosou/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+    
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, must-revalidate"
+
+# netlify.appドメインから独自ドメインへリダイレクト（SEO対策）
+[[redirects]]
+  from = "/*"
+  to = "https://chihou.keiba-matome.jp/:splat"
+  status = 301
+  force = true
+  conditions = { Host = ["chihou-keiba-matome.netlify.app"] }
+
+# 不正Slug（数字・記号のみ）を404にリダイレクト
+# 注意: 日本語Slugは正常なのでリダイレクトしない
+[[redirects]]
+  from = "/news/*-*-*"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/news/*-*"
+  to = "/404"
+  status = 404
+  force = true

@@ -1,0 +1,227 @@
+/**
+ * X (Twitter) テスト投稿スクリプト（1件のみ）
+ */
+
+require('dotenv').config();
+
+const Airtable = require('airtable');
+const { TwitterApi } = require('twitter-api-v2');
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
+
+// 環境変数チェック
+const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
+const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
+
+const requiredEnvVars = [
+  { name: 'AIRTABLE_API_KEY', value: AIRTABLE_API_KEY },
+  { name: 'AIRTABLE_BASE_ID', value: AIRTABLE_BASE_ID },
+  { name: 'X_API_KEY', value: process.env.X_API_KEY },
+  { name: 'X_API_SECRET', value: process.env.X_API_SECRET },
+  { name: 'X_ACCESS_TOKEN', value: process.env.X_ACCESS_TOKEN },
+  { name: 'X_ACCESS_SECRET', value: process.env.X_ACCESS_SECRET }
+];
+
+for (const { name, value } of requiredEnvVars) {
+  if (!value) {
+    console.error(`❌ エラー: 環境変数 ${name} が設定されていません`);
+    process.exit(1);
+  }
+}
+
+// デバッグ: 認証情報の先頭と末尾を表示（セキュリティのため一部のみ）
+console.log('\n🔍 認証情報チェック:');
+console.log(`X_API_KEY: ${process.env.X_API_KEY?.substring(0, 5)}...${process.env.X_API_KEY?.substring(process.env.X_API_KEY.length - 3)}`);
+console.log(`X_API_SECRET: ${process.env.X_API_SECRET?.substring(0, 5)}...${process.env.X_API_SECRET?.substring(process.env.X_API_SECRET.length - 3)}`);
+console.log(`X_ACCESS_TOKEN: ${process.env.X_ACCESS_TOKEN?.substring(0, 10)}...${process.env.X_ACCESS_TOKEN?.substring(process.env.X_ACCESS_TOKEN.length - 3)}`);
+console.log(`X_ACCESS_SECRET: ${process.env.X_ACCESS_SECRET?.substring(0, 5)}...${process.env.X_ACCESS_SECRET?.substring(process.env.X_ACCESS_SECRET.length - 3)}\n`)
+
+// Airtable設定
+const base = new Airtable({ apiKey: AIRTABLE_API_KEY })
+  .base(AIRTABLE_BASE_ID);
+
+// X API クライアント（OAuth 1.0a User Context）
+// OAuth 1.0a with Read and write permissions enables posting directly
+const twitterClient = new TwitterApi({
+  appKey: process.env.X_API_KEY,
+  appSecret: process.env.X_API_SECRET,
+  accessToken: process.env.X_ACCESS_TOKEN,
+  accessSecret: process.env.X_ACCESS_SECRET,
+});
+
+const SITE_URL = process.env.SITE_URL || 'https://keiba-matome.jp';
+
+/**
+ * 投稿テキスト生成
+ */
+function generateTweetText(news) {
+  const title = news.Title || news.SourceTitle;
+  const slug = news.Slug;
+
+  // SlugがURLエンコードされている場合は、そのまま使用
+  // されていない場合は、エンコード（念のため）
+  const encodedSlug = slug.includes('%') ? slug : encodeURIComponent(slug);
+  const url = `${SITE_URL}/news/${encodedSlug}/`;
+
+  // カテゴリに応じた絵文字
+  const categoryEmoji = {
+    '速報': '🚨',
+    '炎上': '🔥',
+    'まとめ': '📋',
+    'ランキング': '📊',
+    '質問': '❓',
+    '議論': '💬',
+    '予想': '🎯'
+  };
+  const emoji = categoryEmoji[news.Category] || '🐴';
+
+  // ハッシュタグ
+  const hashtags = ['#競馬'];
+  if (news.Tags && news.Tags.length > 0) {
+    news.Tags.slice(0, 2).forEach(tag => {
+      hashtags.push(`#${tag}`);
+    });
+  }
+
+  // ツイート本文作成（280文字制限）
+  // XのURL文字数カウント: URLは長さに関わらず23文字としてカウントされる
+  const URL_CHAR_COUNT = 23;
+
+  // 固定部分の文字数を計算（URLは23文字としてカウント）
+  const fixedPartsLength =
+    emoji.length +           // 絵文字（通常2文字）
+    1 +                      // スペース
+    2 +                      // \n\n
+    9 +                      // 👉 詳細はこちら
+    1 +                      // \n
+    URL_CHAR_COUNT +         // URL（23文字固定）
+    2 +                      // \n\n
+    hashtags.join(' ').length; // ハッシュタグ
+
+  const maxTitleLength = 280 - fixedPartsLength;
+
+  // タイトルを短縮
+  let displayTitle = title;
+  if (title.length > maxTitleLength) {
+    displayTitle = title.substring(0, maxTitleLength - 3) + '...';
+  }
+
+  return `${emoji} ${displayTitle}\n\n👉 詳細はこちら\n${url}\n\n${hashtags.join(' ')}`;
+}
+
+/**
+ * 画像をダウンロード
+ */
+async function downloadImage(url, filepath) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(filepath);
+    https.get(url, (response) => {
+      response.pipe(file);
+      file.on('finish', () => {
+        file.close();
+        resolve(filepath);
+      });
+    }).on('error', (err) => {
+      fs.unlink(filepath, () => {});
+      reject(err);
+    });
+  });
+}
+
+/**
+ * メイン処理（テスト用 - 1件のみ投稿）
+ */
+async function main() {
+  console.log('🧪 X自動投稿テスト開始（1件のみ）\n');
+
+  try {
+    // TweetID未設定の最新記事を1件取得
+    const records = await base('News')
+      .select({
+        filterByFormula: "AND({Status} = 'published', {TweetID} = '')",
+        sort: [{ field: 'PublishedAt', direction: 'desc' }],
+        maxRecords: 1
+      })
+      .all();
+
+    if (records.length === 0) {
+      console.log('ℹ️ 投稿する記事がありません');
+      return;
+    }
+
+    const record = records[0];
+    const news = {
+      id: record.id,
+      Title: record.get('Title'),
+      SourceTitle: record.get('SourceTitle'),
+      Slug: record.get('Slug'),
+      Category: record.get('Category'),
+      Tags: record.get('Tags'),
+      PublishedAt: record.get('PublishedAt')
+    };
+
+    console.log(`📰 記事: ${news.Title}\n`);
+
+    // ツイート内容を生成
+    const tweetText = generateTweetText(news);
+    console.log(`📝 投稿内容:\n${tweetText}\n`);
+    console.log(`📊 文字数: ${tweetText.length}/280\n`);
+
+    // 確認
+    console.log('⚠️  この内容でXに投稿します（画像付き）...');
+
+    // OG画像をダウンロード
+    const imageUrl = `${SITE_URL}/og/default.png`;
+    const tempImagePath = path.join('/tmp', 'og-image-test.png');
+
+    console.log(`📥 画像をダウンロード中: ${imageUrl}`);
+    await downloadImage(imageUrl, tempImagePath);
+
+    // 画像をアップロード
+    console.log(`📤 画像をXにアップロード中...`);
+    const mediaId = await twitterClient.v1.uploadMedia(tempImagePath);
+
+    // Xに投稿（画像付き）
+    const tweet = await twitterClient.v2.tweet(tweetText, {
+      media: { media_ids: [mediaId] }
+    });
+
+    // 一時ファイルを削除
+    fs.unlinkSync(tempImagePath);
+
+    console.log(`\n✅ Xに投稿成功！`);
+    console.log(`🔗 ツイートURL: https://twitter.com/user/status/${tweet.data.id}`);
+    console.log(`🆔 ツイートID: ${tweet.data.id}`);
+
+    // AirtableにTweetIDを保存
+    try {
+      const now = new Date().toISOString();
+      await base('News').update(news.id, {
+        TweetID: tweet.data.id,
+        TweetedAt: now,
+        PublishedAt: now  // 公開日時をX投稿時刻に更新
+      });
+      console.log(`✅ AirtableにTweetIDを保存しました`);
+    } catch (error) {
+      console.error('⚠️  Airtable更新エラー（投稿は成功しています）:', error.message);
+    }
+
+    console.log('\n✅ テスト投稿完了！');
+
+  } catch (error) {
+    console.error('\n❌ エラー:', error);
+    if (error.code === 429) {
+      console.error('⚠️  レート制限に達しました。しばらく待ってから再試行してください。');
+    } else if (error.code === 403) {
+      console.error('⚠️  認証エラー。API認証情報を確認してください。');
+    }
+    process.exit(1);
+  }
+}
+
+// スクリプト実行
+main().catch(error => {
+  console.error('❌ スクリプト実行エラー:', error);
+  process.exit(1);
+});

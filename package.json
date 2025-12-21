@@ -1,0 +1,26 @@
+{
+  "name": "keiba-matome-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "2ch風競馬ニュースまとめサイト monorepo",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:keiba-matome": "npm run dev --workspace=packages/keiba-matome",
+    "dev:chihou": "npm run dev --workspace=packages/chihou-keiba-matome",
+    "build:keiba-matome": "npm run build --workspace=packages/keiba-matome",
+    "build:chihou": "npm run build --workspace=packages/chihou-keiba-matome",
+    "build:all": "npm run build --workspaces",
+    "scrape:all": "npm run scrape --workspaces",
+    "generate-comments:all": "npm run generate-comments --workspaces"
+  },
+  "keywords": [
+    "keiba",
+    "2ch",
+    "news",
+    "monorepo"
+  ],
+  "author": "",
+  "license": "MIT"
+}
