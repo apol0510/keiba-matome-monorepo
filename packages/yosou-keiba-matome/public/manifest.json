@@ -1,0 +1,21 @@
+{
+  "name": "競馬ニュースまとめ",
+  "short_name": "競馬まとめ",
+  "description": "netkeiba、Yahoo!ニュースなどの競馬関連ニュースを2ch/5ch風にまとめています。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffee",
+  "theme_color": "#ea8b00",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/og/default.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["news", "sports"],
+  "lang": "ja",
+  "dir": "ltr"
+}

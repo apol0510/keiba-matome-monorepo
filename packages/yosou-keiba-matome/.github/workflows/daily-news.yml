@@ -1,0 +1,110 @@
+name: Daily News Generation (2ch Style)
+
+on:
+  schedule:
+    # 毎日 AM 6:00, 12:00, 18:00 JST（UTC 21:00, 3:00, 9:00）に実行
+    - cron: '0 21 * * *'  # AM 6:00 JST
+    - cron: '0 3 * * *'   # PM 12:00 JST
+    - cron: '0 9 * * *'   # PM 18:00 JST
+  workflow_dispatch:
+    inputs:
+      article_count:
+        description: 'スクレイピングする記事数'
+        required: false
+        default: '3'
+        type: string
+
+jobs:
+  generate-2ch-news:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Fix invalid slugs (draft old articles)
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+        run: node scripts/fix-invalid-slugs.cjs
+
+      - name: Scrape netkeiba news
+        env:
+          ARTICLE_COUNT: ${{ github.event.inputs.article_count || '3' }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+        run: node scripts/scrape-netkeiba-news.cjs
+
+      - name: Generate 2ch-style comments
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+        run: node scripts/generate-2ch-comments.cjs
+
+      - name: Add comments to existing articles
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+        run: node scripts/add-comments-to-existing.cjs
+
+      - name: Post to X (Twitter)
+        if: success()
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          SITE_URL: https://keiba-matome.jp
+        run: node scripts/post-to-x.cjs
+
+      - name: Trigger Netlify Build Hook
+        if: success()
+        env:
+          NETLIFY_BUILD_HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
+        run: |
+          if [ -n "$NETLIFY_BUILD_HOOK" ]; then
+            echo "🚀 Netlifyへのデプロイをトリガー中..."
+            curl -sS -X POST -H "Content-Type: application/json" -d '{}' "$NETLIFY_BUILD_HOOK"
+            echo "✅ デプロイリクエスト送信完了"
+          else
+            echo "⏭️  NETLIFY_BUILD_HOOK未設定のためスキップ"
+          fi
+
+      - name: Discord notification
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: ${{ job.status }}
+          title: "2ch風ニュース生成"
+          description: |
+            記事数: ${{ github.event.inputs.article_count || '3' }}
+            🐦 X投稿: 最大3件
+            🌐 Netlifyデプロイ: トリガー済み
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ 2ch風ニュース生成が完了しました"
+          echo "記事数: ${{ github.event.inputs.article_count || '3' }}"
+          echo "🐦 X投稿: 最大3件投稿済み"
+          echo "🌐 Netlifyデプロイ: トリガー済み（数分後に反映されます）"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ ニュース生成に失敗しました"
+          exit 1

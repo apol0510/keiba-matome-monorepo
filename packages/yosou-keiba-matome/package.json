@@ -1,0 +1,30 @@
+{
+  "name": "yosou-keiba-matome",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "競馬予想まとめ - 中央重賞＋南関重賞の2ch/5ch風予想サイト",
+  "scripts": {
+    "dev": "astro dev --port 4325",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "scrape:chuou": "node scripts/scrape-chuou-yosou.cjs",
+    "scrape:nankan": "node scripts/scrape-nankan-yosou.cjs",
+    "generate:comments": "node ../shared/scripts/generate-2ch-comments.cjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@astrojs/netlify": "^6.6.2",
+    "@astrojs/node": "^9.5.1",
+    "@keiba-matome/shared": "*",
+    "airtable": "^0.12.2",
+    "astro": "^5.16.0",
+    "dotenv": "^17.2.3",
+    "twitter-api-v2": "^1.28.0"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^5.1.0",
+    "puppeteer": "^24.33.0",
+    "sharp": "^0.34.5"
+  }
+}

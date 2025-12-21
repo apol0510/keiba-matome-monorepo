@@ -9,8 +9,10 @@
   "scripts": {
     "dev:keiba-matome": "npm run dev --workspace=packages/keiba-matome",
     "dev:chihou": "npm run dev --workspace=packages/chihou-keiba-matome",
+    "dev:yosou": "npm run dev --workspace=packages/yosou-keiba-matome",
     "build:keiba-matome": "npm run build --workspace=packages/keiba-matome",
     "build:chihou": "npm run build --workspace=packages/chihou-keiba-matome",
+    "build:yosou": "npm run build --workspace=packages/yosou-keiba-matome",
     "build:all": "npm run build --workspaces",
     "scrape:all": "npm run scrape --workspaces",
     "generate-comments:all": "npm run generate-comments --workspaces"
