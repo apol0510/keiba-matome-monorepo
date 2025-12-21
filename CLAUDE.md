@@ -263,27 +263,85 @@ SITE_URL=https://chihou.keiba-matome.jp
 - [ ] 地方競馬特化の用語（南関東4競馬、トゥインクル、TCKなど）に対応済み
 - [ ] 両プロジェクトで動作確認すること
 
-### ⚠️ Netlifyデプロイ時の必須チェック（2025-12-22追加）
+### ⚠️ Netlifyデプロイ時の鉄則（2025-12-22 - yosou-keiba-matomeで4回失敗した教訓）
 
-**Netlifyにpushする前に以下をチェック:**
+**【重要】Netlifyにpushする前に必ず以下を実行すること:**
 
+#### 1. ローカルビルドテスト（必須）
 ```bash
-# 1. ローカルビルド確認
-cd packages/[project-name] && npm run build && ls -la dist/
-
-# 2. netlify.toml検証
-# - publish = "packages/[project-name]/dist"  ← リポジトリルートからのパス
-# - command = "npm run build --workspace=packages/[project-name]"
-
-# 3. クロスプラットフォームバイナリ（Astro/Viteの場合）
-# package.jsonに以下を追加:
-# "optionalDependencies": {
-#   "@rollup/rollup-linux-x64-gnu": "^4.30.1",
-#   "@rollup/rollup-darwin-x64": "^4.30.1"
-# }
+cd packages/[project-name]
+npm run build
+ls -la dist/  # 出力ディレクトリが生成されているか確認
 ```
 
-**⚠️ 絶対にやらないこと**: Netlifyで試行錯誤（1回10分かかる） → 必ずローカルで検証してからpush
+#### 2. netlify.toml検証チェックリスト
+- [ ] `publish` はリポジトリルートからの相対パス（例: `packages/project-name/dist`）
+- [ ] `command` はワークスペース指定（例: `npm run build --workspace=packages/project-name`）
+- [ ] プラグインを追加する場合、**必ず `npm info [plugin-name]` で存在確認**
+- [ ] 設定変更後、必ずローカルで `npm run build` が通ることを確認
+
+#### 3. クロスプラットフォーム対応（Astro/Viteの場合）
+```json
+// package.jsonに追加
+"optionalDependencies": {
+  "@rollup/rollup-linux-x64-gnu": "^4.30.1",
+  "@rollup/rollup-darwin-x64": "^4.30.1"
+}
+```
+
+#### ❌ 絶対にやってはいけないこと
+
+1. **Netlifyで試行錯誤デバッグ（1回10分 × 失敗回数 = 大量の時間浪費）**
+   - ローカルで検証してからpush
+
+2. **存在しないプラグインをnetlify.tomlに追加**
+   ```bash
+   # プラグイン追加前に必ず実行:
+   npm info @netlify/plugin-name
+   # → 404エラーが出たら存在しない
+   ```
+
+3. **ドキュメント未確認での最適化**
+   - Netlifyは自動的にnode_modulesをキャッシュする
+   - 不要なプラグインは追加しない
+
+#### 今回の失敗例（yosou-keiba-matome）
+
+| 回数 | エラー内容 | 原因 | 無駄時間 |
+|-----|----------|------|---------|
+| 1回目 | `Cannot find module @rollup/rollup-linux-x64-gnu` | クロスプラットフォームバイナリ不足 | 10分 |
+| 2回目 | `Deploy directory 'dist' does not exist` | publishパスが相対パスだった | 10分 |
+| 3回目 | `@netlify/plugin-cache not found` | 存在しないプラグインを追加 | 18秒 |
+| 4回目 | 同上 | 同上（ドキュメント更新コミットで再トリガー） | 17秒 |
+| **合計** | | | **約20分 + 精神的ダメージ** |
+
+**すべてローカルテストで防げた失敗でした。**
+
+---
+
+### 🔴 Claudeへの厳格な指示（必ず遵守）
+
+**Netlify関連の設定変更時は、以下を厳守すること:**
+
+1. **変更前**:
+   ```bash
+   # プラグイン追加時は必ず存在確認
+   npm info [plugin-name]
+   ```
+
+2. **変更後**:
+   ```bash
+   # 必ずローカルビルドテスト
+   cd packages/[project-name]
+   npm run build
+   ls -la dist/
+   ```
+
+3. **pushは最後**:
+   - ローカルテスト完了後のみpush許可
+   - 不確実な変更は絶対にpushしない
+
+**違反した場合**: このような大失態を繰り返すことになる
 
 ---
 

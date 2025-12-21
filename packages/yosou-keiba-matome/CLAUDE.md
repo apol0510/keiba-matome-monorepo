@@ -386,7 +386,16 @@ JSON配列で出力してください。
 
 ### 2025-12-22: 初回デプロイで学んだこと
 
-**問題**: Netlifyデプロイに複数回失敗し、非効率な試行錯誤が発生した（約1時間）
+**問題**: Netlifyデプロイに4回失敗し、約20分を浪費した
+
+| 回数 | エラー内容 | 原因 | 無駄時間 |
+|-----|----------|------|---------|
+| 1回目 | `Cannot find module @rollup/rollup-linux-x64-gnu` | クロスプラットフォームバイナリ不足 | 10分 |
+| 2回目 | `Deploy directory 'dist' does not exist` | publishパスが相対パスだった | 10分 |
+| 3回目 | `@netlify/plugin-cache not found` | 存在しないプラグインを追加 | 18秒 |
+| 4回目 | 同上 | 同上（ドキュメント更新コミットで再トリガー） | 17秒 |
+
+**すべてローカルテストで防げた失敗**
 
 #### エラー1: Rollupネイティブバイナリ不足
 **症状**: `Cannot find module @rollup/rollup-linux-x64-gnu`
