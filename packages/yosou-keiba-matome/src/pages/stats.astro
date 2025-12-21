@@ -1,0 +1,140 @@
+---
+export const prerender = true;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getAllArticles } from '../lib/airtable';
+
+// 的中率統計を取得
+const articles = await getAllArticles();
+const articlesWithResults = articles.filter(a => a.hasResult);
+
+// 全体的中率
+const totalHits = articlesWithResults.reduce((sum, a) => sum + (a.hitRate || 0), 0);
+const averageHitRate = articlesWithResults.length > 0
+  ? Math.round(totalHits / articlesWithResults.length)
+  : 0;
+
+// カテゴリ別的中率
+const chuouArticles = articlesWithResults.filter(a => a.category === '中央重賞');
+const nankanJuushouArticles = articlesWithResults.filter(a => a.category === '南関重賞');
+const nankanMainArticles = articlesWithResults.filter(a => a.category === '南関メイン');
+
+const chuouHitRate = chuouArticles.length > 0
+  ? Math.round(chuouArticles.reduce((sum, a) => sum + (a.hitRate || 0), 0) / chuouArticles.length)
+  : 0;
+
+const nankanJuushouHitRate = nankanJuushouArticles.length > 0
+  ? Math.round(nankanJuushouArticles.reduce((sum, a) => sum + (a.hitRate || 0), 0) / nankanJuushouArticles.length)
+  : 0;
+
+const nankanMainHitRate = nankanMainArticles.length > 0
+  ? Math.round(nankanMainArticles.reduce((sum, a) => sum + (a.hitRate || 0), 0) / nankanMainArticles.length)
+  : 0;
+
+// 最近の的中結果（最新10件）
+const recentResults = articlesWithResults.slice(0, 10);
+---
+
+<BaseLayout title="🎯 予想的中率統計">
+  <div style="max-width: 900px; margin: 0 auto; padding: 20px;">
+    <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #f60; padding-bottom: 5px;">
+      🎯 予想的中率統計
+    </h1>
+
+    <p style="margin-bottom: 20px; color: #666;">
+      当サイトの予想的中率を公開しています。データは随時更新されます。
+    </p>
+
+    <!-- 全体統計 -->
+    <div style="background: #fff; padding: 20px; border: 1px solid #999; margin-bottom: 20px; box-shadow: 2px 2px 4px rgba(0,0,0,0.1);">
+      <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 15px; border-left: 4px solid #f60; padding-left: 10px;">
+        📊 全体統計
+      </h2>
+      <div style="line-height: 1.8;">
+        <p><strong>対象レース数:</strong> {articlesWithResults.length}件</p>
+        <p style="font-size: 20px; margin-top: 10px;">
+          <strong style="color: #f60;">平均的中率: {averageHitRate}%</strong>
+        </p>
+      </div>
+    </div>
+
+    <!-- カテゴリ別統計 -->
+    <div style="background: #fff; padding: 20px; border: 1px solid #999; margin-bottom: 20px; box-shadow: 2px 2px 4px rgba(0,0,0,0.1);">
+      <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 15px; border-left: 4px solid #f60; padding-left: 10px;">
+        🏇 カテゴリ別統計
+      </h2>
+      <div style="line-height: 2;">
+        <p>
+          <strong>中央重賞:</strong>
+          <span style="font-size: 18px; color: #f60; margin-left: 10px;">{chuouHitRate}%</span>
+          <span style="color: #666; margin-left: 10px;">({chuouArticles.length}件)</span>
+        </p>
+        <p>
+          <strong>南関重賞:</strong>
+          <span style="font-size: 18px; color: #f60; margin-left: 10px;">{nankanJuushouHitRate}%</span>
+          <span style="color: #666; margin-left: 10px;">({nankanJuushouArticles.length}件)</span>
+        </p>
+        <p>
+          <strong>南関メインレース:</strong>
+          <span style="font-size: 18px; color: #f60; margin-left: 10px;">{nankanMainHitRate}%</span>
+          <span style="color: #666; margin-left: 10px;">({nankanMainArticles.length}件)</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- 最近の的中結果 -->
+    <div style="background: #fff; padding: 20px; border: 1px solid #999; box-shadow: 2px 2px 4px rgba(0,0,0,0.1);">
+      <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 15px; border-left: 4px solid #f60; padding-left: 10px;">
+        📝 最近の的中結果
+      </h2>
+      {recentResults.length === 0 ? (
+        <p style="color: #666; padding: 20px; text-align: center;">まだ的中結果はありません</p>
+      ) : (
+        <div>
+          {recentResults.map((article, index) => (
+            <div style={`border-bottom: ${index < recentResults.length - 1 ? '1px solid #ddd' : 'none'}; padding: 15px 0;`}>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex: 1;">
+                  <a
+                    href={`/news/${article.slug}`}
+                    style="font-weight: bold; color: #00e; text-decoration: none; font-size: 15px;"
+                  >
+                    {article.title}
+                  </a>
+                  <div style="font-size: 13px; color: #666; margin-top: 5px;">
+                    {new Date(article.raceDate).toLocaleDateString('ja-JP')} | {article.track} {article.grade}
+                  </div>
+                </div>
+                <div style="margin-left: 20px; text-align: right;">
+                  <span style={`font-size: 20px; font-weight: bold; color: ${(article.hitRate || 0) >= 50 ? '#f60' : '#666'};`}>
+                    {article.hitRate}%
+                  </span>
+                  <div style="font-size: 12px; color: #999; margin-top: 2px;">的中率</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+    <!-- 的中率の説明 -->
+    <div style="margin-top: 30px; padding: 15px; background: #fffef0; border: 1px solid #ddd;">
+      <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">💡 的中率の計算方法</h3>
+      <p style="font-size: 14px; line-height: 1.6; color: #666;">
+        的中率は、本命・対抗・単穴1・単穴2の4つの予想のうち、3着以内に入った馬の割合で計算しています。<br>
+        例: 本命と対抗が3着以内に入った場合 → 2/4 = 50%
+      </p>
+    </div>
+
+    <!-- トップページへのリンク -->
+    <div style="margin-top: 30px; text-align: center;">
+      <a
+        href="/"
+        style="display: inline-block; padding: 12px 30px; background: #f60; color: #fff; text-decoration: none; font-weight: bold; border-radius: 4px;"
+      >
+        ← トップページへ戻る
+      </a>
+    </div>
+  </div>
+</BaseLayout>

@@ -68,6 +68,8 @@ export interface Article {
   viewCount: number;
   commentCount: number;
   publishedAt: string;
+  hasResult?: boolean;
+  hitRate?: number;
 }
 
 export interface Comment {
@@ -102,7 +104,9 @@ export async function getAllArticles(): Promise<Article[]> {
     status: record.fields.Status as string,
     viewCount: record.fields.ViewCount as number || 0,
     commentCount: record.fields.CommentCount as number || 0,
-    publishedAt: record.fields.PublishedAt as string
+    publishedAt: record.fields.PublishedAt as string,
+    hasResult: record.fields.HasResult as boolean || false,
+    hitRate: record.fields.HitRate as number || 0
   }));
 }
 
@@ -133,7 +137,9 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     status: record.fields.Status as string,
     viewCount: record.fields.ViewCount as number || 0,
     commentCount: record.fields.CommentCount as number || 0,
-    publishedAt: record.fields.PublishedAt as string
+    publishedAt: record.fields.PublishedAt as string,
+    hasResult: record.fields.HasResult as boolean || false,
+    hitRate: record.fields.HitRate as number || 0
   };
 }
 
