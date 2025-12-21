@@ -18,32 +18,44 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: packages/yosou-keiba-matome
+        working-directory: keiba-matome-monorepo/packages/yosou-keiba-matome
 
     steps:
-      - name: Checkout code
+      - name: Checkout keiba-matome-monorepo
         uses: actions/checkout@v4
+        with:
+          path: keiba-matome-monorepo
+
+      - name: Checkout nankan-analytics
+        uses: actions/checkout@v4
+        with:
+          repository: apol0510/nankan-analytics
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          path: nankan-analytics
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: keiba-matome-monorepo/package-lock.json
 
       - name: Install dependencies
-        working-directory: .
+        working-directory: keiba-matome-monorepo
         run: npm install
 
       - name: Check nankan-analytics data
         id: check_data
+        working-directory: ${{ github.workspace }}
         run: |
-          DATA_FILE="../../../nankan-analytics/astro-site/src/data/allRacesPrediction.json"
+          DATA_FILE="nankan-analytics/astro-site/src/data/allRacesPrediction.json"
           if [ ! -f "$DATA_FILE" ]; then
             echo "status=no_data" >> $GITHUB_OUTPUT
             echo "⚠️ nankan-analyticsのデータファイルが見つかりません"
           else
             echo "status=ok" >> $GITHUB_OUTPUT
             echo "✅ nankan-analyticsのデータファイルを確認"
+            cat "$DATA_FILE" | head -20
           fi
 
       - name: Scrape nankan-analytics daily prediction
@@ -51,6 +63,7 @@ jobs:
         env:
           AIRTABLE_API_KEY: ${{ secrets.YOSOU_KEIBA_AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
+          NANKAN_JSON_PATH: ${{ github.workspace }}/nankan-analytics/astro-site/src/data/allRacesPrediction.json
         run: node scripts/scrape-nankan-daily.cjs
 
       - name: Generate 2ch-style comments

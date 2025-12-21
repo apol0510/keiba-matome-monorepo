@@ -29,8 +29,8 @@ if (!apiKey || !baseId) {
 const base = new Airtable({ apiKey }).base(baseId);
 
 // nankan-analyticsのJSONファイルパス
-// monorepoの外にあるnankan-analyticsプロジェクトを参照
-const NANKAN_JSON_PATH = path.join(
+// 環境変数で上書き可能（GitHub Actions用）
+const NANKAN_JSON_PATH = process.env.NANKAN_JSON_PATH || path.join(
   __dirname,
   '../../../../nankan-analytics/astro-site/src/data/allRacesPrediction.json'
 );
