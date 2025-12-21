@@ -29,9 +29,10 @@ if (!apiKey || !baseId) {
 const base = new Airtable({ apiKey }).base(baseId);
 
 // nankan-analyticsのJSONファイルパス
+// monorepoの外にあるnankan-analyticsプロジェクトを参照
 const NANKAN_JSON_PATH = path.join(
   __dirname,
-  '../../../nankan-analytics/astro-site/src/data/allRacesPrediction.json'
+  '../../../../nankan-analytics/astro-site/src/data/allRacesPrediction.json'
 );
 
 /**
@@ -100,7 +101,7 @@ ${trackShort} ${raceNumber} ${raceInfo.raceName}
     RaceDate: raceDate,
     Track: trackShort,
     Grade: 'メインレース',
-    Category: '南関重賞', // または「南関メイン」
+    Category: '南関メイン',
     SourceURL: 'https://nankan-analytics.keiba.link/free-prediction/',
     SourceSite: 'その他',
     Summary: summary,

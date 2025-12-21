@@ -4,18 +4,24 @@
 export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getNewsBySlug, getLatestNews, getCommentsByNewsId } from '../../lib/news';
+import { getArticleBySlug, getCommentsByArticleId } from '../../lib/airtable';
 import { config } from '../../config';
 
 const { slug } = Astro.params;
 
 // 記事を取得
-const article = await getNewsBySlug(slug as string);
+const rawArticle = await getArticleBySlug(slug as string);
 
 // 記事が存在しない場合は404
-if (!article) {
+if (!rawArticle) {
   return Astro.redirect('/404', 404);
 }
+
+// publishedAtをDateオブジェクトに変換
+const article = {
+  ...rawArticle,
+  publishedAt: new Date(rawArticle.publishedAt)
+};
 
 // SSGモードではPOSTリクエストを処理できないため、削除
 // コメント投稿はNetlify Functionsで処理
@@ -23,7 +29,7 @@ if (!article) {
 // 2ch風コメントを取得
 let comments = [];
 try {
-  comments = await getCommentsByNewsId(article.id);
+  comments = await getCommentsByArticleId(article.id);
   console.log(`✅ コメントを${comments.length}件取得しました (${article.title})`);
 } catch (error) {
   console.error('コメント取得エラー:', error);

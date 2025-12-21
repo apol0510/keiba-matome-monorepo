@@ -1,5 +1,6 @@
+#!/usr/bin/env node
 /**
- * 2ch風コメント自動生成スクリプト
+ * yosou-keiba-matome 2ch風コメント自動生成スクリプト
  *
  * 使い方:
  * ANTHROPIC_API_KEY="xxx" AIRTABLE_API_KEY="xxx" AIRTABLE_BASE_ID="xxx" node scripts/generate-2ch-comments.cjs
@@ -10,8 +11,8 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 // 環境変数チェック
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_API_KEY;
-const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID;
+const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
+const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
 
 if (!ANTHROPIC_API_KEY) {
   console.error('❌ Error: ANTHROPIC_API_KEY is required');
@@ -44,51 +45,41 @@ function generateRandomID() {
 }
 
 /**
- * Claude APIで2ch風コメントを生成
+ * Claude APIで2ch風予想コメントを生成
  */
 async function generate2chComments(article, commentCount) {
-  console.log(`💬 コメント生成中 (${commentCount}件): ${article.title}`);
+  console.log(`💬 予想コメント生成中 (${commentCount}件): ${article.Title}`);
 
   const prompt = `あなたは2ch/5chの競馬板の住人です。
-以下のニュース記事に対して、2ch風の匿名コメントを${commentCount}件生成してください。
+以下の重賞レースの予想記事に対して、2ch風の予想コメントを${commentCount}件生成してください。
 
-【記事タイトル】
-${article.sourceTitle || article.title}
+【レース名】
+${article.RaceName}（${article.Grade}・${article.Track}）
+レース日: ${article.RaceDate}
 
-【記事要約】
-${article.summary}
-
-【元記事URL】
-${article.sourceURL || 'なし'}
+【予想記事要約】
+${article.Summary}
 
 【コメント生成ルール】
-1. 短く、口語的に（15-80文字程度）
-2. 「草」「ワロタ」「マジかよ」「これは酷い」などのネットスラング使用
-3. 「>>1」などのアンカーを適度に使用（特にレス2-3で）
-4. 賛否両論・さまざまな意見を含める（肯定、否定、中立、ネタ）
-5. 炎上系記事は煽りコメントも含める
-6. 競馬用語・スラング（「逃げ馬」「穴馬」「ガチガチ」など）を適切に使用
-7. 重複しない多様なコメント
-8. 1件目は記事の要約、2件目以降は反応コメント
-9. 【重要】3-5件に1件程度、以下のような自然な導線コメントを含める：
-   - 「予想サイトの口コミって意外と参考になるよな」
+1. 短く、口語的に（10-60文字程度）
+2. 予想ポイントを含める（「◎本命は〇〇」「穴狙いなら△△」）
+3. 「>>1」「>>5」などのアンカーを適度に使用
+4. 賛否両論（「この予想は鉄板」「いや△△の方が来る」）
+5. 競馬用語・スラング（「逃げ馬」「穴馬」「ガチガチ」「万馬券」など）
+6. 南関特有の表現（「TCK」「南関競馬」「ナイター」「船橋巧者」など）※南関レースの場合のみ
+7. 3-5件に1件程度、以下のような有料予想への自然な導線コメントを含める：
+   - 「有料予想使ってる人いる？精度どうよ？」
+   - 「〇〇予想サイトの的中率ヤバいらしいな」
    - 「詐欺サイトに引っかからないように評判は調べとけよ」
-   - 「こういう情報こそリアルタイムで見たいわ」
-   - 「予想サイト選びはマジで慎重にな」
+   - 「自力予想で負けまくってるから有料試してみるか」
 
 【出力形式】
-JSON配列で出力してください。各コメントは以下の形式：
-{
-  "number": レス番号（1-${commentCount}）,
-  "content": "コメント本文",
-  "isOP": スレ主フラグ（1件目のみtrue）
-}
+以下のJSON配列形式で出力してください。
 
-出力例：
 [
-  {"number": 1, "content": "G1有馬記念が中山競馬場で行われ、引退レースとなったアーモンドアイが見事優勝を飾った。", "isOP": true},
-  {"number": 2, "content": "マジかよ", "isOP": false},
-  {"number": 3, "content": ">>1\\nこれは草", "isOP": false}
+  {"content": "本命は2番で鉄板だろ"},
+  {"content": ">>1\\nいや11番の方が来るって"},
+  {"content": "穴狙いなら7番が面白いぞ"}
 ]
 
 それでは、${commentCount}件のコメントをJSON配列で生成してください。`;
@@ -126,126 +117,127 @@ JSON配列で出力してください。各コメントは以下の形式：
 /**
  * Airtableにコメントを保存
  */
-async function saveCommentsToAirtable(newsRecordId, comments) {
+async function saveCommentsToAirtable(articleRecordId, comments) {
   console.log('💾 Airtableにコメントを保存中...');
 
-  const now = new Date();
-
-  for (const comment of comments) {
+  for (let i = 0; i < comments.length; i++) {
+    const comment = comments[i];
     try {
       await base('Comments').create([
         {
           fields: {
-            NewsID: [newsRecordId],
-            Number: comment.number,
-            UserID: comment.number === 1 ? 'ID:thread_op' : generateRandomID(),
+            ArticleID: [articleRecordId],
             Content: comment.content,
-            IsOP: comment.isOP || false,
+            UserName: '名無しさん@実況で競馬板アウト',
+            UserID: generateRandomID(),
+            IsApproved: true,
           },
         },
       ]);
 
-      console.log(`✅ コメント${comment.number}を保存`);
+      console.log(`✅ コメント${i + 1}を保存`);
 
       // レート制限対策（0.5秒待機）
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error) {
-      console.error(`❌ コメント${comment.number}保存エラー:`, error.message);
+      console.error(`❌ コメント${i + 1}保存エラー:`, error.message);
     }
   }
 }
 
 /**
- * 記事のステータスをpublishedに更新
+ * 記事のCommentCountを更新
  */
-async function publishArticle(recordId, commentCount) {
+async function updateCommentCount(recordId, commentCount) {
   try {
-    await base('News').update([
+    await base('Articles').update([
       {
         id: recordId,
         fields: {
-          Status: 'published',
           CommentCount: commentCount,
         },
       },
     ]);
 
-    console.log('✅ 記事を公開状態に更新しました');
+    console.log(`✅ CommentCountを${commentCount}に更新しました`);
   } catch (error) {
     console.error('❌ 記事更新エラー:', error.message);
   }
 }
 
 /**
- * draft状態の記事を取得
+ * published状態でコメントがない記事を取得
  */
-async function getDraftArticles() {
-  console.log('📰 draft状態の記事を取得中...');
+async function getArticlesWithoutComments() {
+  console.log('📰 コメント未生成の記事を取得中...');
 
-  const records = await base('News')
+  const records = await base('Articles')
     .select({
-      filterByFormula: `{Status} = 'draft'`,
-      maxRecords: 10, // 一度に最大10件
+      filterByFormula: "AND({Status} = 'published', {CommentCount} = 0)",
+      maxRecords: 10,
     })
     .firstPage();
 
-  console.log(`✅ ${records.length}件のdraft記事を取得しました`);
+  console.log(`   ${records.length}件の記事を取得しました\n`);
 
   return records.map((record) => ({
     id: record.id,
-    title: record.fields.Title,
-    sourceTitle: record.fields.SourceTitle,
-    sourceURL: record.fields.SourceURL,
-    summary: record.fields.Summary,
-    category: record.fields.Category,
+    Title: record.fields.Title,
+    RaceName: record.fields.RaceName,
+    RaceDate: record.fields.RaceDate,
+    Track: record.fields.Track,
+    Grade: record.fields.Grade,
+    Category: record.fields.Category,
+    Summary: record.fields.Summary,
   }));
 }
 
-/**
- * メイン処理
- */
 async function main() {
-  try {
-    console.log('🚀 2ch風コメント生成スクリプト開始\n');
+  console.log('🚀 2ch風予想コメント生成スクリプト開始\n');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    // 1. draft状態の記事を取得
-    const articles = await getDraftArticles();
+  try {
+    // 1. コメント未生成の記事を取得
+    const articles = await getArticlesWithoutComments();
 
     if (articles.length === 0) {
-      console.log('ℹ️  コメント生成が必要な記事はありません');
-      return;
+      console.log('ℹ️  コメント未生成の記事はありません');
+      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('✅ 処理完了');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+      process.exit(0);
     }
 
-    // 2. 各記事にコメントを生成
+    // 2. 各記事にコメント生成
     for (const article of articles) {
-      console.log(`\n--- ${article.title} ---`);
+      console.log(`📝 処理中: ${article.Title}`);
+      console.log(`   カテゴリ: ${article.Category}`);
+      console.log(`   グレード: ${article.Grade}\n`);
 
-      // ランダムなコメント数（15〜35件）
-      const commentCount = Math.floor(Math.random() * 21) + 15; // 15-35の範囲
+      // ランダムなコメント数（15-35件）
+      const commentCount = Math.floor(Math.random() * 21) + 15;
 
-      // 2-1. Claude APIでコメント生成
+      // コメント生成
       const comments = await generate2chComments(article, commentCount);
 
-      if (!comments || comments.length === 0) {
-        console.log('⏭️  スキップ: コメント生成失敗');
+      if (!comments) {
+        console.log('⏭️  スキップします\n');
         continue;
       }
 
-      // 2-2. Airtableに保存
+      // Airtableに保存
       await saveCommentsToAirtable(article.id, comments);
 
-      // 2-3. 記事をpublished状態に更新
-      await publishArticle(article.id, comments.length);
+      // CommentCount更新
+      await updateCommentCount(article.id, comments.length);
 
-      console.log('✅ 完了\n');
-
-      // レート制限対策（次の記事まで3秒待機）
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     }
 
-    console.log('\n✅ すべての処理が完了しました！');
+    console.log('✅ すべての記事のコメント生成完了');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   } catch (error) {
-    console.error('❌ エラーが発生しました:', error);
+    console.error('\n❌ エラーが発生しました:', error);
     process.exit(1);
   }
 }

@@ -51,17 +51,19 @@ function base(tableName: string) {
   return currentBase(tableName);
 }
 
-// 型定義
-export interface News {
+// 型定義（yosou-keiba-matome用）
+export interface Article {
   id: string;
   title: string;
   slug: string;
-  sourceTitle: string;
+  raceName: string;
+  raceDate: string;
+  track: string;
+  grade: string;
+  category: string;
   sourceURL: string;
   sourceSite: string;
   summary: string;
-  category: string;
-  tags?: string[];
   status: string;
   viewCount: number;
   commentCount: number;
@@ -70,18 +72,17 @@ export interface News {
 
 export interface Comment {
   id: string;
-  newsID: string[];
+  articleID: string[];
   content: string;
   userName: string;
   userID: string;
-  isOP: boolean;
   isApproved: boolean;
   createdAt: string;
 }
 
-// ニュース取得関数
-export async function getAllNews(): Promise<News[]> {
-  const records = await base('News').select({
+// 予想記事取得関数
+export async function getAllArticles(): Promise<Article[]> {
+  const records = await base('Articles').select({
     filterByFormula: '{Status} = "published"',
     sort: [{ field: 'PublishedAt', direction: 'desc' }]
   }).all();
@@ -90,12 +91,14 @@ export async function getAllNews(): Promise<News[]> {
     id: record.id,
     title: record.fields.Title as string,
     slug: record.fields.Slug as string,
-    sourceTitle: record.fields.SourceTitle as string,
+    raceName: record.fields.RaceName as string,
+    raceDate: record.fields.RaceDate as string,
+    track: record.fields.Track as string,
+    grade: record.fields.Grade as string,
+    category: record.fields.Category as string,
     sourceURL: record.fields.SourceURL as string,
     sourceSite: record.fields.SourceSite as string,
     summary: record.fields.Summary as string || '',
-    category: record.fields.Category as string,
-    tags: record.fields.Tags as string[] || [],
     status: record.fields.Status as string,
     viewCount: record.fields.ViewCount as number || 0,
     commentCount: record.fields.CommentCount as number || 0,
@@ -103,9 +106,9 @@ export async function getAllNews(): Promise<News[]> {
   }));
 }
 
-// Slug指定でニュース取得
-export async function getNewsBySlug(slug: string): Promise<News | null> {
-  const records = await base('News').select({
+// Slug指定で記事取得
+export async function getArticleBySlug(slug: string): Promise<Article | null> {
+  const records = await base('Articles').select({
     filterByFormula: `{Slug} = '${slug}'`,
     maxRecords: 1
   }).all();
@@ -119,12 +122,14 @@ export async function getNewsBySlug(slug: string): Promise<News | null> {
     id: record.id,
     title: record.fields.Title as string,
     slug: record.fields.Slug as string,
-    sourceTitle: record.fields.SourceTitle as string,
+    raceName: record.fields.RaceName as string,
+    raceDate: record.fields.RaceDate as string,
+    track: record.fields.Track as string,
+    grade: record.fields.Grade as string,
+    category: record.fields.Category as string,
     sourceURL: record.fields.SourceURL as string,
     sourceSite: record.fields.SourceSite as string,
     summary: record.fields.Summary as string || '',
-    category: record.fields.Category as string,
-    tags: record.fields.Tags as string[] || [],
     status: record.fields.Status as string,
     viewCount: record.fields.ViewCount as number || 0,
     commentCount: record.fields.CommentCount as number || 0,
@@ -132,27 +137,26 @@ export async function getNewsBySlug(slug: string): Promise<News | null> {
   };
 }
 
-// コメント取得（ニュース別）
-export async function getCommentsByNewsId(newsId: string): Promise<Comment[]> {
+// コメント取得（記事別）
+export async function getCommentsByArticleId(articleId: string): Promise<Comment[]> {
   const allRecords = await base('Comments').select({
     filterByFormula: '{IsApproved} = TRUE()',
     sort: [{ field: 'CreatedAt', direction: 'asc' }]
   }).all();
 
-  // JavaScriptでnewsIdでフィルタリング
+  // JavaScriptでarticleIdでフィルタリング
   const records = allRecords.filter(record => {
-    const newsLinkField = record.fields.NewsID;
-    const linkedNewsId = Array.isArray(newsLinkField) ? newsLinkField[0] : newsLinkField;
-    return linkedNewsId === newsId;
+    const articleLinkField = record.fields.ArticleID;
+    const linkedArticleId = Array.isArray(articleLinkField) ? articleLinkField[0] : articleLinkField;
+    return linkedArticleId === articleId;
   });
 
   return records.map(record => ({
     id: record.id,
-    newsID: record.fields.NewsID as string[],
+    articleID: record.fields.ArticleID as string[],
     content: record.fields.Content as string,
     userName: record.fields.UserName as string,
     userID: record.fields.UserID as string,
-    isOP: record.fields.IsOP as boolean || false,
     isApproved: record.fields.IsApproved as boolean || false,
     createdAt: record.fields.CreatedAt as string
   }));
@@ -160,27 +164,25 @@ export async function getCommentsByNewsId(newsId: string): Promise<Comment[]> {
 
 // コメント作成
 export async function createComment(data: {
-  newsId: string;
+  articleId: string;
   content: string;
   userName: string;
   userID: string;
 }): Promise<Comment> {
   const record = await base('Comments').create({
-    NewsID: [data.newsId],
+    ArticleID: [data.articleId],
     Content: data.content,
     UserName: data.userName,
     UserID: data.userID,
-    IsOP: false,
     IsApproved: false // デフォルトは未承認
   });
 
   return {
     id: record.id,
-    newsID: [data.newsId],
+    articleID: [data.articleId],
     content: data.content,
     userName: data.userName,
     userID: data.userID,
-    isOP: false,
     isApproved: false,
     createdAt: record.fields.CreatedAt as string
   };

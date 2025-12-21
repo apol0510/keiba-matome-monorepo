@@ -80,8 +80,9 @@ npm run build                     # ビルド
    - 15-35件/記事（ランダム）
 
 3. **カテゴリ分け**
-   - **中央重賞** (`/chuou/`) - 土日の中央競馬
-   - **南関重賞** (`/nankan/`) - 平日の南関競馬
+   - **中央重賞** (`/chuou/`) - 土日の中央競馬重賞
+   - **南関重賞** (`/nankan/`) - 南関東4競馬の重賞（S1/S2/S3、Jpn1/Jpn2/Jpn3）
+   - **南関メイン** (`/nankan-main/`) - 平日の南関メインレース（非重賞）
 
 ### 他プロジェクトとの差別化
 
@@ -160,8 +161,8 @@ SITE_URL=https://yosou.keiba-matome.jp
 | RaceName | Single line text | レース名（有馬記念、東京大賞典など） |
 | RaceDate | Date | レース開催日 |
 | Track | Single line text | 競馬場（中山、大井、船橋など） |
-| Grade | Single select | グレード（G1/G2/G3/JpnG1/JpnG2/JpnG3） |
-| Category | Single select | カテゴリ（中央重賞/南関重賞） |
+| Grade | Single select | グレード（G1/G2/G3/Jpn1/Jpn2/Jpn3/S1/S2/S3/メインレース） |
+| Category | Single select | カテゴリ（中央重賞/南関重賞/南関メイン） |
 | SourceURL | URL | 引用元URL（netkeiba、Yahoo!競馬など） |
 | SourceSite | Single select | 引用元サイト（netkeiba/Yahoo!/その他） |
 | Summary | Long text | 予想記事要約 |

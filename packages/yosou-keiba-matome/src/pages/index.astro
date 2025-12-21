@@ -4,7 +4,7 @@ export const prerender = true;
 
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { config } from '../config';
-import { getLatestNews } from '../lib/news';
+import { getAllArticles } from '../lib/airtable';
 
 // SEO設定
 const siteUrl = 'https://keiba-matome.jp';
@@ -26,17 +26,22 @@ const websiteStructuredData = {
   }
 };
 
-// Airtableから最新ニュースを取得
-let threads = [];
+// Airtableから予想記事を取得
+let articles = [];
 
 try {
-  threads = await getLatestNews(50);
-  console.log(`✅ スレッドを${threads.length}件取得しました`);
+  const rawArticles = await getAllArticles();
+  // publishedAtを文字列からDateオブジェクトに変換
+  articles = rawArticles.map(article => ({
+    ...article,
+    publishedAt: new Date(article.publishedAt)
+  }));
+  console.log(`✅ 予想記事を${articles.length}件取得しました`);
 } catch (error) {
   console.warn('Airtableからのデータ取得に失敗しました。');
   console.error(error);
   // モックデータ
-  threads = [
+  articles = [
     {
       title: '【速報】G1有馬記念、アーモンドアイが引退レースで優勝',
       slug: 'arima-kinen-almond-eye',
@@ -105,11 +110,11 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
   <script slot="head" type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "ItemList",
-    "itemListElement": threads.slice(0, 10).map((thread, index) => ({
+    "itemListElement": articles.slice(0, 10).map((article, index) => ({
       "@type": "ListItem",
       "position": index + 1,
-      "url": `${siteUrl}/news/${thread.slug}/`,
-      "name": thread.title
+      "url": `${siteUrl}/news/${article.slug}/`,
+      "name": article.title
     }))
   })} />
 
@@ -125,25 +130,25 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
   <!-- スレッド一覧 -->
   <style>
     /* モバイル: カードレイアウト */
-    .thread-list-mobile {
+    .article-list-mobile {
       display: block;
     }
-    .thread-list-desktop {
+    .article-list-desktop {
       display: none;
     }
-    .thread-card {
+    .article-card {
       background-color: #fff;
       border: 1px solid #ddd;
       border-radius: 4px;
       padding: 12px;
       margin-bottom: 12px;
     }
-    .thread-card-title {
+    .article-card-title {
       font-size: 14px;
       line-height: 1.5;
       margin-bottom: 8px;
     }
-    .thread-card-meta {
+    .article-card-meta {
       display: flex;
       justify-content: space-between;
       font-size: 11px;
@@ -151,7 +156,7 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
       flex-wrap: wrap;
       gap: 8px;
     }
-    .thread-card-meta-item {
+    .article-card-meta-item {
       display: flex;
       align-items: center;
       gap: 4px;
@@ -159,10 +164,10 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
 
     /* デスクトップ: テーブルレイアウト */
     @media (min-width: 768px) {
-      .thread-list-mobile {
+      .article-list-mobile {
         display: none;
       }
-      .thread-list-desktop {
+      .article-list-desktop {
         display: table;
         width: 100%;
         border-collapse: collapse;
@@ -174,32 +179,32 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
   </style>
 
   <!-- モバイル版: カードレイアウト -->
-  <div class="thread-list-mobile">
-    {threads.map((thread) => (
-      <div class="thread-card">
-        <div class="thread-card-title">
+  <div class="article-list-mobile">
+    {articles.map((article) => (
+      <div class="article-card">
+        <div class="article-card-title">
           <a
-            href={`/news/${thread.slug}/`}
+            href={`/news/${article.slug}/`}
             style="color: #0000ff; text-decoration: none;"
           >
-            {thread.title}
+            {article.title}
           </a>
-          {thread.category && (
+          {article.category && (
             <span style="margin-left: 6px; padding: 2px 6px; background-color: #ea8b00; color: #fff; font-size: 10px; border-radius: 3px;">
-              {thread.category}
+              {article.category}
             </span>
           )}
         </div>
-        <div class="thread-card-meta">
-          <div class="thread-card-meta-item">
-            <span>💬 {thread.commentCount || 10}レス</span>
+        <div class="article-card-meta">
+          <div class="article-card-meta-item">
+            <span>💬 {article.commentCount || 10}レス</span>
           </div>
-          <div class="thread-card-meta-item">
-            <span>🔥 {calculateMomentum(thread.commentCount || 10, thread.publishedAt)}</span>
+          <div class="article-card-meta-item">
+            <span>🔥 {calculateMomentum(article.commentCount || 10, article.publishedAt)}</span>
           </div>
-          <div class="thread-card-meta-item">
-            <span class="relative-time" data-timestamp={thread.publishedAt.getTime()}>
-              {getRelativeTime(thread.publishedAt)}
+          <div class="article-card-meta-item">
+            <span class="relative-time" data-timestamp={article.publishedAt.getTime()}>
+              {getRelativeTime(article.publishedAt)}
             </span>
           </div>
         </div>
@@ -208,7 +213,7 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
   </div>
 
   <!-- デスクトップ版: テーブルレイアウト -->
-  <table class="thread-list-desktop">
+  <table class="article-list-desktop">
     <thead>
       <tr style="background-color: #e6e6dc; border-bottom: 1px solid #999;">
         <th style="padding: 6px 8px; text-align: left; font-weight: normal;">スレッドタイトル</th>
@@ -218,32 +223,32 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
       </tr>
     </thead>
     <tbody>
-      {threads.map((thread, index) => (
+      {articles.map((article, index) => (
         <tr style={`border-bottom: 1px solid #ddd; ${index % 2 === 0 ? 'background-color: #fafafa;' : 'background-color: #fff;'}`}>
           <td style="padding: 8px;">
             <a
-              href={`/news/${thread.slug}/`}
+              href={`/news/${article.slug}/`}
               style="color: #0000ff; text-decoration: none;"
               onmouseover="this.style.textDecoration='underline'"
               onmouseout="this.style.textDecoration='none'"
             >
-              {thread.title}
+              {article.title}
             </a>
-            {thread.category && (
+            {article.category && (
               <span style="margin-left: 6px; padding: 2px 6px; background-color: #ea8b00; color: #fff; font-size: 10px; border-radius: 3px;">
-                {thread.category}
+                {article.category}
               </span>
             )}
           </td>
           <td style="padding: 8px; text-align: center; color: #666;">
-            {thread.commentCount || 10}
+            {article.commentCount || 10}
           </td>
           <td style="padding: 8px; text-align: center; color: #666;">
-            {calculateMomentum(thread.commentCount || 10, thread.publishedAt)}
+            {calculateMomentum(article.commentCount || 10, article.publishedAt)}
           </td>
           <td style="padding: 8px; text-align: center; color: #999; font-size: 11px;">
-            <span class="relative-time" data-timestamp={thread.publishedAt.getTime()}>
-              {getRelativeTime(thread.publishedAt)}
+            <span class="relative-time" data-timestamp={article.publishedAt.getTime()}>
+              {getRelativeTime(article.publishedAt)}
             </span>
           </td>
         </tr>
