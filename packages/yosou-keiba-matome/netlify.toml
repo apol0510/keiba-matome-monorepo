@@ -30,10 +30,10 @@
 # netlify.appドメインから独自ドメインへリダイレクト（SEO対策）
 [[redirects]]
   from = "/*"
-  to = "https://keiba-matome.jp/:splat"
+  to = "https://yosou.keiba-matome.jp/:splat"
   status = 301
   force = true
-  conditions = { Host = ["keiba-matome.netlify.app"] }
+  conditions = { Host = ["yosou-keiba-matome.netlify.app"] }
 
 # 不正Slug（数字・記号のみ）を404にリダイレクト
 # 注意: 日本語Slugは正常なのでリダイレクトしない
