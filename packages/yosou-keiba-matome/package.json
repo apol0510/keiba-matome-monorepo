@@ -26,5 +26,9 @@
     "@netlify/functions": "^5.1.0",
     "puppeteer": "^24.33.0",
     "sharp": "^0.34.5"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.30.1",
+    "@rollup/rollup-darwin-x64": "^4.30.1"
   }
 }
