@@ -84,15 +84,20 @@ function formatArticle(prediction) {
   const slug = `${trackShort}-${raceDate}-${raceNumber}`;
 
   // 予想サマリー生成（シンプルに）
-  const summary = `
+  let summary = `
 ${trackShort} ${raceNumber} ${raceInfo.raceName}
 
 本命: ${horses.main.number}番 ${horses.main.name}
 対抗: ${horses.sub.number}番 ${horses.sub.name}
-穴: ${horses.hole1.number}番 ${horses.hole1.name}
+単穴: ${horses.hole1.number}番 ${horses.hole1.name}`;
 
-発走時刻: ${raceInfo.startTime}
-  `.trim();
+  // hole2が存在する場合は追加
+  if (horses.hole2) {
+    summary += `\n単穴: ${horses.hole2.number}番 ${horses.hole2.name}`;
+  }
+
+  summary += `\n\n発走時刻: ${raceInfo.startTime}`;
+  summary = summary.trim();
 
   return {
     Title: title,
