@@ -77,8 +77,11 @@ function formatArticle(prediction) {
   // 競馬場名から短縮名を取得（例: 浦和競馬 → 浦和）
   const trackShort = track.replace('競馬', '');
 
-  // タイトル生成（控えめに）
-  const title = `【${trackShort} ${raceNumber}】${raceInfo.raceName.split('（')[0]}`;
+  // タイトル生成（2ch風・詳細）
+  const raceName = raceInfo.raceName.split('（')[0];
+  const mainHorse = horses.main.name;
+  const subHorse = horses.sub.name;
+  const title = `【${trackShort} ${raceNumber}】${raceName} 本命◎${mainHorse} 対抗○${subHorse}で勝負！`;
 
   // Slug生成
   const slug = `${trackShort}-${raceDate}-${raceNumber}`;

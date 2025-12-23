@@ -102,8 +102,8 @@ function formatArticle(race) {
   const today = new Date();
   const weekendDate = getNextWeekendDate();
 
-  // タイトル生成
-  const title = `【${race.track} ${race.grade}】${race.raceName}`;
+  // タイトル生成（2ch風・詳細）
+  const title = `【${race.track} ${race.grade}】${race.raceName} 予想スレ【${formatDate(weekendDate).slice(5).replace('-', '/')}】`;
 
   // Slug生成
   const slug = `${race.track}-${formatDate(weekendDate)}-${race.raceName.replace(/[^\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, '')}`;
