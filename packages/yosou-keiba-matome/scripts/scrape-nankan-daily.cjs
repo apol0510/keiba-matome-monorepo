@@ -15,6 +15,71 @@ const Airtable = require('airtable');
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * 南関重賞リスト（2026年版）
+ * レース名の一部でもマッチするように簡略化
+ */
+const NANKAN_GRADED_RACES = {
+  // GI / JpnI
+  'JpnI': [
+    '川崎記念', '羽田盃', 'かしわ記念', '東京ダービー', 'さきたま杯', '帝王賞',
+    'ジャパンダートクラシック', '全日本２歳優駿'
+  ],
+  // JpnII
+  'JpnII': [
+    'ダイオライト記念', '京浜盃', 'エンプレス杯', '関東オークス',
+    'レディスプレリュード', '東京盃', '浦和記念', '日本テレビ盃'
+  ],
+  // JpnIII
+  'JpnIII': [
+    'ブルーバードカップ', 'クイーン賞', '雲取賞', '東京スプリント',
+    'スパーキングレディーカップ', 'オーバルスプリント', 'マリーンカップ'
+  ],
+  // GI (東京大賞典)
+  'GI': ['東京大賞典'],
+  // SI
+  'SI': [
+    '桜花賞', '京成盃グランドマイラーズ', '東京プリンセス賞', '大井記念',
+    '戸塚記念', 'ロジータ記念', 'ハイセイコー記念', 'ゴールドカップ',
+    '東京２歳優駿牝馬'
+  ],
+  // SII
+  'SII': [
+    '金盃', 'ユングフラウ賞', '東京湾カップ', '優駿スプリント',
+    '習志野きらっとスプリント', 'スパーキングサマーカップ', '東京記念',
+    '鎌倉記念', 'マイルグランプリ', '平和賞', 'ローレル賞', '勝島王冠'
+  ],
+  // SIII
+  'SIII': [
+    '川崎マイラーズ', 'ニューイヤーカップ', '報知グランプリカップ', '報知オールスターカップ',
+    'フジノウェーブ記念', 'ネクストスター東日本', 'クラウンカップ', 'ブリリアントカップ',
+    'しらさぎ賞', 'プラチナカップ', '若潮スプリント', '川崎スパーキングスプリント',
+    'サンタアニタトロフィー', 'ルーキーズサマーカップ', '黒潮盃', 'フリオーソレジェンドカップ',
+    'アフター５スター賞', '若武者賞', 'ゴールドジュニア', '埼玉栄冠',
+    '船橋記念', 'サザンスタースプリント', 'ジェムストーン賞', '東京シンデレラマイル'
+  ]
+};
+
+/**
+ * レース名から格付けを判定
+ * @param {string} raceName - レース名
+ * @returns {object} { grade: string, isGraded: boolean }
+ */
+function detectGrade(raceName) {
+  // 各グレードのリストをチェック
+  for (const [grade, raceList] of Object.entries(NANKAN_GRADED_RACES)) {
+    for (const race of raceList) {
+      // レース名に含まれるかチェック（部分一致）
+      if (raceName.includes(race)) {
+        return { grade, isGraded: true };
+      }
+    }
+  }
+
+  // 重賞ではない場合
+  return { grade: 'メインレース', isGraded: false };
+}
+
 // 環境変数チェック
 const apiKey = process.env.AIRTABLE_API_KEY;
 const baseId = process.env.AIRTABLE_BASE_ID;
@@ -102,14 +167,17 @@ ${trackShort} ${raceNumber} ${raceInfo.raceName}
   summary += `\n\n発走時刻: ${raceInfo.startTime}`;
   summary = summary.trim();
 
+  // レース名から格付けを判定
+  const gradeInfo = detectGrade(raceName);
+
   return {
     Title: title,
     Slug: slug,
     RaceName: raceInfo.raceName.split('（')[0], // カッコ前まで
     RaceDate: raceDate,
     Track: trackShort,
-    Grade: 'メインレース',
-    Category: '南関メイン',
+    Grade: gradeInfo.grade,
+    Category: gradeInfo.isGraded ? '南関重賞' : '南関メイン',
     SourceURL: 'https://nankan-analytics.keiba.link/free-prediction/',
     SourceSite: 'その他',
     Summary: summary,
