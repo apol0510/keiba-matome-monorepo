@@ -241,9 +241,9 @@ export default async (req, context) => {
     // 既存コメント数を取得
     const allComments = await base('Comments').select().all();
     const existingComments = allComments.filter(record => {
-      const newsIdArray = record.fields.NewsID;
+      const articleIdArray = record.fields.ArticleID;
       const isApproved = record.fields.IsApproved !== false;
-      return newsIdArray && newsIdArray.includes(newsId) && isApproved;
+      return articleIdArray && articleIdArray.includes(newsId) && isApproved;
     });
 
     const nextNumber = existingComments.length + 1;
@@ -263,7 +263,7 @@ export default async (req, context) => {
     const createdRecords = await base('Comments').create([
       {
         fields: {
-          NewsID: [newsId],
+          ArticleID: [newsId],
           Number: nextNumber,
           UserID: userId,
           Content: sanitizedContent,
@@ -390,7 +390,7 @@ async function sendSecurityAlert({ type, ip, reason, content }) {
       ],
       timestamp: new Date().toISOString(),
       footer: {
-        text: 'keiba-matome.jp Security',
+        text: 'yosou.keiba-matome.jp Security',
       },
     };
 
@@ -427,10 +427,10 @@ async function sendDiscordNotification({ newsId, content, userName, userId, next
     const baseId = process.env.AIRTABLE_BASE_ID;
     const base = new Airtable({ apiKey }).base(baseId);
 
-    const newsRecord = await base('News').find(newsId);
+    const newsRecord = await base('Articles').find(newsId);
     const newsTitle = newsRecord.fields.Title || '（タイトルなし）';
     const newsSlug = newsRecord.fields.Slug || '';
-    const articleUrl = `https://keiba-matome.jp/news/${newsSlug}/`;
+    const articleUrl = `https://yosou.keiba-matome.jp/keiba-yosou/${newsSlug}/`;
 
     const embed = {
       title: '💬 新しいコメントが投稿されました',
@@ -459,7 +459,7 @@ async function sendDiscordNotification({ newsId, content, userName, userId, next
       ],
       timestamp: new Date().toISOString(),
       footer: {
-        text: 'keiba-matome.jp',
+        text: 'yosou.keiba-matome.jp',
       },
     };
 

@@ -129,7 +129,7 @@ ${race.track} ${race.raceName}（${race.grade}）
     SourceURL: race.url,
     SourceSite: 'netkeiba',
     Summary: summary,
-    Status: 'published',
+    Status: 'draft',
     ViewCount: 0,
     CommentCount: 0,
     PublishedAt: new Date().toISOString(),

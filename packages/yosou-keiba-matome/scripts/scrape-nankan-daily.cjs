@@ -110,7 +110,7 @@ ${trackShort} ${raceNumber} ${raceInfo.raceName}
     SourceURL: 'https://nankan-analytics.keiba.link/free-prediction/',
     SourceSite: 'その他',
     Summary: summary,
-    Status: 'published',
+    Status: 'draft',
     ViewCount: 0,
     CommentCount: 0,
     PublishedAt: new Date().toISOString(),
