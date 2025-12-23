@@ -207,6 +207,7 @@ async function saveCommentsToAirtable(newsRecordId, comments) {
             UserID: comment.number === 1 ? 'ID:thread_op' : generateRandomID(),
             Content: comment.content,
             IsOP: comment.isOP || false,
+            UserName: '名無しさん@競馬板',
           },
         },
       ]);

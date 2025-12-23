@@ -75,9 +75,11 @@ export interface Article {
 export interface Comment {
   id: string;
   articleID: string[];
+  number: number;
   content: string;
   userName: string;
   userID: string;
+  isOP: boolean;
   isApproved: boolean;
   createdAt: string;
 }
@@ -147,7 +149,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
 export async function getCommentsByArticleId(articleId: string): Promise<Comment[]> {
   const allRecords = await base('Comments').select({
     filterByFormula: '{IsApproved} = TRUE()',
-    sort: [{ field: 'CreatedAt', direction: 'asc' }]
+    sort: [{ field: 'Number', direction: 'asc' }]
   }).all();
 
   // JavaScriptでarticleIdでフィルタリング
@@ -160,9 +162,11 @@ export async function getCommentsByArticleId(articleId: string): Promise<Comment
   return records.map(record => ({
     id: record.id,
     articleID: record.fields.ArticleID as string[],
+    number: record.fields.Number as number,
     content: record.fields.Content as string,
-    userName: record.fields.UserName as string,
+    userName: record.fields.UserName as string || '名無しさん@競馬板',
     userID: record.fields.UserID as string,
+    isOP: record.fields.IsOP as boolean || false,
     isApproved: record.fields.IsApproved as boolean || false,
     createdAt: record.fields.CreatedAt as string
   }));
