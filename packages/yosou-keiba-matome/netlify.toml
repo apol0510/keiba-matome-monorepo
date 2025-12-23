@@ -3,7 +3,7 @@
   publish = "packages/yosou-keiba-matome/dist"
 
 [functions]
-  directory = "netlify/functions"
+  directory = "packages/yosou-keiba-matome/netlify/functions"
 
 # 静的ファイルのキャッシュ（1年間）
 [[headers]]
