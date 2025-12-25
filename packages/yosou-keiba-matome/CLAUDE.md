@@ -324,6 +324,155 @@ JSON配列で出力してください。
    - monorepo package.jsonにコマンド追加（dev:yosou、build:yosou）
    - CLAUDE.md作成（このファイル）
 
+### 2025-12-23
+
+1. ✅ **IsApprovedフィールド問題の修正**
+   - 問題: 自動生成コメントがIsApproved=undefinedで本番に表示されない
+   - 修正: generate-2ch-comments.cjsにIsApproved: trueを追加
+   - 結果: 今後のコメントは自動承認される
+
+2. ✅ **記事タイトルの改善**
+   - 南関メイン: 「【大井 9R】KRAトロフィー」→「【大井 9R】KRAトロフィー 本命◎モズユウガ 対抗○フジマサテイオーで勝負！」
+   - 中央重賞: 「【中山 G1】有馬記念」→「【中山 G1】有馬記念 予想スレ【12/25】」
+   - 目的: SEO向上、クリック率向上
+
+3. ✅ **南関重賞の自動判定機能実装**
+   - 71レースの南関重賞リスト追加（GI/JpnI/JpnII/JpnIII/SI/SII/SIII）
+   - detectGrade()関数でレース名から格付けを自動判定
+   - Category自動設定（南関重賞 or 南関メイン）
+   - Airtableに8つのGrade選択肢を追加
+   - 既存記事を一括修正（ゴールドカップ: メインレース→SI、南関メイン→南関重賞）
+
+4. ✅ **Zapier + X自動投稿の計画策定**
+   - コスト試算完了: X Dev $200プラン → Zapier連携で月額$30（年間$2,040節約）
+   - Claude API料金試算: 2ch風コメント（月$27.90）、X投稿文（月$2.26）
+   - CLAUDE.mdに実装手順を記載
+   - 次回作業: Zapier設定 → AI生成文スクリプト → GitHub Actions連携
+
+---
+
+## X（Twitter）自動投稿機能（Zapier連携）
+
+### 🎯 概要
+
+**目的**: Zapier + Claude APIでX自動投稿を実装し、コストを削減
+
+**現状の問題**:
+- X Dev API $200プラン: 月額$200（年間$2,400）
+- 複数サイトで使用すると無料枠では不足
+
+**Zapier連携のメリット**:
+- ✅ X Dev API不要（月額$200 → $0）
+- ✅ 複数サイトから投稿可能
+- ✅ AI生成文で魅力的な投稿
+- ✅ 既存のZapier Pro契約を活用
+
+### 💰 コスト試算
+
+**Zapier Pro プラン（既契約）**:
+- 月額: $19.99（年額$239.88）
+- タスク数: 750タスク/月
+- 現在使用: 8/750（ほぼ未使用）
+
+**Claude API料金（品質重視：Sonnet 4使用）**:
+- X投稿AI生成文: 約$2.26/月
+- 2ch風コメント生成: 約$27.90/月（3サイト合計）
+- **合計**: 約$30/月
+
+**総コスト比較**:
+| 項目 | X Dev $200プラン | Zapier連携 | 節約額 |
+|------|-----------------|-----------|--------|
+| 月額 | $200 | $30 | **$170** |
+| 年額 | $2,400 | $360 | **$2,040** |
+
+### 🔧 実装手順（次回作業）
+
+#### ステップ1: Zapier設定
+
+1. **Zapierにログイン** → https://zapier.com/app/zaps
+2. **「Create Zap」をクリック**
+3. **Trigger設定**:
+   - App: 「Webhooks by Zapier」を選択
+   - Event: 「Catch Hook」を選択
+   - Continue
+   - **Webhook URLが表示される** → コピー
+
+4. **Action設定**:
+   - App: 「X (Twitter)」を検索して選択
+   - Event: 「Create Tweet」を選択
+   - Xアカウントを接続
+   - Message: `{{1__text}}` を設定
+
+5. **Test & Turn on**
+
+**Webhook URL例**:
+```
+https://hooks.zapier.com/hooks/catch/XXXXXXX/YYYYYYY/
+```
+
+#### ステップ2: AI生成文スクリプト作成
+
+`scripts/generate-x-post.cjs` を作成:
+```javascript
+// Claude APIでX投稿文を生成
+// Input: 記事タイトル、要約、URL
+// Output: 魅力的な投稿文（2-3文、140文字以内）
+```
+
+**生成例**:
+```
+🏇 【浦和 SI】ゴールドカップ予想！
+
+本命◎モズユウガ、対抗○フジマサテイオーで勝負。
+南関重賞の熱い戦いが始まります。
+
+詳細👇
+https://yosou.keiba-matome.jp/keiba-yosou/浦和-2025-12-23-11R/
+```
+
+#### ステップ3: GitHub Actionsに組み込み
+
+`.github/workflows/yosou-nankan-daily.yml` に追加:
+```yaml
+- name: Generate X post and send to Zapier
+  env:
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    ZAPIER_WEBHOOK_URL: ${{ secrets.YOSOU_KEIBA_ZAPIER_WEBHOOK }}
+  run: |
+    # AI生成文を作成
+    # Zapier Webhookに送信
+```
+
+#### ステップ4: GitHub Secretsに登録
+
+```bash
+gh secret set YOSOU_KEIBA_ZAPIER_WEBHOOK \
+  --body "https://hooks.zapier.com/hooks/catch/XXXXXXX/YYYYYYY/" \
+  --repo apol0510/keiba-matome-monorepo
+```
+
+### 📊 月間タスク数試算
+
+| サイト | 更新頻度 | 月間投稿数 | Zapierタスク |
+|--------|---------|-----------|-------------|
+| yosou-keiba-matome | 1日2回×2記事 | 120 | 240 |
+| keiba-matome（既存） | 1日3回×3記事 | 270 | 540 |
+| chihou-keiba-matome | 追加予定 | - | - |
+| **合計** | | | **780** |
+
+→ **750タスク超過時はPay-per-task（$0.0334/タスク）**
+→ 超過分30タスク × $0.0334 = 約$1/月
+
+### 🎬 次回作業チェックリスト
+
+- [ ] Zapierで新規Zapを作成
+- [ ] Webhook URLを取得
+- [ ] `scripts/generate-x-post.cjs` 作成
+- [ ] GitHub Actionsに組み込み
+- [ ] GitHub Secretsに登録
+- [ ] テスト投稿実施
+- [ ] 本番運用開始
+
 ---
 
 ## 次のステップ
