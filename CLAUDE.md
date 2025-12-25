@@ -2,7 +2,7 @@
 
 ## 🏗️ monorepo構成
 
-このリポジトリは、2ch/5ch風の競馬ニュースまとめサイト2つを管理するmonorepoです。
+このリポジトリは、2ch/5ch風の競馬ニュース・予想まとめサイト3つを管理するmonorepoです。
 
 ```
 keiba-matome-monorepo/
@@ -11,12 +11,16 @@ keiba-matome-monorepo/
 │   ├── shared/                     ← 共通ライブラリ
 │   │   ├── package.json
 │   │   └── scripts/
-│   │       └── generate-2ch-comments.cjs  ← 2ch風コメント生成（地方競馬特化）
+│   │       └── generate-2ch-comments.cjs  ← 2ch風コメント生成（全サイト共通）
 │   ├── keiba-matome/              ← 中央競馬ニュースまとめ
 │   │   ├── package.json
 │   │   ├── CLAUDE.md
 │   │   └── ... (Astroプロジェクト)
-│   └── chihou-keiba-matome/       ← 地方競馬ニュースまとめ
+│   ├── chihou-keiba-matome/       ← 地方競馬ニュースまとめ
+│   │   ├── package.json
+│   │   ├── CLAUDE.md
+│   │   └── ... (Astroプロジェクト)
+│   └── yosou-keiba-matome/        ← 競馬予想まとめ
 │       ├── package.json
 │       ├── CLAUDE.md
 │       └── ... (Astroプロジェクト)
@@ -62,6 +66,23 @@ keiba-matome-monorepo/
 - トゥインクルシリーズ・地方G1
 - 完全自動化（1日3回実行）
 
+### packages/yosou-keiba-matome (競馬予想)
+
+**ドメイン**: https://yosou.keiba-matome.jp
+**ポート**: 4325
+**Airtable Base**: appKPasSpjpTtabnv
+
+**予想元**:
+- nankan-analytics (南関メインレース予想)
+- netkeiba予想コラム (中央重賞予想)
+
+**特徴**:
+- 中央重賞＋南関重賞の予想まとめ
+- 南関重賞自動判定機能（GI/JpnI/SI/SII/SIII等）
+- 2ch風予想コメント自動生成
+- Zapier連携によるX自動投稿（実装予定）
+- 完全自動化（1日2回実行）
+
 ### packages/shared (共通ライブラリ)
 
 **内容**:
@@ -88,8 +109,11 @@ npm run dev:keiba-matome
 # 地方競馬サイト (localhost:4324)
 npm run dev:chihou
 
-# 両方同時起動
-npm run dev:keiba-matome & npm run dev:chihou
+# 競馬予想サイト (localhost:4325)
+npm run dev:yosou
+
+# 全サイト同時起動
+npm run dev:keiba-matome & npm run dev:chihou & npm run dev:yosou
 ```
 
 ### ビルド
@@ -101,6 +125,10 @@ npm run build:all
 # 個別ビルド
 npm run build --workspace=packages/keiba-matome
 npm run build --workspace=packages/chihou-keiba-matome
+npm run build --workspace=packages/yosou-keiba-matome
+
+# または短縮形
+npm run build:yosou
 ```
 
 ### その他のコマンド
@@ -179,6 +207,19 @@ ANTHROPIC_API_KEY="xxx" AIRTABLE_API_KEY="xxx" AIRTABLE_BASE_ID="xxx" node ../sh
   3. 各記事に2ch風コメント生成（15-35件/記事）
   4. Netlify自動デプロイ
 
+### yosou-keiba-matome (競馬予想)
+
+`.github/workflows/yosou-nankan-daily.yml` / `.github/workflows/yosou-chuou-weekly.yml`
+- **頻度**:
+  - 南関: 1日2回（6AM, 6PM JST）
+  - 中央: 週1回（木曜18時）
+- **処理内容**:
+  1. nankan-analyticsから南関予想スクレイピング
+  2. netkeibaから中央重賞予想スクレイピング
+  3. 各記事に2ch風予想コメント生成（15-35件/記事）
+  4. Zapier連携でX自動投稿（実装予定）
+  5. Netlify自動デプロイ
+
 ---
 
 ## 環境変数
@@ -217,19 +258,39 @@ ANTHROPIC_API_KEY=sk-ant-api03-***
 SITE_URL=https://chihou.keiba-matome.jp
 ```
 
+### yosou-keiba-matome (競馬予想)
+
+```bash
+# Airtable
+AIRTABLE_API_KEY=patkpjNBAn2is12XO***
+AIRTABLE_BASE_ID=appKPasSpjpTtabnv
+
+# Claude API
+ANTHROPIC_API_KEY=sk-ant-api03-***
+
+# Zapier Webhook (X自動投稿用)
+YOSOU_KEIBA_ZAPIER_WEBHOOK=https://hooks.zapier.com/hooks/catch/XXXXXXX/YYYYYYY/
+
+# Netlify Build Hook
+YOSOU_KEIBA_NETLIFY_BUILD_HOOK=https://api.netlify.com/build_hooks/***
+
+# サイト情報
+SITE_URL=https://yosou.keiba-matome.jp
+```
+
 ---
 
 ## データ分離ポリシー
 
-**重要**: 2つのプロジェクトは完全に独立しています。
+**重要**: 3つのプロジェクトは完全に独立しています。
 
-| 項目 | keiba-matome | chihou-keiba-matome |
-|------|--------------|---------------------|
-| Airtable Base | appdHJSC4F9pTIoDj | appt25zmKxQDiSCwh |
-| データ共有 | **なし** | **なし** |
-| デプロイ | 独立 | 独立 |
-| GitHub Actions | 独立 | 独立 |
-| X投稿 | あり (@keiba_matome_jp) | なし |
+| 項目 | keiba-matome | chihou-keiba-matome | yosou-keiba-matome |
+|------|--------------|---------------------|--------------------|
+| Airtable Base | appdHJSC4F9pTIoDj | appt25zmKxQDiSCwh | appKPasSpjpTtabnv |
+| データ共有 | **なし** | **なし** | **なし** |
+| デプロイ | 独立 | 独立 | 独立 |
+| GitHub Actions | 独立 | 独立 | 独立 |
+| X投稿 | あり (X Dev API) | なし | Zapier連携（実装予定） |
 
 **共有するもの**:
 - コメント生成ロジック (`packages/shared/scripts/generate-2ch-comments.cjs`)
@@ -249,19 +310,19 @@ SITE_URL=https://chihou.keiba-matome.jp
 ## Claudeへの指示（必読）
 
 ### 基本方針
-- [ ] このmonorepoは2ch風まとめサイト専用
+- [ ] このmonorepoは2ch風まとめサイト専用（3サイト統合）
 - [ ] review-platform-monorepoとは完全に独立
-- [ ] コメント生成の改善は `packages/shared` で行い、両プロジェクトに適用
+- [ ] コメント生成の改善は `packages/shared` で行い、全プロジェクトに適用
 
 ### 作業時の注意
 - [ ] 各プロジェクトの `CLAUDE.md` を必ず読むこと
-- [ ] 中央競馬と地方競馬で用語・ニュース元が異なることを理解すること
-- [ ] データベース（Airtable Base）は完全に独立していること
+- [ ] 中央競馬・地方競馬・競馬予想で用語・ニュース元が異なることを理解すること
+- [ ] データベース（Airtable Base）は3つとも完全に独立していること
 
 ### コメント生成改善時
 - [ ] `packages/shared/scripts/generate-2ch-comments.cjs` を修正
-- [ ] 地方競馬特化の用語（南関東4競馬、トゥインクル、TCKなど）に対応済み
-- [ ] 両プロジェクトで動作確認すること
+- [ ] 競馬用語対応済み（南関東4競馬、トゥインクル、TCK、重賞予想など）
+- [ ] 全プロジェクトで動作確認すること
 
 ### ⚠️ Netlifyデプロイ時の鉄則（2025-12-22 - yosou-keiba-matomeで4回失敗した教訓）
 
@@ -354,13 +415,31 @@ ls -la dist/  # 出力ディレクトリが生成されているか確認
    - npm workspaces設定
    - packages/shared作成（generate-2ch-comments.cjs移動）
    - 既存プロジェクト2つを packages/ に移動
+   - yosou-keiba-matome作成（第3プロジェクト）
    - Git初期化＆リモートリポジトリ作成
    - GitHub: https://github.com/apol0510/keiba-matome-monorepo
 
 2. ✅ **動作確認完了**
-   - keiba-matomeの開発サーバー起動成功（localhost:4324）
+   - keiba-matomeの開発サーバー起動成功（localhost:4323）
+   - chihou-keiba-matomeの開発サーバー起動成功（localhost:4324）
+   - yosou-keiba-matomeの開発サーバー起動成功（localhost:4325）
    - npm workspaces正常動作
    - CLAUDE.md作成
+
+### 2025-12-25
+
+1. ✅ **yosou-keiba-matome 本格実装**
+   - IsApprovedフィールド問題の修正（自動コメントが表示されない問題）
+   - 記事タイトルの改善（SEO最適化、馬名・日付追加）
+   - 南関重賞の自動判定機能実装（71レース対応）
+   - Airtableに8つのGrade選択肢追加（GI/JpnI/SI/SII/SIII等）
+   - Zapier + X自動投稿の計画策定（年間$2,040節約）
+
+2. ✅ **リポジトリ整理・統合**
+   - WorkSpace直下の古いディレクトリ削除（keiba-matome, chihou-keiba-matome）
+   - GitHubリポジトリの削除（apol0510/keiba-matome, apol0510/chihou-keiba-matome）
+   - monorepo完全統一（3サイトすべてkeiba-matome-monorepoで管理）
+   - CLAUDE.md更新（3サイト対応、環境変数、作業履歴追加）
 
 ---
 
