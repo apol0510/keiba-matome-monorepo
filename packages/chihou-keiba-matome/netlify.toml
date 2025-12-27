@@ -1,6 +1,6 @@
 [build]
-  command = "npm install && npm run build"
-  publish = "dist"
+  command = "npm install && npm run build --workspace=packages/chihou-keiba-matome"
+  publish = "packages/chihou-keiba-matome/dist"
 
 [functions]
   directory = "netlify/functions"
