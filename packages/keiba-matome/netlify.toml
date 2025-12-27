@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && npm run build"
+  command = "cd ../.. && npm install && npm run build --workspace=packages/keiba-matome"
   publish = "dist"
 
 [functions]
