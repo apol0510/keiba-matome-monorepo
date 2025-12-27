@@ -18,13 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: keiba-matome-monorepo/packages/yosou-keiba-matome
+        working-directory: packages/yosou-keiba-matome
 
     steps:
       - name: Checkout keiba-matome-monorepo
         uses: actions/checkout@v4
-        with:
-          path: keiba-matome-monorepo
 
       - name: Checkout nankan-analytics
         uses: actions/checkout@v4
@@ -38,10 +36,9 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: keiba-matome-monorepo/package-lock.json
 
       - name: Install dependencies
-        working-directory: keiba-matome-monorepo
+        working-directory: .
         run: npm install
 
       - name: Check nankan-analytics data
