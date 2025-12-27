@@ -536,6 +536,28 @@ SITE_URL=https://chihou.keiba-matome.jp
      - 毎日3回（6AM, 12PM, 6PM JST）自動更新
      - 記事取得（4ソース17件） → コメント生成 → Netlifyデプロイまで完全自動化
 
+6. ✅ **AIコメント生成の自然な話題誘導機能実装（ファネル戦略）**
+   - **背景**: 中央競馬サイト（keiba-matome.jp）からの自然な導線を構築
+
+   - **実装内容** (`packages/shared/scripts/generate-2ch-comments.cjs`):
+     - 中央競馬（CHUOU）記事に南関（地方競馬）への自然な導線を追加
+     - 不自然な脱線を防止（文脈のない突然の競馬場の話をブロック）
+     - 南関導線コメント8パターンを3-5件に含める
+
+   - **chihou-keiba-matomeへの影響**:
+     - 地方競馬サイト自体のコメント生成ロジックは変更なし
+     - 中央競馬サイトから自然に誘導されるトラフィック増加が期待される
+     - ファネル: keiba-matome.jp → **chihou.keiba-matome.jp** → nankan-analytics
+
+   - **期待効果**:
+     - 中央競馬ファンの流入増加
+     - 地方競馬・南関重賞への関心喚起
+     - nankan-analytics（最終収益化地点）へのトラフィック増加
+
+   - **commit**:
+     - b425b2f - feat: Enable natural topic flow from central to Nankan in comments
+     - fba68d7 - docs: Document natural topic flow feature in work history
+
 ---
 
 ## 次のステップ
