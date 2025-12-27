@@ -1,5 +1,5 @@
 /**
- * 2ch風コメント自動生成スクリプト（地方競馬特化版）
+ * 2ch風コメント自動生成スクリプト（中央・地方競馬対応）
  *
  * 使い方:
  * ANTHROPIC_API_KEY="xxx" AIRTABLE_API_KEY="xxx" AIRTABLE_BASE_ID="xxx" node scripts/generate-2ch-comments.cjs
@@ -12,6 +12,22 @@ const Anthropic = require('@anthropic-ai/sdk');
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_API_KEY;
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID;
+
+// Base IDで競馬種別を判定
+const KEIBA_TYPE = {
+  CHUOU: 'chuou',  // 中央競馬 (appdHJSC4F9pTIoDj)
+  CHIHOU: 'chihou', // 地方競馬 (appt25zmKxQDiSCwh)
+  YOSOU: 'yosou',   // 予想 (appKPasSpjpTtabnv)
+};
+
+function detectKeibaType(baseId) {
+  if (baseId === 'appdHJSC4F9pTIoDj') return KEIBA_TYPE.CHUOU;
+  if (baseId === 'appt25zmKxQDiSCwh') return KEIBA_TYPE.CHIHOU;
+  if (baseId === 'appKPasSpjpTtabnv') return KEIBA_TYPE.YOSOU;
+  return KEIBA_TYPE.CHIHOU; // デフォルトは地方
+}
+
+const currentKeibaType = detectKeibaType(AIRTABLE_BASE_ID);
 
 if (!ANTHROPIC_API_KEY) {
   console.error('❌ Error: ANTHROPIC_API_KEY is required');
@@ -49,25 +65,89 @@ function generateRandomID() {
 async function generate2chComments(article, commentCount) {
   console.log(`💬 コメント生成中 (${commentCount}件): ${article.title}`);
 
-  const prompt = `あなたは2ch/5chの地方競馬板の常連住人です。
-以下のニュース記事に対して、2ch風の匿名コメントを${commentCount}件生成してください。
+  // 現在日時
+  const now = new Date();
+  const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  const currentDateJP = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
 
-【記事タイトル】
-${article.sourceTitle || article.title}
+  // 時制判定
+  let tenseInstruction = '';
+  if (article.raceDate) {
+    const raceDate = new Date(article.raceDate);
+    const raceDateJP = `${raceDate.getFullYear()}年${raceDate.getMonth() + 1}月${raceDate.getDate()}日`;
 
-【記事要約】
-${article.summary}
+    // 日付のみで比較（時刻を除外）
+    const raceDateOnly = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate());
+    const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-【元記事URL】
-${article.sourceURL || 'なし'}
+    if (raceDateOnly > nowDateOnly) {
+      // 未来のレース → 予想形式
+      tenseInstruction = `
+【重要】このレースは未来のレース（${raceDateJP}開催予定）です。
+コメントは「予想形式」で生成してください:
+- 「どの馬が来ると思う？」「〜に期待」「〜が勝つかも」
+- 「出走予定馬は？」「オッズどうなる？」「買い目どうする？」
+- 過去形（「勝った」「結果は〜」）は絶対に使わないこと`;
+    } else if (raceDateOnly < nowDateOnly) {
+      // 過去のレース → 結果形式
+      tenseInstruction = `
+【重要】このレースは過去のレース（${raceDateJP}開催済み）です。
+コメントは「結果形式」で生成してください:
+- 「〜が勝った」「結果はどうだった？」「〜強かったな」
+- 「買ってた人おる？」「当たったわ」「外れたわ」
+- 未来形（「〜が来ると思う」「〜に期待」）は絶対に使わないこと`;
+    } else {
+      // 当日のレース → 直前予想形式
+      tenseInstruction = `
+【重要】このレースは本日（${raceDateJP}）開催予定です。
+コメントは「直前予想形式」で生成してください:
+- 「今日の〜、どう見る？」「〜買うわ」「今から行く」
+- レース前なので過去形（「勝った」）は使わないこと`;
+    }
+  }
 
-【コメント生成ルール】
-1. 短く、口語的に（15-80文字程度）
-2. 「草」「ワロタ」「マジかよ」「これは酷い」などのネットスラング使用
-3. 「>>1」などのアンカーを適度に使用（特にレス2-3で）
-4. 賛否両論・さまざまな意見を含める（肯定、否定、中立、ネタ）
-5. 炎上系記事は煽りコメントも含める
+  // レース種別情報
+  let raceInfo = '';
+  if (article.raceGrade && article.raceDescription) {
+    raceInfo = `
+【レース種別】
+- 格付け: ${article.raceGrade}
+- 説明: ${article.raceDescription}
 
+【重要】このレースは「${article.raceDescription}」レースです。
+- GIの場合: 「地方vs中央」「中央馬も出る」「JRAとNARの対決」などのコメントを含めること
+- SIの場合: 「地方限定」「南関東だけ」「NAR専用」などのコメントを含めること`;
+  }
+
+  // 中央競馬 vs 地方競馬でプロンプトを分岐
+  let boardType = '';
+  let specialTerms = '';
+
+  if (currentKeibaType === KEIBA_TYPE.CHUOU) {
+    boardType = '2ch/5chの競馬板（中央競馬）の常連住人';
+    specialTerms = `
+6. **中央競馬特有の用語・スラング**を積極的に使用：
+   【重賞・G1】
+   - 「有馬記念」「天皇賞」「宝塚記念」「ジャパンC」「安田記念」
+   - 「ダービー」「オークス」「皐月賞」「桜花賞」「菊花賞」
+
+   【競馬場】
+   - 「中山の坂はきつい」「阪神は内枠有利」「東京は外枠」
+   - 「中京のコーナーきつい」「京都の直線長い」「新潟の直線も長い」
+
+   【中央競馬あるある】
+   - 「土日は競馬場が混む」
+   - 「G1は盛り上がるな」
+   - 「JRA-VANは必須」
+   - 「重賞は荒れる」
+   - 「本命党vs穴党」
+
+   【騎手・調教師ネタ】
+   - 「ルメール強すぎ」「武豊はレジェンド」「川田が来たら買い」
+   - 「藤沢厩舎は安定」「池江厩舎の馬は要注意」`;
+  } else if (currentKeibaType === KEIBA_TYPE.CHIHOU) {
+    boardType = '2ch/5chの地方競馬板の常連住人';
+    specialTerms = `
 6. **地方競馬特有の用語・スラング**を積極的に使用：
    【南関東4競馬場】
    - 「TCK（大井）は穴が出る」「川崎は鉄板」「船橋の逃げ馬は信頼できる」「浦和は荒れる」
@@ -89,21 +169,53 @@ ${article.sourceURL || 'なし'}
    【競馬場ネタ】
    - 「大井のメガイルミ見ながら競馬最高」
    - 「川崎のもつ煮美味いよな」
-   - 「船橋は坂がきつい」
-   - 「浦和は馬場が重い」
+   - 「南関は全場ダートだから予想しやすい」`;
+  } else {
+    // 予想サイトの場合
+    boardType = '2ch/5chの競馬板（予想スレ）の常連住人';
+    specialTerms = `
+6. **予想特有の用語・スラング**を積極的に使用：
+   - 「本命◎」「対抗○」「単穴△」「連下▲」「押さえ☆」
+   - 「鉄板」「ガチガチ」「穴狙い」「万馬券」「トリガミ」
+   - 「買い目」「フォーメーション」「ボックス」「流し」`;
+  }
+
+  const prompt = `あなたは${boardType}です。
+以下のニュース記事に対して、2ch風の匿名コメントを${commentCount}件生成してください。
+
+【今日の日付】
+${currentDateJP} (${currentDate})
+
+【記事タイトル】
+${article.sourceTitle || article.title}
+
+【記事要約】
+${article.summary}
+
+【元記事URL】
+${article.sourceURL || 'なし'}
+${raceInfo}
+${tenseInstruction}
+
+【コメント生成ルール】
+1. 短く、口語的に（15-80文字程度）
+2. 「草」「ワロタ」「マジかよ」「これは酷い」などのネットスラング使用
+3. 「>>1」などのアンカーを適度に使用（特にレス2-3で）
+4. 賛否両論・さまざまな意見を含める（肯定、否定、中立、ネタ）
+5. 炎上系記事は煽りコメントも含める
+${specialTerms}
 
 7. 重複しない多様なコメント
 8. 1件目は記事の要約、2件目以降は反応コメント
 9. レス番号が進むにつれて、話題が少しずつ脱線するのも自然（例: 最初は記事の話→途中から予想の話→最後は競馬場のグルメの話）
+10. **重要**: 記事の内容に関係のない競馬場の話（例: 中央競馬の記事なのに「船橋」「浦和」など地方競馬場の話）は絶対にしないこと
 
-10. 【重要】3-5件に1件程度、以下のような自然な導線コメントを含める：
+11. 【重要】3-5件に1件程度、以下のような自然な導線コメントを含める：
     - 「予想サイトの口コミって意外と参考になるよな」
     - 「詐欺サイトに引っかからないように評判は調べとけよ」
-    - 「地方競馬の予想サイトって当たるの？」
-    - 「南関専門の予想サイト使ってる奴おる？」
-    - 「中央より地方のほうが予想しやすいって聞くけど本当？」
-    - 「TCK特化の予想サイトあったら教えてくれ」
-    - 「地方競馬の情報サイトでオススメある？」
+    - 「予想サイト使ってる奴おる？精度どうよ？」
+    - 「有料予想って実際当たるの？」
+    - 「情報サイトでオススメある？」
 
 【出力形式】
 JSON配列で出力してください。各コメントは以下の形式：
@@ -227,6 +339,9 @@ async function getDraftArticles() {
     sourceURL: record.fields.SourceURL,
     summary: record.fields.Summary,
     category: record.fields.Category,
+    raceDate: record.fields.RaceDate || null, // 開催日
+    raceGrade: record.fields.RaceGrade || null, // レース格付け
+    raceDescription: record.fields.RaceDescription || null, // レース説明
   }));
 }
 
@@ -235,7 +350,11 @@ async function getDraftArticles() {
  */
 async function main() {
   try {
-    console.log('🚀 2ch風コメント生成スクリプト開始（地方競馬特化版）\n');
+    const keibaTypeLabel =
+      currentKeibaType === KEIBA_TYPE.CHUOU ? '中央競馬' :
+      currentKeibaType === KEIBA_TYPE.CHIHOU ? '地方競馬' : '競馬予想';
+    console.log(`🚀 2ch風コメント生成スクリプト開始（${keibaTypeLabel}版）`);
+    console.log(`📍 Base ID: ${AIRTABLE_BASE_ID}\n`);
 
     // 1. draft状態の記事を取得
     const articles = await getDraftArticles();
