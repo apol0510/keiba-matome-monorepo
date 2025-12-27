@@ -1003,6 +1003,67 @@ netlify deploy --prod
       - package削減: 92個削除
       - コードベースサイズ: 大幅削減（未使用コンポーネント・ライブラリ除去）
 
+### 2025-12-27: Netlifyデプロイ問題の完全解決
+
+22. ✅ **monorepo化後のNetlifyデプロイ問題を解決**
+    - **問題**: monorepo化後、サイトが更新されなくなった（スレッドが更新されない）
+    - **症状**:
+      - GitHub Actions: ✅ 正常実行（記事取得、コメント生成、X投稿すべて成功）
+      - Netlify Build Hook: ✅ トリガー成功
+      - Netlify Deploy: ❌ エラー（exit status 128: Host key verification failed）
+
+    - **根本原因（2つ）**:
+      1. **netlify.tomlのpublishパスが相対パスだった**
+         - ❌ `publish = "dist"`（packages/keiba-matome/内の相対パス）
+         - ✅ `publish = "packages/keiba-matome/dist"`（リポジトリルートからの相対パス）
+
+      2. **Netlifyのリポジトリ設定が旧リポジトリを参照**
+         - ❌ 旧: `apol0510/keiba-matome`（monorepo化時に削除済み）
+         - ✅ 新: `apol0510/keiba-matome-monorepo`
+
+    - **解決手順**:
+      1. **netlify.toml修正** (`packages/keiba-matome/netlify.toml`)
+         ```toml
+         [build]
+           command = "npm install && npm run build --workspace=packages/keiba-matome"
+           publish = "packages/keiba-matome/dist"  # ← 修正
+         ```
+
+      2. **Netlifyリポジトリ再接続**
+         - Site settings → Build & deploy → Repository → Edit settings
+         - 新しいリポジトリ `apol0510/keiba-matome-monorepo` を選択
+         - Base directory: `packages/keiba-matome`
+         - Build command: `npm install && npm run build --workspace=packages/keiba-matome`
+         - Publish directory: `packages/keiba-matome/dist`
+         - Functions directory: `packages/keiba-matome/netlify/functions`
+
+      3. **環境変数再設定**
+         - `ANTHROPIC_API_KEY` をNetlifyに追加（リポジトリ変更で設定が消えた）
+         - `AIRTABLE_API_KEY`: 既存
+         - `AIRTABLE_BASE_ID`: 既存
+
+      4. **新しいBuild Hook URL取得**
+         - Build & deploy → Build hooks → Add build hook
+         - 生成されたURL: `https://api.netlify.com/build_hooks/694fda3e91fdb8b3ac7bc888`
+         - GitHub Secretsに設定: `KEIBA_MATOME_NETLIFY_BUILD_HOOK`
+
+      5. **動作確認**
+         - ローカルビルドテスト: ✅ 成功
+         - GitHub Actions手動実行: ✅ 成功（6分13秒）
+         - Netlifyデプロイ: ✅ 成功
+         - サイト表示: ✅ 最新記事が表示
+
+    - **教訓**:
+      - **monorepo CLAUDE.mdの「Netlifyデプロイ時の鉄則」は必ず遵守すること**
+      - yosou-keiba-matomeで4回失敗した教訓がそのまま記載されていた
+      - ローカルビルドテスト → netlify.toml検証 → pushの順序を厳守
+      - リポジトリ変更時は、Netlifyのリポジトリ設定と環境変数を必ず確認
+
+    - **現在の状態**:
+      - 完全自動運用復旧 ✅
+      - 毎日3回（6AM, 12PM, 6PM JST）自動更新
+      - 記事取得 → コメント生成 → X投稿 → Netlifyデプロイまで完全自動化
+
 ---
 
 ## 参照ドキュメント
