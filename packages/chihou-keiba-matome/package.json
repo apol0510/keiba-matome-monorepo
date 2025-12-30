@@ -9,8 +9,6 @@
     "preview": "astro preview",
     "astro": "astro",
     "scrape:netkeiba": "node scripts/scrape-netkeiba-chihou.cjs",
-    "scrape:hochi": "node scripts/scrape-hochi-chihou.cjs",
-    "scrape:sponichi": "node scripts/scrape-sponichi-chihou.cjs",
     "scrape:yahoo": "node scripts/scrape-yahoo-chihou.cjs",
     "generate:comments": "node scripts/generate-2ch-comments.cjs"
   },
