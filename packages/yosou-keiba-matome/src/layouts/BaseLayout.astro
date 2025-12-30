@@ -7,13 +7,13 @@ interface Props {
 
 const {
   title,
-  description = '競馬ニュースまとめ - netkeiba/Yahoo!ニュースに2ch/5ch風コメント',
+  description = '競馬予想まとめ - 中央重賞・南関重賞の予想に2ch/5ch風コメント',
   ogImage = '/og/default.png',
 } = Astro.props;
 
-const siteTitle = '競馬ニュースまとめ';
+const siteTitle = '競馬予想まとめ';
 const fullTitle = title === 'トップ' ? siteTitle : `${title} | ${siteTitle}`;
-const siteUrl = import.meta.env.SITE_URL || 'https://keiba-matome.jp';
+const siteUrl = import.meta.env.SITE_URL || 'https://yosou.keiba-matome.jp';
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl);
 const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
 ---
@@ -154,7 +154,7 @@ const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`
     <div style="background-color: #ea8b00; color: #fff; padding: 8px 16px; border-bottom: 2px solid #000;">
       <div class="header-container">
         <a href="/" style="color: #fff; text-decoration: none; font-size: 16px; font-weight: bold;">
-          競馬ニュースまとめ
+          競馬予想まとめ
         </a>
         <nav class="header-nav">
           <a href="/" style="color: #fff; text-decoration: none;">板一覧</a>
@@ -227,7 +227,7 @@ const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`
 
     <!-- Footer -->
     <div style="background-color: #e6e6dc; border-top: 1px solid #999; margin-top: 32px; padding: 16px; text-align: center; font-size: 11px; color: #666;">
-      <p style="margin: 4px 0;">© {new Date().getFullYear()} 競馬ニュースまとめ</p>
+      <p style="margin: 4px 0;">© {new Date().getFullYear()} 競馬予想まとめ</p>
       <p style="margin: 4px 0;">掲示板利用規約を守って、楽しくご利用ください。</p>
     </div>
   </body>
