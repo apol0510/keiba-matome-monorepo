@@ -62,22 +62,6 @@ jobs:
         run: node scripts/scrape-yahoo-chihou.cjs
         continue-on-error: true
 
-      - name: 3️⃣ Scrape Hochi（優先度3 - 4 articles）
-        env:
-          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
-          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-          ARTICLE_COUNT: 4
-        run: node scripts/scrape-hochi-chihou.cjs
-        continue-on-error: true
-
-      - name: 4️⃣ Scrape Sponichi（優先度4 - 4 articles）
-        env:
-          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
-          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-          ARTICLE_COUNT: 4
-        run: node scripts/scrape-sponichi-chihou.cjs
-        continue-on-error: true
-
       - name: Generate 2ch-style comments
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
