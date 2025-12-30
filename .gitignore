@@ -6,3 +6,7 @@ dist/
 .astro/
 .netlify/
 temp/
+
+# Nighttime task outputs
+packages/backups/
+packages/test-reports/
