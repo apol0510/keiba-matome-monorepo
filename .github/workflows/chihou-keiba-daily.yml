@@ -13,8 +13,8 @@ on:
         required: false
         default: '5'
         type: string
-      other_count:
-        description: 'その他メディア記事数'
+      yahoo_count:
+        description: 'Yahoo!ニュース記事数'
         required: false
         default: '4'
         type: string
@@ -49,7 +49,7 @@ jobs:
 
       - name: 2️⃣ Scrape Yahoo!ニュース（優先度2 - 4 articles）
         env:
-          ARTICLE_COUNT: ${{ github.event.inputs.other_count || '4' }}
+          ARTICLE_COUNT: ${{ github.event.inputs.yahoo_count || '4' }}
           AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
         run: node scripts/scrape-yahoo-chihou.cjs
@@ -90,7 +90,7 @@ jobs:
           title: "【地方競馬】2ch風ニュース生成"
           description: |
             netkeiba: ${{ github.event.inputs.netkeiba_count || '5' }}件
-            その他: 各${{ github.event.inputs.other_count || '4' }}件
+            Yahoo!: ${{ github.event.inputs.yahoo_count || '4' }}件
             🌐 Netlifyデプロイ: トリガー済み
 
       - name: Notify on success
@@ -98,7 +98,7 @@ jobs:
         run: |
           echo "✅ 【地方競馬】2ch風ニュース生成が完了しました"
           echo "netkeiba: ${{ github.event.inputs.netkeiba_count || '5' }}件"
-          echo "その他: 各${{ github.event.inputs.other_count || '4' }}件"
+          echo "Yahoo!: ${{ github.event.inputs.yahoo_count || '4' }}件"
           echo "🌐 Netlifyデプロイ: トリガー済み"
 
       - name: Notify on failure
