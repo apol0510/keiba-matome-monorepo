@@ -54,20 +54,6 @@ jobs:
           AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
         run: node scripts/scrape-yahoo-chihou.cjs
 
-      - name: 3️⃣ Scrape Hochi（優先度3 - 4 articles）
-        env:
-          ARTICLE_COUNT: ${{ github.event.inputs.other_count || '4' }}
-          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
-          AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
-        run: node scripts/scrape-hochi-chihou.cjs
-
-      - name: 4️⃣ Scrape Sponichi（優先度4 - 4 articles）
-        env:
-          ARTICLE_COUNT: ${{ github.event.inputs.other_count || '4' }}
-          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
-          AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
-        run: node scripts/scrape-sponichi-chihou.cjs
-
       - name: Generate 2ch-style comments
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
