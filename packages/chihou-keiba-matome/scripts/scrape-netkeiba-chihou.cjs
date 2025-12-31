@@ -102,6 +102,74 @@ function generate2chTitle(originalTitle, category) {
 }
 
 /**
+ * 開催日抽出（記事タイトル・要約から日付を抽出）
+ */
+function extractRaceDate(title, summary) {
+  const text = `${title} ${summary}`;
+
+  // パターン1: 12/29、12月29日
+  const datePattern1 = text.match(/(\d{1,2})月(\d{1,2})日/);
+  const datePattern2 = text.match(/(\d{1,2})\/(\d{1,2})/);
+
+  if (datePattern1) {
+    const month = parseInt(datePattern1[1], 10);
+    const day = parseInt(datePattern1[2], 10);
+    const year = new Date().getFullYear();
+    // タイムゾーンの影響を受けないようにローカル日付文字列を生成
+    const month2 = String(month).padStart(2, '0');
+    const day2 = String(day).padStart(2, '0');
+    return `${year}-${month2}-${day2}`;
+  }
+
+  if (datePattern2) {
+    const month = parseInt(datePattern2[1], 10);
+    const day = parseInt(datePattern2[2], 10);
+    const year = new Date().getFullYear();
+    const month2 = String(month).padStart(2, '0');
+    const day2 = String(day).padStart(2, '0');
+    return `${year}-${month2}-${day2}`;
+  }
+
+  return null; // 日付が見つからない
+}
+
+/**
+ * レース種別マスターデータ
+ */
+const RACE_MASTER = {
+  // GI（全国交流重賞）- 地方vs中央
+  '東京大賞典': { grade: 'GI', description: '地方vs中央の頂点を決める' },
+  '帝王賞': { grade: 'GI', description: '地方vs中央のダート最強決定戦' },
+  'ジャパンダートダービー': { grade: 'GI', description: '地方vs中央の3歳ダート王者決定戦' },
+  '川崎記念': { grade: 'GI', description: '地方vs中央の早春ダート王決定戦' },
+  'かしわ記念': { grade: 'GI', description: '地方vs中央のダート王決定戦' },
+  'JBCクラシック': { grade: 'GI', description: '地方vs中央のダートチャンピオン決定戦' },
+  'JBCレディスクラシック': { grade: 'GI', description: '地方vs中央の牝馬ダート王決定戦' },
+  'JBCスプリント': { grade: 'GI', description: '地方vs中央の短距離ダート王決定戦' },
+
+  // SI（地方重賞）- 地方馬限定
+  '東京記念': { grade: 'SI', description: '南関東の重賞' },
+  '羽田盃': { grade: 'SI', description: '南関東3歳の重賞' },
+  '黒潮盃': { grade: 'SI', description: '南関東3歳の重賞' },
+  '兵庫ゴールドトロフィー': { grade: 'SI', description: '地方重賞' },
+};
+
+/**
+ * レース種別判定
+ */
+function detectRaceGrade(title, summary) {
+  const text = `${title} ${summary}`;
+
+  for (const [raceName, info] of Object.entries(RACE_MASTER)) {
+    if (text.includes(raceName)) {
+      return info;
+    }
+  }
+
+  return null; // レース種別が判定できない
+}
+
+/**
  * カテゴリ判定（地方競馬特化）
  */
 function detectCategory(title) {
@@ -246,16 +314,22 @@ async function scrapeNetkeibaChihouNews() {
     // 指定件数にフィルタ
     const filteredArticles = articles.slice(0, ARTICLE_COUNT);
 
-    // カテゴリ・タグ・要約を付与
+    // カテゴリ・タグ・要約・開催日・レース種別を付与
     const enrichedArticles = filteredArticles.map(article => {
       const category = detectCategory(article.sourceTitle);
       const tags = detectTags(article.sourceTitle, category);
+      const summary = article.sourceTitle; // 要約はタイトルと同じ
+      const raceDate = extractRaceDate(article.sourceTitle, summary);
+      const raceGrade = detectRaceGrade(article.sourceTitle, summary);
 
       return {
         ...article,
-        summary: article.sourceTitle, // 要約はタイトルと同じ（詳細取得は負荷が高いため）
+        summary,
         category,
         tags,
+        raceDate, // 開催日（YYYY-MM-DD or null）
+        raceGrade: raceGrade?.grade || null, // レース格付け（JpnI/SI or null）
+        raceDescription: raceGrade?.description || null, // レース説明
       };
     });
 
@@ -277,20 +351,26 @@ async function scrapeNetkeibaChihouNews() {
 function getFallbackArticles() {
   return [
     {
-      sourceTitle: '【大井競馬】東京大賞典、地方競馬の頂点を決める一戦',
+      sourceTitle: '【大井競馬】東京大賞典、地方vs中央の頂点を決める一戦',
       sourceURL: 'https://nar.netkeiba.com/news/?pid=news_view&no=999991',
       sourceSite: 'netkeiba-chihou',
-      summary: '東京大賞典が大井競馬場で開催。地方競馬のチャンピオンを決める重要なG1レースとなる。',
+      summary: '東京大賞典が大井競馬場で開催。地方vs中央のダート最強馬を決める重要なGIレースとなる。',
       category: '速報',
       tags: ['大井競馬', '南関東'],
+      raceDate: null,
+      raceGrade: 'GI',
+      raceDescription: '地方vs中央の頂点を決める',
     },
     {
       sourceTitle: '【川崎競馬】川崎記念で注目の逃げ馬が勝利',
       sourceURL: 'https://nar.netkeiba.com/news/?pid=news_view&no=999992',
       sourceSite: 'netkeiba-chihou',
-      summary: '川崎記念で逃げ馬が見事な勝利。南関東競馬の注目レースで大波乱。',
+      summary: '川崎記念で逃げ馬が見事な勝利。地方vs中央のダート王決定戦で大波乱。',
       category: '速報',
       tags: ['川崎競馬', '南関東'],
+      raceDate: null,
+      raceGrade: 'GI',
+      raceDescription: '地方vs中央の早春ダート王決定戦',
     },
   ];
 }
@@ -332,24 +412,27 @@ async function saveToAirtable(articles) {
       }
 
       // 新規作成
-      await base('News').create([
-        {
-          fields: {
-            Title: title,
-            Slug: slug,
-            SourceTitle: cleanedTitle,  // クリーンアップ済み
-            SourceURL: article.sourceURL,
-            SourceSite: article.sourceSite,
-            Summary: summary,  // 150文字前後
-            Category: article.category,
-            Tags: article.tags,
-            Status: 'draft', // コメント生成前はdraft
-            ViewCount: 0,
-            CommentCount: 0,
-            PublishedAt: new Date().toISOString(),
-          },
-        },
-      ]);
+      const fields = {
+        Title: title,
+        Slug: slug,
+        SourceTitle: cleanedTitle,  // クリーンアップ済み
+        SourceURL: article.sourceURL,
+        SourceSite: article.sourceSite,
+        Summary: summary,  // 150文字前後
+        Category: article.category,
+        Tags: article.tags,
+        Status: 'draft', // コメント生成前はdraft
+        ViewCount: 0,
+        CommentCount: 0,
+        PublishedAt: new Date().toISOString(),
+      };
+
+      // オプション項目（存在する場合のみ追加）
+      if (article.raceDate) fields.RaceDate = article.raceDate;
+      if (article.raceGrade) fields.RaceGrade = article.raceGrade;
+      if (article.raceDescription) fields.RaceDescription = article.raceDescription;
+
+      await base('News').create([{ fields }]);
 
       console.log(`✅ 作成: ${title}`);
       created++;
