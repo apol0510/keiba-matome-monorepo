@@ -183,16 +183,8 @@ async function scrapeYahooNews() {
  * フォールバック用モックデータ
  */
 function getFallbackArticles() {
-  return [
-    {
-      sourceTitle: '【阪神JF】全着順速報！スターアニスが２歳女王',
-      sourceURL: 'https://sports.yahoo.co.jp/keiba/news/xxx',
-      sourceSite: 'Yahoo',
-      summary: '阪神ジュベナイルフィリーズの全着順が確定。スターアニスが優勝。',
-      category: '速報',
-      tags: ['G1'],
-    },
-  ];
+  console.log('⚠️  フォールバックは無効化されています。空配列を返します。');
+  return [];
 }
 
 /**

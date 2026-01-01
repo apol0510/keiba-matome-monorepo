@@ -234,16 +234,8 @@ async function scrapeYahooChihouNews() {
  * フォールバック用モックデータ
  */
 function getFallbackArticles() {
-  return [
-    {
-      sourceTitle: '【地方競馬】南関東4競馬場で年末の大一番が開催',
-      sourceURL: 'https://news.yahoo.co.jp/articles/999991',
-      sourceSite: 'yahoo',
-      summary: '南関東4競馬場で年末の大一番が開催され、地方競馬ファンが熱狂した。',
-      category: '速報',
-      tags: ['南関東'],
-    },
-  ];
+  console.log('⚠️  フォールバックは無効化されています。空配列を返します。');
+  return [];
 }
 
 /**

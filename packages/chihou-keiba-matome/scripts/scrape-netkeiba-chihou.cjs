@@ -349,30 +349,8 @@ async function scrapeNetkeibaChihouNews() {
  * フォールバック用モックデータ
  */
 function getFallbackArticles() {
-  return [
-    {
-      sourceTitle: '【大井競馬】東京大賞典、地方vs中央の頂点を決める一戦',
-      sourceURL: 'https://nar.netkeiba.com/news/?pid=news_view&no=999991',
-      sourceSite: 'netkeiba-chihou',
-      summary: '東京大賞典が大井競馬場で開催。地方vs中央のダート最強馬を決める重要なGIレースとなる。',
-      category: '速報',
-      tags: ['大井競馬', '南関東'],
-      raceDate: null,
-      raceGrade: 'GI',
-      raceDescription: '地方vs中央の頂点を決める',
-    },
-    {
-      sourceTitle: '【川崎競馬】川崎記念で注目の逃げ馬が勝利',
-      sourceURL: 'https://nar.netkeiba.com/news/?pid=news_view&no=999992',
-      sourceSite: 'netkeiba-chihou',
-      summary: '川崎記念で逃げ馬が見事な勝利。地方vs中央のダート王決定戦で大波乱。',
-      category: '速報',
-      tags: ['川崎競馬', '南関東'],
-      raceDate: null,
-      raceGrade: 'GI',
-      raceDescription: '地方vs中央の早春ダート王決定戦',
-    },
-  ];
+  console.log('⚠️  フォールバックは無効化されています。空配列を返します。');
+  return [];
 }
 
 /**

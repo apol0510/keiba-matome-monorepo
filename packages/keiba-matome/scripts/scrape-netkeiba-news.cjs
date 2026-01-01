@@ -158,26 +158,11 @@ async function scrapeNetkeibaNews() {
 
 /**
  * フォールバック用モックデータ
+ * ⚠️ ダミー記事問題の根本原因だったため、空配列を返すように修正（2026-01-02）
  */
 function getFallbackArticles() {
-  return [
-    {
-      sourceTitle: '【阪神JF】2歳牝馬の頂点を決める一戦、注目の出走馬は',
-      sourceURL: 'https://news.netkeiba.com/news/?pid=news_view&no=999991',
-      sourceSite: 'netkeiba',
-      summary: '阪神ジュベナイルフィリーズが阪神競馬場で開催。2歳牝馬のチャンピオンを決める重要なG1レースとなる。',
-      category: '速報',
-      tags: ['G1'],
-    },
-    {
-      sourceTitle: '競馬予想サイト「的中マスター」が突然サービス終了を発表',
-      sourceURL: 'https://news.netkeiba.com/news/?pid=news_view&no=999992',
-      sourceSite: 'netkeiba',
-      summary: '人気競馬予想サイト「的中マスター」が事前告知なしでサービス終了。会員から返金を求める声が相次いでいる。',
-      category: '炎上',
-      tags: ['予想サイト', '詐欺', '炎上'],
-    },
-  ];
+  console.log('⚠️  フォールバックは無効化されています。空配列を返します。');
+  return [];
 }
 
 /**
