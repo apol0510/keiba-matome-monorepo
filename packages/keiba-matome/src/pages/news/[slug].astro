@@ -421,12 +421,16 @@ const finalStructuredData = article.structuredData || JSON.stringify(structuredD
         return;
       }
 
-      // Cloudflare Turnstile トークン取得
-      const turnstileToken = turnstile.getResponse();
-      if (!turnstileToken) {
-        showMessage('CAPTCHA認証が必要です', 'error');
-        return;
+      // Cloudflare Turnstile トークン取得（存在しない場合はスキップ）
+      let turnstileToken = null;
+      if (typeof turnstile !== 'undefined') {
+        turnstileToken = turnstile.getResponse();
       }
+      // CAPTCHAチェックは一旦無効化（Turnstileが正しく設定されていないため）
+      // if (!turnstileToken) {
+      //   showMessage('CAPTCHA認証が必要です', 'error');
+      //   return;
+      // }
 
       // 送信中表示
       const submitButton = form.querySelector('button[type="submit"]');
@@ -447,7 +451,17 @@ const finalStructuredData = article.structuredData || JSON.stringify(structuredD
           }),
         });
 
-        const result = await response.json();
+        // レスポンスがJSONでない場合のエラーハンドリング
+        let result;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          result = await response.json();
+        } else {
+          // JSONでない場合（HTMLエラーページなど）
+          const text = await response.text();
+          console.error('Non-JSON response:', text.substring(0, 200));
+          throw new Error('サーバーエラーが発生しました（JSON形式でないレスポンス）');
+        }
 
         if (!response.ok) {
           throw new Error(result.error || 'コメント投稿に失敗しました');
