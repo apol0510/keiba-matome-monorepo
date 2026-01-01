@@ -44,6 +44,23 @@ jobs:
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
         run: node scripts/scrape-netkeiba-news.cjs
 
+      - name: Generate SEO metadata (NEW!)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+        run: |
+          echo "🎯 SEOメタデータを自動生成中..."
+          node ../shared/scripts/optimize-seo.cjs --project=keiba-matome --limit=${{ github.event.inputs.article_count || '3' }}
+          echo "✅ SEOメタデータ生成完了"
+
+      - name: Apply SEO metadata to Airtable (NEW!)
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+        run: |
+          echo "💾 SEOメタデータをAirtableに適用中..."
+          node ../shared/scripts/apply-seo-metadata.cjs --project=keiba-matome
+          echo "✅ SEOメタデータ適用完了"
+
       - name: Generate 2ch-style comments
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

@@ -143,11 +143,23 @@ function markdownToHtml(markdown: string): string {
 }
 
 const htmlContent = markdownToHtml(article.content);
+
+// Airtableのstructured dataを優先、なければローカル生成を使用
+const finalStructuredData = article.structuredData || JSON.stringify(structuredData);
 ---
 
-<BaseLayout title={article.title}>
-  <!-- 構造化データ（JSON-LD） -->
-  <script type="application/ld+json" slot="head" set:html={JSON.stringify(structuredData)} />
+<BaseLayout
+  title={article.title}
+  description={article.excerpt || article.title}
+  ogImage={`/og/articles/${article.slug}.png`}
+  metaTitle={article.metaTitle}
+  metaDescription={article.metaDescription}
+  ogTitle={article.ogTitle}
+  ogDescription={article.ogDescription}
+  keywords={article.keywords}
+  structuredData={finalStructuredData}
+>
+  <!-- 構造化データ（JSON-LD） - BaseLayoutで出力するため削除 -->
   <!-- モバイル対応CSS -->
   <style>
     /* レスポンシブ対応 */
