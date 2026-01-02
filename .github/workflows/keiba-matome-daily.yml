@@ -48,6 +48,12 @@ jobs:
           AIRTABLE_BASE_ID: ${{ secrets.KEIBA_MATOME_AIRTABLE_BASE_ID }}
         run: node scripts/scrape-netkeiba-news.cjs
 
+      - name: Generate SEO metadata for new articles
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.KEIBA_MATOME_AIRTABLE_API_KEY }}
+        run: node ../shared/scripts/generate-seo-for-new-articles.cjs --project=keiba-matome
+
       - name: Generate 2ch-style comments
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

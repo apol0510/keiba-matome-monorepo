@@ -63,6 +63,13 @@ jobs:
           NANKAN_JSON_PATH: ${{ github.workspace }}/nankan-analytics/astro-site/src/data/allRacesPrediction.json
         run: node scripts/scrape-nankan-daily.cjs
 
+      - name: Generate SEO metadata for new articles
+        if: steps.check_data.outputs.status == 'ok'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.YOSOU_KEIBA_AIRTABLE_API_KEY }}
+        run: node ../shared/scripts/generate-seo-for-new-articles.cjs --project=yosou-keiba-matome
+
       - name: Generate 2ch-style comments
         if: steps.check_data.outputs.status == 'ok' && github.event.inputs.skip_comments != 'true'
         env:
