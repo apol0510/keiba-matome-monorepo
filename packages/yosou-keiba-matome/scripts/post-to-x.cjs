@@ -173,7 +173,7 @@ async function postToX(news) {
 async function updateNewsWithTweetId(recordId, tweetId) {
   try {
     const now = new Date().toISOString();
-    await base('News').update(recordId, {
+    await base('Articles').update(recordId, {
       TweetID: tweetId,
       TweetedAt: now,
       PublishedAt: now  // 公開日時をX投稿時刻に更新
@@ -195,7 +195,7 @@ async function getUnpostedNews() {
   const MAX_POSTS_PER_RUN = 3;
 
   try {
-    const records = await base('News')
+    const records = await base('Articles')
       .select({
         filterByFormula: "AND({Status} = 'published', {TweetID} = '')",
         sort: [{ field: 'PublishedAt', direction: 'desc' }],
