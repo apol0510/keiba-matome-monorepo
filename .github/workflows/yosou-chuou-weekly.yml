@@ -54,6 +54,18 @@ jobs:
           AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
         run: node scripts/generate-2ch-comments.cjs
 
+      - name: Post to X (Twitter)
+        if: success()
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.YOSOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
+          X_API_KEY: ${{ secrets.YOSOU_X_API_KEY }}
+          X_API_SECRET: ${{ secrets.YOSOU_X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.YOSOU_X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.YOSOU_X_ACCESS_SECRET }}
+          SITE_URL: https://yosou.keiba-matome.jp
+        run: node scripts/post-to-x.cjs
+
       - name: Trigger Netlify Build Hook
         if: success()
         env:
