@@ -86,6 +86,24 @@ jobs:
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
         run: node scripts/generate-2ch-comments.cjs
 
+      - name: Post to X (Twitter)
+        if: success()
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+          CHIHOU_X_API_KEY: ${{ secrets.CHIHOU_X_API_KEY }}
+          CHIHOU_X_API_SECRET: ${{ secrets.CHIHOU_X_API_SECRET }}
+          CHIHOU_X_ACCESS_TOKEN: ${{ secrets.CHIHOU_X_ACCESS_TOKEN }}
+          CHIHOU_X_ACCESS_SECRET: ${{ secrets.CHIHOU_X_ACCESS_SECRET }}
+          SITE_URL: https://chihou.keiba-matome.jp
+        run: |
+          # X API環境変数を設定
+          export X_API_KEY="$CHIHOU_X_API_KEY"
+          export X_API_SECRET="$CHIHOU_X_API_SECRET"
+          export X_ACCESS_TOKEN="$CHIHOU_X_ACCESS_TOKEN"
+          export X_ACCESS_SECRET="$CHIHOU_X_ACCESS_SECRET"
+          node scripts/post-to-x.cjs
+
       - name: Trigger Netlify build
         env:
           NETLIFY_BUILD_HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}

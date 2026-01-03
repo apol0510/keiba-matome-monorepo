@@ -51,7 +51,7 @@ const twitterClient = new TwitterApi({
   accessSecret: process.env.X_ACCESS_SECRET,
 });
 
-const SITE_URL = process.env.SITE_URL || 'https://keiba-matome.jp';
+const SITE_URL = process.env.SITE_URL || 'https://chihou.keiba-matome.jp';
 
 /**
  * 投稿テキスト生成
