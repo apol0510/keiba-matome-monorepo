@@ -139,26 +139,36 @@ async function postToX(news) {
     const tweetText = generateTweetText(news);
     console.log(`\n📝 投稿内容:\n${tweetText}\n`);
 
-    // OG画像をダウンロード
-    const imageUrl = `${SITE_URL}/og/default.png`;
-    const tempImagePath = path.join('/tmp', 'og-image.png');
+    let tweet;
 
-    console.log(`📥 画像をダウンロード中: ${imageUrl}`);
-    await downloadImage(imageUrl, tempImagePath);
+    // 画像付き投稿を試みる（失敗したらテキストのみ投稿）
+    try {
+      const imageUrl = `${SITE_URL}/og/default.png`;
+      const tempImagePath = path.join('/tmp', 'og-image.png');
 
-    // 画像をアップロード
-    console.log(`📤 画像をXにアップロード中...`);
-    const mediaId = await twitterClient.v1.uploadMedia(tempImagePath);
+      console.log(`📥 画像をダウンロード中: ${imageUrl}`);
+      await downloadImage(imageUrl, tempImagePath);
 
-    // ツイート投稿（画像付き）
-    const tweet = await twitterClient.v2.tweet(tweetText, {
-      media: { media_ids: [mediaId] }
-    });
+      console.log(`📤 画像をXにアップロード中...`);
+      const mediaId = await twitterClient.v1.uploadMedia(tempImagePath);
 
-    // 一時ファイルを削除
-    fs.unlinkSync(tempImagePath);
+      // ツイート投稿（画像付き）
+      tweet = await twitterClient.v2.tweet(tweetText, {
+        media: { media_ids: [mediaId] }
+      });
 
-    console.log(`✅ Xに投稿しました: https://twitter.com/user/status/${tweet.data.id}`);
+      // 一時ファイルを削除
+      fs.unlinkSync(tempImagePath);
+
+      console.log(`✅ Xに投稿しました（画像付き）: https://twitter.com/user/status/${tweet.data.id}`);
+    } catch (imageError) {
+      console.warn(`⚠️ 画像付き投稿に失敗、テキストのみで投稿します:`, imageError.message);
+
+      // テキストのみで投稿
+      tweet = await twitterClient.v2.tweet(tweetText);
+
+      console.log(`✅ Xに投稿しました（テキストのみ）: https://twitter.com/user/status/${tweet.data.id}`);
+    }
 
     return tweet.data.id;
   } catch (error) {
@@ -198,7 +208,7 @@ async function getUnpostedNews() {
     const records = await base('Articles')
       .select({
         filterByFormula: "AND({Status} = 'published', {TweetID} = '')",
-        sort: [{ field: 'PublishedAt', direction: 'desc' }],
+        sort: [{ field: 'PublishedAt', direction: 'asc' }],  // 古い順に投稿
         maxRecords: MAX_POSTS_PER_RUN
       })
       .all();
