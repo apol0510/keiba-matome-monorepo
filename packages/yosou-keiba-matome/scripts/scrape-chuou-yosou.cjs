@@ -152,8 +152,13 @@ function formatArticle(article) {
   const track = extractTrack(article.title);
   const grade = detectGrade(article.title);
 
-  // タイトル生成（2ch風）
-  const title = `【${track} ${grade}】${raceName} 予想スレ`;
+  // 日付フォーマット（月/日形式）
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+  const dateStr = `${month}/${day}`;
+
+  // タイトル生成（2ch風、日付付き）
+  const title = `【${track} ${grade}】${raceName} 予想スレ【${dateStr}】`;
 
   // Slug生成
   const slug = generateSlug(title);
