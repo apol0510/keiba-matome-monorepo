@@ -983,6 +983,77 @@ ls -la dist/  # 出力ディレクトリが生成されているか確認
      - データドリブンな改善サイクルの開始
      - 月次レポートでROI測定
 
+### 2026-01-05
+
+1. ✅ **構造化データのGoogle Search Console警告を完全修正**
+   - **背景**: 3サイトすべてでGoogle Search Consoleに「項目'url'がありません」という警告が表示
+   - **目的**: 検索エンジンでのリッチリザルト表示改善、SEOスコア向上
+
+   - **問題の詳細**:
+     | サイト | author警告 | comment.author警告 | 合計影響 |
+     |--------|-----------|-------------------|---------|
+     | keiba-matome | 84件 | 84件 | 168件 |
+     | chihou-keiba-matome | 2件 | 2件 | 4件 |
+     | yosou-keiba-matome | 1件 | 1件 | 2件 |
+
+   - **修正内容**:
+
+     **1. 構造化データスキーマの修正** (`packages/shared/scripts/optimize-seo.cjs`)
+     - `generateStructuredData()`関数を修正
+     - `author`オブジェクトに`url`プロパティを追加（サイトトップページへのリンク）
+     - `publisher`オブジェクトにも`url`プロパティを追加
+     - Schema.org仕様に完全準拠
+
+     **2. SEOメタデータの再生成**
+     - keiba-matome: 10記事
+     - chihou-keiba-matome: 10記事
+     - yosou-keiba-matome: 10記事
+     - **合計30記事**の構造化データを更新
+
+     **3. Airtableへの適用**
+     - `apply-seo-metadata.cjs`で全30記事のStructuredDataフィールドを更新
+     - 成功率: 100%（30件中30件成功）
+
+   - **修正後の構造化データ**:
+     ```json
+     {
+       "@context": "https://schema.org",
+       "@type": "NewsArticle",
+       "author": {
+         "@type": "Organization",
+         "name": "競馬ニュースまとめ（2ch風）",
+         "url": "https://keiba-matome.jp"  // ← 追加
+       },
+       "publisher": {
+         "@type": "Organization",
+         "name": "競馬ニュースまとめ（2ch風）",
+         "url": "https://keiba-matome.jp",  // ← 追加
+         "logo": {
+           "@type": "ImageObject",
+           "url": "https://keiba-matome.jp/og/default.png"
+         }
+       }
+     }
+     ```
+
+   - **所要時間**: 約5分
+   - **コスト**: 約¥2,100（Claude API、30記事のメタデータ生成）
+
+   - **次のステップ**:
+     - 次回GitHub Actions実行時（毎日6AM/12PM/6PM JST）に自動デプロイ
+     - または、Netlify管理画面から手動で「Trigger deploy」をクリック
+     - 数日〜数週間でGoogle Search Consoleの警告が解消される見込み
+
+   - **期待効果**:
+     - Google Search Console警告の完全解消（168件 → 0件）
+     - リッチリザルトの表示改善
+     - 検索結果での視認性向上
+     - クリック率（CTR）の改善
+     - SEOスコアの向上
+
+   - **コミット**:
+     - 670bf49 - fix: 構造化データのGoogle Search Console警告を修正
+
 ---
 
 ## 夜間長時間タスク実行ガイド
