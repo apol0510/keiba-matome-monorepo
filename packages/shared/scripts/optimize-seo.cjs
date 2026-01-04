@@ -111,10 +111,12 @@ function generateStructuredData(article, projectConfig) {
     'author': {
       '@type': 'Organization',
       'name': projectConfig.siteName,
+      'url': projectConfig.siteUrl,
     },
     'publisher': {
       '@type': 'Organization',
       'name': projectConfig.siteName,
+      'url': projectConfig.siteUrl,
       'logo': {
         '@type': 'ImageObject',
         'url': `${projectConfig.siteUrl}/og/default.png`,

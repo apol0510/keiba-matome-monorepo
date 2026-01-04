@@ -18,20 +18,38 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://yosou.keiba-matome.jp/news/%E5%B7%9D%E5%B4%8E-2026-01-02-11R</loc>
+    <lastmod>2026-01-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://yosou.keiba-matome.jp/news/%E5%A4%A7%E4%BA%95-2025-12-30-11R</loc>
     <lastmod>2025-12-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://yosou.keiba-matome.jp/news/%E5%B7%9D%E5%B4%8E-2026-01-03-11R</loc>
+    <lastmod>2026-01-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://yosou.keiba-matome.jp/news/%E5%A4%A7%E4%BA%95-2025-12-24-9R</loc>
-    <lastmod>2025-12-23</lastmod>
+    <lastmod>2026-01-04</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://yosou.keiba-matome.jp/news/%E4%B8%AD%E5%A4%AE%E7%AB%B6%E9%A6%AC%E5%A0%B4GIII%E9%87%8D%E8%B3%9E%E3%83%AC%E3%83%BC%E3%82%B9%E4%BA%88%E6%83%B3%E3%82%B9%E3%83%AC</loc>
+    <lastmod>2026-01-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://yosou.keiba-matome.jp/news/%E6%B5%A6%E5%92%8C-2025-12-22-11R</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-01-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
@@ -43,13 +61,25 @@
   </url>
   <url>
     <loc>https://yosou.keiba-matome.jp/news/%E6%B5%A6%E5%92%8C-2025-12-23-11R</loc>
-    <lastmod>2025-12-22</lastmod>
+    <lastmod>2026-01-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://yosou.keiba-matome.jp/news/%E5%A4%A7%E4%BA%95-2025-12-29-11R</loc>
     <lastmod>2025-12-28</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://yosou.keiba-matome.jp/news/%E5%B7%9D%E5%B4%8E-2026-01-04-11R</loc>
+    <lastmod>2026-01-04</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://yosou.keiba-matome.jp/news/%E5%B7%9D%E5%B4%8E-2026-01-01-11R</loc>
+    <lastmod>2026-01-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>

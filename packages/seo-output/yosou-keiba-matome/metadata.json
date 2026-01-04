@@ -8,10 +8,10 @@
       "publishedAt": "2025-12-30T18:00:35.769Z"
     },
     "metadata": {
-      "metaTitle": "【大井11R】カウントダウン2026特別 本命アドマイヤエアル予想｜競馬予想まとめ（2ch風）",
-      "metaDescription": "大井11R カウントダウン2026特別（ダ1400m）の競馬予想をまとめ。本命アドマイヤエアル、対抗アイスリーディングで勝負！2ch風の予想情報で的中を狙う。発走17:10の13頭立てレースを徹底分析。",
-      "ogTitle": "【速報】大井11R本命アドマイヤエアル！カウントダウン2026特別の勝負予想",
-      "ogDescription": "本命5番アドマイヤエアル、対抗13番アイスリーディングで勝負！大井競馬場ダート1400mの熱戦を2ch風予想で的中狙い。穴馬キタノライジン、ヨドノタイヨウも要チェック。17:10発走の注目レース！",
+      "metaTitle": "【大井11R】カウントダウン2026特別 本命アドマイヤエアル予想 | 競馬予想まとめ（2ch風）",
+      "metaDescription": "大井11Rカウントダウン2026特別ダ1400mの競馬予想をまとめ。本命アドマイヤエアル、対抗アイスリーディングを軸に2ch風に徹底分析。穴馬キタノライジン、ヨドノタイヨウの評価も。17:10発走の注目レース予想。",
+      "ogTitle": "【速報】大井11R カウントダウン2026特別 本命アドマイヤエアル軸で勝負！",
+      "ogDescription": "17:10発走！本命アドマイヤエアル×対抗アイスリーディングの予想を公開中。穴馬キタノライジン、ヨドノタイヨウにも注目。ダ1400m13頭立ての熱戦を2ch風にまとめて徹底予想！今すぐチェック！",
       "keywords": [
         "カウントダウン2026特別",
         "アドマイヤエアル",
@@ -30,11 +30,13 @@
       "dateModified": "2025-12-30T18:00:35.769Z",
       "author": {
         "@type": "Organization",
-        "name": "競馬予想まとめ（2ch風）"
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp"
       },
       "publisher": {
         "@type": "Organization",
         "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp",
         "logo": {
           "@type": "ImageObject",
           "url": "https://yosou.keiba-matome.jp/og/default.png"
@@ -55,16 +57,16 @@
       "publishedAt": "2025-12-25T21:10:39.289Z"
     },
     "metadata": {
-      "metaTitle": "大井9R セラフィナイト賞予想｜本命ウォークアップで勝負 - 競馬予想まとめ（2ch風）",
-      "metaDescription": "大井9R '２５セラフィナイト賞ダ1800mの競馬予想をまとめ！本命ウォークアップ、対抗ヘスペリスで勝負。2ch風の熱い予想と穴馬情報で的中を目指そう。発走20:10の注目レース完全攻略。",
-      "ogTitle": "【速報予想】大井セラフィナイト賞｜本命ウォークアップで万馬券狙い！",
-      "ogDescription": "注目の大井9Rセラフィナイト賞の本命予想が決定！ウォークアップ軸で高配当を狙う熱い展開予想。対抗ヘスペリス、穴馬プロロークの3連複で一攫千金のチャンス到来！",
+      "metaTitle": "大井9R セラフィナイト賞予想 本命ウォークアップで勝負！競馬予想まとめ（2ch風）",
+      "metaDescription": "大井9R '２５セラフィナイト賞ダ1800m競馬予想！本命◎ウォークアップ、対抗○ヘスペリスで勝負。南関東重賞の穴馬予想も2chまとめ形式で配信。発走20:10の11頭立て完全攻略。",
+      "ogTitle": "【速報予想】大井セラフィナイト賞 本命ウォークアップ一点勝負！穴馬も狙える",
+      "ogDescription": "今夜20:10発走！大井9R セラフィナイト賞の本命◎ウォークアップ、対抗○ヘスペリスで勝負予想を公開中。南関東重賞で万馬券も狙える穴馬情報をまとめてお届け！",
       "keywords": [
         "セラフィナイト賞",
-        "大井競馬",
         "ウォークアップ",
         "ヘスペリス",
-        "南関東競馬予想"
+        "大井競馬",
+        "南関東競馬"
       ]
     },
     "structuredData": {
@@ -77,11 +79,13 @@
       "dateModified": "2025-12-25T21:10:39.289Z",
       "author": {
         "@type": "Organization",
-        "name": "競馬予想まとめ（2ch風）"
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp"
       },
       "publisher": {
         "@type": "Organization",
         "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp",
         "logo": {
           "@type": "ImageObject",
           "url": "https://yosou.keiba-matome.jp/og/default.png"
@@ -95,6 +99,55 @@
   },
   {
     "article": {
+      "id": "recEca2R9urfyQwKa",
+      "title": "【川崎 11R】スパーキングオールスターチャレンジダ2,100m 本命◎ペルマナント 対抗○プラセボで勝負！",
+      "slug": "川崎-2026-01-02-11R",
+      "summary": "川崎 11R スパーキングオールスターチャレンジダ2,100m（8頭） 発走時刻16:35\n\n本命: 3番 ペルマナント\n対抗: 7番 プラセボ\n単穴: 4番 アオイイーグル\n単穴: 6番 カレンアルカンタラ\n\n発走時刻: 16:35",
+      "publishedAt": "2026-01-03T08:52:19.065Z"
+    },
+    "metadata": {
+      "metaTitle": "【川崎11R】スパーキングオールスター予想｜本命ペルマナント◎プラセボ○｜競馬予想まとめ（2ch風）",
+      "metaDescription": "川崎11Rスパーキングオールスターチャレンジ（16:35発走）の競馬予想まとめ。本命◎ペルマナント、対抗○プラセボで勝負！穴馬情報も含む2ch風競馬まとめサイトで的中率アップを狙え。",
+      "ogTitle": "【速報】川崎11R本命ペルマナント◎で勝負！スパーキングオールスター予想",
+      "ogDescription": "16:35発走！本命◎ペルマナント、対抗○プラセボの買い目で万馬券狙い。穴馬アオイイーグル、カレンアルカンタラにも注目。競馬ファン必見の予想情報をチェック！",
+      "keywords": [
+        "スパーキングオールスター",
+        "ペルマナント",
+        "プラセボ",
+        "川崎競馬",
+        "南関東競馬"
+      ]
+    },
+    "structuredData": {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": "【川崎 11R】スパーキングオールスターチャレンジダ2,100m 本命◎ペルマナント 対抗○プラセボで勝負！",
+      "description": "川崎 11R スパーキングオールスターチャレンジダ2,100m（8頭） 発走時刻16:35\n\n本命: 3番 ペルマナント\n対抗: 7番 プラセボ\n単穴: 4番 アオイイーグル\n単穴: 6番 カレンアルカンタラ\n\n発走時刻: 16:35",
+      "image": "https://yosou.keiba-matome.jp/og/default.png",
+      "datePublished": "2026-01-03T08:52:19.065Z",
+      "dateModified": "2026-01-03T08:52:19.065Z",
+      "author": {
+        "@type": "Organization",
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://yosou.keiba-matome.jp/og/default.png"
+        }
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://yosou.keiba-matome.jp/news/川崎-2026-01-02-11R"
+      }
+    }
+  },
+  {
+    "article": {
       "id": "recFFmwntu3z2rUWY",
       "title": "【大井 11R】ウインターテール賞ダ1,400m 本命◎トゥースパークル 対抗○アレスグートで勝負！",
       "slug": "大井-2025-12-30-11R",
@@ -102,16 +155,16 @@
       "publishedAt": "2025-12-29T16:01:11.098Z"
     },
     "metadata": {
-      "metaTitle": "【大井11R】ウインターテール賞予想◎トゥースパークル本命！競馬予想まとめ（2ch風）",
-      "metaDescription": "大井11Rウインターテール賞の競馬予想まとめ！本命トゥースパークル、対抗アレスグートで勝負。穴馬情報も充実の2ch風予想サイト。17:10発走ダ1400m、16頭立てレースを完全攻略。",
-      "ogTitle": "【速報】大井11R本命◎トゥースパークル！ウインターテール賞予想公開中",
-      "ogDescription": "必見！大井競馬場11Rウインターテール賞の本命予想を大公開！トゥースパークル軸の勝負買い目で万馬券を狙え。対抗アレスグート、穴馬シビックドリームまで詳細分析済み。17:10発走間近！",
+      "metaTitle": "【大井11R】ウインターテール賞予想 本命トゥースパークル◎ | 競馬予想まとめ（2ch風）",
+      "metaDescription": "大井11Rウインターテール賞ダ1400m競馬予想まとめ。本命◎トゥースパークル、対抗○アレスグートで勝負！2ch風の熱い予想と穴馬情報で的中を狙え。発走17:10の注目レース完全攻略。",
+      "ogTitle": "【速報予想】大井11R本命◎トゥースパークルで勝負！ウインターテール賞必見",
+      "ogDescription": "注目のウインターテール賞、本命トゥースパークルvs対抗アレスグートの一戦！2ch住民の熱い予想と穴馬シビックドリーム、サッキーミツグ情報も。17:10発走で的中なるか！？",
       "keywords": [
         "ウインターテール賞",
         "トゥースパークル",
         "アレスグート",
         "大井競馬",
-        "南関東競馬"
+        "ダート1400m"
       ]
     },
     "structuredData": {
@@ -124,11 +177,13 @@
       "dateModified": "2025-12-29T16:01:11.098Z",
       "author": {
         "@type": "Organization",
-        "name": "競馬予想まとめ（2ch風）"
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp"
       },
       "publisher": {
         "@type": "Organization",
         "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp",
         "logo": {
           "@type": "ImageObject",
           "url": "https://yosou.keiba-matome.jp/og/default.png"
@@ -142,23 +197,72 @@
   },
   {
     "article": {
+      "id": "recIlfkdDzf1OdRIn",
+      "title": "【川崎 11R】川崎マイラーズ 本命◎ゴールドレガシー 対抗○アランバローズで勝負！",
+      "slug": "川崎-2026-01-03-11R",
+      "summary": "川崎 11R 川崎マイラーズ（ＳIII）ダ1,600m（11頭） 発走時刻16:35\n\n本命: 10番 ゴールドレガシー\n対抗: 2番 アランバローズ\n単穴: 4番 シーサーペント\n単穴: 11番 ドナギニー\n\n発走時刻: 16:35",
+      "publishedAt": "2026-01-03T08:52:03.092Z"
+    },
+    "metadata": {
+      "metaTitle": "川崎マイラーズ予想◎ゴールドレガシー本命で勝負｜競馬予想まとめ（2ch風）",
+      "metaDescription": "川崎11R川崎マイラーズの競馬予想をまとめ！本命ゴールドレガシー、対抗アランバローズで勝負。SIII重賞レースの予想を2ch風に解説。16:35発走のダート1600m戦を的中させよう！",
+      "ogTitle": "【速報】川崎マイラーズ予想！本命ゴールドレガシーで万馬券狙い",
+      "ogDescription": "川崎11R重賞レース「川崎マイラーズ」の予想公開中！本命◎ゴールドレガシー、対抗○アランバローズの買い目で勝負。16:35発走のダート1600m戦で的中を目指そう！",
+      "keywords": [
+        "川崎マイラーズ",
+        "ゴールドレガシー",
+        "アランバローズ",
+        "川崎競馬",
+        "ダート1600m"
+      ]
+    },
+    "structuredData": {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": "【川崎 11R】川崎マイラーズ 本命◎ゴールドレガシー 対抗○アランバローズで勝負！",
+      "description": "川崎 11R 川崎マイラーズ（ＳIII）ダ1,600m（11頭） 発走時刻16:35\n\n本命: 10番 ゴールドレガシー\n対抗: 2番 アランバローズ\n単穴: 4番 シーサーペント\n単穴: 11番 ドナギニー\n\n発走時刻: 16:35",
+      "image": "https://yosou.keiba-matome.jp/og/default.png",
+      "datePublished": "2026-01-03T08:52:03.092Z",
+      "dateModified": "2026-01-03T08:52:03.092Z",
+      "author": {
+        "@type": "Organization",
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://yosou.keiba-matome.jp/og/default.png"
+        }
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://yosou.keiba-matome.jp/news/川崎-2026-01-03-11R"
+      }
+    }
+  },
+  {
+    "article": {
       "id": "recU8fkEUwqppej3d",
       "title": "【大井 9R】ＫＲＡトロフィーダ1,650m",
       "slug": "大井-2025-12-24-9R",
       "summary": "大井 9R ＫＲＡトロフィーダ1,650m（12頭） 発走時刻20:10\n\n本命: 6番 モズユウガ\n対抗: 11番 フジマサテイオー\n単穴: 2番 カガヤキテンマ\n単穴: 8番 ブーヤカ\n\n発走時刻: 20:10",
-      "publishedAt": "2025-12-23T12:53:22.006Z"
+      "publishedAt": "2026-01-04T02:02:30.969Z"
     },
     "metadata": {
-      "metaTitle": "【大井9R】KRAトロフィー予想｜モズユウガ本命の買い目公開 - 競馬予想まとめ（2ch風）",
-      "metaDescription": "大井9R KRAトロフィー（ダ1650m）の競馬予想をまとめ。本命モズユウガ、対抗フジマサテイオーの買い目を2ch風に徹底分析。20:10発走の南関東重賞で万馬券を狙う競馬ファン必見の予想サイト。",
-      "ogTitle": "【速報】大井9R KRAトロフィー｜モズユウガ本命で勝負！穴馬情報も公開",
-      "ogDescription": "南関東の注目レース！本命モズユウガ、対抗フジマサテイオーで勝負。カガヤキテンマ、ブーヤカの穴馬情報も完全網羅。20:10発走、ダ1650mの熱い戦いを見逃すな！",
+      "metaTitle": "【大井9R】KRAトロフィー競馬予想｜本命モズユウガ - 競馬予想まとめ（2ch風）",
+      "metaDescription": "大井9R KRAトロフィー(20:10発走)の競馬予想をまとめ。本命6番モズユウガ、対抗フジマサテイオーほか穴馬情報も。2ch風の熱い予想と的中を狙う南関競馬ファン必見の予想サイト。",
+      "ogTitle": "【速報予想】大井KRAトロフィー｜本命モズユウガで万馬券狙い！",
+      "ogDescription": "今夜20:10発走！大井9R KRAトロフィーの本命・穴馬を大胆予想。モズユウガ軸にフジマサテイオー、カガヤキテンマの3連複で高配当を狙え！南関ファン必見の熱い予想をチェック。",
       "keywords": [
         "KRAトロフィー",
         "大井競馬",
         "モズユウガ",
         "フジマサテイオー",
-        "南関東競馬予想"
+        "南関東競馬"
       ]
     },
     "structuredData": {
@@ -167,15 +271,17 @@
       "headline": "【大井 9R】ＫＲＡトロフィーダ1,650m",
       "description": "大井 9R ＫＲＡトロフィーダ1,650m（12頭） 発走時刻20:10\n\n本命: 6番 モズユウガ\n対抗: 11番 フジマサテイオー\n単穴: 2番 カガヤキテンマ\n単穴: 8番 ブーヤカ\n\n発走時刻: 20:10",
       "image": "https://yosou.keiba-matome.jp/og/default.png",
-      "datePublished": "2025-12-23T12:53:22.006Z",
-      "dateModified": "2025-12-23T12:53:22.006Z",
+      "datePublished": "2026-01-04T02:02:30.969Z",
+      "dateModified": "2026-01-04T02:02:30.969Z",
       "author": {
         "@type": "Organization",
-        "name": "競馬予想まとめ（2ch風）"
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp"
       },
       "publisher": {
         "@type": "Organization",
         "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp",
         "logo": {
           "@type": "ImageObject",
           "url": "https://yosou.keiba-matome.jp/og/default.png"
@@ -189,23 +295,72 @@
   },
   {
     "article": {
+      "id": "recUtpv5v4bKewkjM",
+      "title": "【中央競馬場 GIII】重賞レース 予想スレ",
+      "slug": "中央競馬場GIII重賞レース予想スレ",
+      "summary": "重賞レース（GIII）の予想情報\n\n※ 詳細はYahoo!スポーツをご確認ください",
+      "publishedAt": "2026-01-04T03:30:20.863Z"
+    },
+    "metadata": {
+      "metaTitle": "【GIII重賞レース予想】中央競馬場予想スレまとめ | 競馬予想まとめ（2ch風）",
+      "metaDescription": "中央競馬場のGIII重賞レース予想情報をまとめ。本命・穴馬・万馬券狙いの競馬予想を2ch風掲示板でチェック。的中率抜群の重賞予想で勝負レースを攻略しよう。",
+      "ogTitle": "【速報】GIII重賞レース予想スレ！本命vs穴馬の激戦必見",
+      "ogDescription": "中央競馬場の重賞レース予想が白熱！2ch風まとめで本命・穴馬情報をゲット。万馬券狙いの予想家たちの熱い議論をチェックして、今週の勝負レースで的中を狙おう！",
+      "keywords": [
+        "GIII",
+        "重賞予想",
+        "中央競馬場",
+        "競馬予想スレ",
+        "2ch競馬"
+      ]
+    },
+    "structuredData": {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": "【中央競馬場 GIII】重賞レース 予想スレ",
+      "description": "重賞レース（GIII）の予想情報\n\n※ 詳細はYahoo!スポーツをご確認ください",
+      "image": "https://yosou.keiba-matome.jp/og/default.png",
+      "datePublished": "2026-01-04T03:30:20.863Z",
+      "dateModified": "2026-01-04T03:30:20.863Z",
+      "author": {
+        "@type": "Organization",
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://yosou.keiba-matome.jp/og/default.png"
+        }
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://yosou.keiba-matome.jp/news/中央競馬場GIII重賞レース予想スレ"
+      }
+    }
+  },
+  {
+    "article": {
       "id": "recbeTN4fnoyO0zVo",
       "title": "【浦和 11R】師走",
       "slug": "浦和-2025-12-22-11R",
       "summary": "浦和 11R 師走（しわす）特別ダ1,400m（13頭） 発走時刻17:35\n\n本命: 2番 ブレイジングヒート\n対抗: 1番 エドノバンザイ\n単穴: 6番 ケンキートス\n単穴: 11番 ダヴァンティ\n\n発走時刻: 17:35",
-      "publishedAt": "2025-12-21T12:41:28.894Z"
+      "publishedAt": "2026-01-04T02:01:58.862Z"
     },
     "metadata": {
-      "metaTitle": "【浦和11R師走特別】本命ブレイジングヒート軸の予想 | 競馬予想まとめ（2ch風）",
-      "metaDescription": "浦和11R師走特別ダ1400mの競馬予想まとめ。本命2番ブレイジングヒート、対抗1番エドノバンザイで勝負！2ch風の的中予想で万馬券を狙え。17:35発走の13頭立て完全攻略。",
-      "ogTitle": "【速報予想】浦和11R師走特別！本命ブレイジングヒートで万馬券狙い",
-      "ogDescription": "17:35発走！浦和師走特別ダ1400mの熱い予想が集結。本命2番ブレイジングヒート軸で勝負する2ch風予想まとめ。対抗エドノバンザイ、穴馬ケンキートス&ダヴァンティもチェック必須！",
+      "metaTitle": "【浦和11R】師走特別 競馬予想｜本命ブレイジングヒート - 競馬予想まとめ（2ch風）",
+      "metaDescription": "浦和11R師走特別（ダ1400m）の競馬予想をまとめ！本命2番ブレイジングヒート、対抗1番エドノバンザイで勝負。2ch風予想で的中率アップを狙う南関東地方競馬の注目レース。発走17:35",
+      "ogTitle": "【速報予想】浦和11R師走特別｜本命ブレイジングヒートで万馬券狙い！",
+      "ogDescription": "本命2番ブレイジングヒート、対抗1番エドノバンザイ、穴馬ケンキートス＆ダヴァンティで師走特別を攻略！2ch風競馬予想で的中を目指そう。ダ1400m13頭立ての注目レース17:35発走",
       "keywords": [
-        "浦和11R",
         "師走特別",
+        "浦和競馬",
         "ブレイジングヒート",
         "エドノバンザイ",
-        "南関東競馬"
+        "南関東競馬予想"
       ]
     },
     "structuredData": {
@@ -214,15 +369,17 @@
       "headline": "【浦和 11R】師走",
       "description": "浦和 11R 師走（しわす）特別ダ1,400m（13頭） 発走時刻17:35\n\n本命: 2番 ブレイジングヒート\n対抗: 1番 エドノバンザイ\n単穴: 6番 ケンキートス\n単穴: 11番 ダヴァンティ\n\n発走時刻: 17:35",
       "image": "https://yosou.keiba-matome.jp/og/default.png",
-      "datePublished": "2025-12-21T12:41:28.894Z",
-      "dateModified": "2025-12-21T12:41:28.894Z",
+      "datePublished": "2026-01-04T02:01:58.862Z",
+      "dateModified": "2026-01-04T02:01:58.862Z",
       "author": {
         "@type": "Organization",
-        "name": "競馬予想まとめ（2ch風）"
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp"
       },
       "publisher": {
         "@type": "Organization",
         "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp",
         "logo": {
           "@type": "ImageObject",
           "url": "https://yosou.keiba-matome.jp/og/default.png"
@@ -243,16 +400,16 @@
       "publishedAt": "2025-12-24T21:10:32.562Z"
     },
     "metadata": {
-      "metaTitle": "【大井11R】金盃トライアル予想 グリューヴルム本命◎ツウカイノキズナ対抗○｜競馬予想まとめ（2ch風）",
-      "metaDescription": "大井11R金盃トライアルダ2,600mの競馬予想をまとめ！本命グリューヴルム、対抗ツウカイノキズナで勝負。穴馬エクセスリターン、セイカメテオポリスも要注意。2ch風の熱い予想で的中を狙え！20:10発走。",
-      "ogTitle": "【速報】大井11R金盃トライアル予想！本命グリューヴルム◎で万馬券狙い撃ち",
-      "ogDescription": "注目の金盃トライアルダ2,600m！本命グリューヴルム、対抗ツウカイノキズナの鉄板予想に加え、穴馬2頭もピックアップ。競馬ファン必見の熱い予想をチェックして的中を掴め！",
+      "metaTitle": "金盃トライアル予想 グリューヴルム本命！大井11R競馬予想まとめ（2ch風）",
+      "metaDescription": "大井11R金盃トライアルの競馬予想をまとめ！本命グリューヴルム、対抗ツウカイノキズナで勝負。2ch風の熱い議論と穴馬情報で的中を狙う。発走20:10の重要な一戦を徹底分析。",
+      "ogTitle": "【速報予想】金盃トライアル本命グリューヴルム！万馬券狙いの穴馬も公開",
+      "ogDescription": "大井11R金盃トライアルの本命◎グリューヴルム、対抗○ツウカイノキズナで勝負！穴馬エクセスリターン、セイカメテオポリスにも注目。20:10発走の熱いレースを見逃すな！",
       "keywords": [
         "金盃トライアル",
         "グリューヴルム",
         "ツウカイノキズナ",
         "大井競馬",
-        "南関東競馬"
+        "エクセスリターン"
       ]
     },
     "structuredData": {
@@ -265,11 +422,13 @@
       "dateModified": "2025-12-24T21:10:32.562Z",
       "author": {
         "@type": "Organization",
-        "name": "競馬予想まとめ（2ch風）"
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp"
       },
       "publisher": {
         "@type": "Organization",
         "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp",
         "logo": {
           "@type": "ImageObject",
           "url": "https://yosou.keiba-matome.jp/og/default.png"
@@ -287,19 +446,19 @@
       "title": "【浦和 11R】ゴールドカップ",
       "slug": "浦和-2025-12-23-11R",
       "summary": "浦和 11R ゴールドカップ（ＳI）ダ1,400m（13頭） 発走時刻17:35\n\n本命: 9番 フェブランシェ\n対抗: 11番 ムエックス\n単穴: 1番 ティントレット\n単穴: 12番 ギャルダル\n\n発走時刻: 17:35",
-      "publishedAt": "2025-12-22T21:10:27.117Z"
+      "publishedAt": "2026-01-04T02:02:14.807Z"
     },
     "metadata": {
-      "metaTitle": "【浦和11R】ゴールドカップ予想｜本命フェブランシェで勝負！競馬予想まとめ（2ch風）",
-      "metaDescription": "浦和11Rゴールドカップの競馬予想をまとめ！本命9番フェブランシェ、対抗11番ムエックスで勝負。ダ1400mの重賞予想を2ch風にお届け。17:35発走の注目レースで万馬券狙い！",
-      "ogTitle": "【速報】浦和ゴールドカップ予想｜本命フェブランシェで万馬券狙い！",
-      "ogDescription": "注目の浦和11Rゴールドカップ！本命9番フェブランシェ、対抗ムエックスの買い目で勝負。穴馬ティントレット、ギャルダルにも注目。17:35発走で的中なるか？",
+      "metaTitle": "【浦和11R】ゴールドカップ予想｜本命フェブランシェで勝負｜競馬予想まとめ（2ch風）",
+      "metaDescription": "浦和11Rゴールドカップ（SI）ダ1400mの競馬予想を2ch風にまとめ。本命フェブランシェ、対抗ムエックスで的中狙い。17:35発走の南関重賞で万馬券も期待。競馬ファン必見の予想情報をお届けします。",
+      "ogTitle": "【速報予想】浦和ゴールドカップ｜本命フェブランシェで万馬券狙い！",
+      "ogDescription": "浦和11Rゴールドカップの予想が熱い！本命フェブランシェ、対抗ムエックスの鉄板構成で的中率アップ。穴馬ティントレット、ギャルダルにも注目。17:35発走の南関重賞で一攫千金のチャンス！",
       "keywords": [
-        "浦和ゴールドカップ",
+        "浦和競馬",
+        "ゴールドカップ",
         "フェブランシェ",
         "ムエックス",
-        "ティントレット",
-        "ギャルダル"
+        "南関東重賞"
       ]
     },
     "structuredData": {
@@ -308,15 +467,17 @@
       "headline": "【浦和 11R】ゴールドカップ",
       "description": "浦和 11R ゴールドカップ（ＳI）ダ1,400m（13頭） 発走時刻17:35\n\n本命: 9番 フェブランシェ\n対抗: 11番 ムエックス\n単穴: 1番 ティントレット\n単穴: 12番 ギャルダル\n\n発走時刻: 17:35",
       "image": "https://yosou.keiba-matome.jp/og/default.png",
-      "datePublished": "2025-12-22T21:10:27.117Z",
-      "dateModified": "2025-12-22T21:10:27.117Z",
+      "datePublished": "2026-01-04T02:02:14.807Z",
+      "dateModified": "2026-01-04T02:02:14.807Z",
       "author": {
         "@type": "Organization",
-        "name": "競馬予想まとめ（2ch風）"
+        "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp"
       },
       "publisher": {
         "@type": "Organization",
         "name": "競馬予想まとめ（2ch風）",
+        "url": "https://yosou.keiba-matome.jp",
         "logo": {
           "@type": "ImageObject",
           "url": "https://yosou.keiba-matome.jp/og/default.png"
@@ -325,53 +486,6 @@
       "mainEntityOfPage": {
         "@type": "WebPage",
         "@id": "https://yosou.keiba-matome.jp/news/浦和-2025-12-23-11R"
-      }
-    }
-  },
-  {
-    "article": {
-      "id": "rectasNaTewuG3P4X",
-      "title": "【大井 11R】センリョウ賞ダ1,600m 本命◎アクアジェット 対抗○ナイトウォーリアで勝負！",
-      "slug": "大井-2025-12-29-11R",
-      "summary": "大井 11R センリョウ賞ダ1,600m（13頭） 発走時刻17:05\n\n本命: 4番 アクアジェット\n対抗: 6番 ナイトウォーリア\n単穴: 7番 ナックジャスパー\n単穴: 9番 ラピダニーニャ\n\n発走時刻: 17:05",
-      "publishedAt": "2025-12-28T21:10:29.921Z"
-    },
-    "metadata": {
-      "metaTitle": "【大井11R】センリョウ賞 アクアジェット本命で勝負！競馬予想まとめ（2ch風）",
-      "metaDescription": "大井11Rセンリョウ賞の競馬予想をまとめ！本命アクアジェット、対抗ナイトウォーリアで勝負。2ch風の的中率重視予想で万馬券を狙え。南関競馬の重賞レース情報を網羅した競馬サイトです。",
-      "ogTitle": "【速報】大井センリョウ賞 本命アクアジェットで万馬券狙い！必見の予想公開",
-      "ogDescription": "注目の大井11Rセンリョウ賞！本命アクアジェット、対抗ナイトウォーリアの黄金配置で勝負開始。穴馬ナックジャスパー、ラピダニーニャも要チェック。17:05発走の熱戦を見逃すな！",
-      "keywords": [
-        "センリョウ賞",
-        "アクアジェット",
-        "ナイトウォーリア",
-        "大井競馬場",
-        "南関競馬予想"
-      ]
-    },
-    "structuredData": {
-      "@context": "https://schema.org",
-      "@type": "NewsArticle",
-      "headline": "【大井 11R】センリョウ賞ダ1,600m 本命◎アクアジェット 対抗○ナイトウォーリアで勝負！",
-      "description": "大井 11R センリョウ賞ダ1,600m（13頭） 発走時刻17:05\n\n本命: 4番 アクアジェット\n対抗: 6番 ナイトウォーリア\n単穴: 7番 ナックジャスパー\n単穴: 9番 ラピダニーニャ\n\n発走時刻: 17:05",
-      "image": "https://yosou.keiba-matome.jp/og/default.png",
-      "datePublished": "2025-12-28T21:10:29.921Z",
-      "dateModified": "2025-12-28T21:10:29.921Z",
-      "author": {
-        "@type": "Organization",
-        "name": "競馬予想まとめ（2ch風）"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "競馬予想まとめ（2ch風）",
-        "logo": {
-          "@type": "ImageObject",
-          "url": "https://yosou.keiba-matome.jp/og/default.png"
-        }
-      },
-      "mainEntityOfPage": {
-        "@type": "WebPage",
-        "@id": "https://yosou.keiba-matome.jp/news/大井-2025-12-29-11R"
       }
     }
   }
