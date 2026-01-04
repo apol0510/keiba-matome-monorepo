@@ -156,125 +156,30 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
 
   <!-- スレッド一覧 -->
   <style>
-    /* モバイル: カードレイアウト */
-    .article-list-mobile {
-      display: block;
-    }
-    .article-list-desktop {
-      display: none;
-    }
-    .article-card {
+    /* テーブルレイアウト（全画面サイズ共通） */
+    .article-list-table {
+      display: table;
+      width: 100%;
+      border-collapse: collapse;
       background-color: #fff;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 12px;
-      margin-bottom: 12px;
-    }
-    .article-card-title {
-      font-size: 14px;
-      line-height: 1.5;
-      margin-bottom: 8px;
-    }
-    .article-card-meta {
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #666;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .article-card-meta-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
+      border: 1px solid #999;
+      font-size: 13px;
     }
 
-    /* デスクトップ: テーブルレイアウト */
-    @media (min-width: 768px) {
-      .article-list-mobile {
-        display: none;
+    /* モバイル対応: 小さい画面では少し調整 */
+    @media (max-width: 767px) {
+      .article-list-table {
+        font-size: 11px;
       }
-      .article-list-desktop {
-        display: table;
-        width: 100%;
-        border-collapse: collapse;
-        background-color: #fff;
-        border: 1px solid #999;
-        font-size: 13px;
+      .article-list-table th,
+      .article-list-table td {
+        padding: 6px 4px !important;
       }
     }
   </style>
 
-  <!-- モバイル版: カードレイアウト（中央重賞） -->
-  <div id="content-chuou" class="article-list-mobile tab-content">
-    {chuouArticles.map((article) => (
-      <div class="article-card">
-        <div class="article-card-title">
-          <a
-            href={getArticlePath(article)}
-            style="color: #0000ff; text-decoration: none;"
-          >
-            {article.title}
-          </a>
-          {article.category && (
-            <span style="margin-left: 6px; padding: 2px 6px; background-color: #ea8b00; color: #fff; font-size: 10px; border-radius: 3px;">
-              {article.category}
-            </span>
-          )}
-        </div>
-        <div class="article-card-meta">
-          <div class="article-card-meta-item">
-            <span>💬 {article.commentCount || 10}レス</span>
-          </div>
-          <div class="article-card-meta-item">
-            <span>🔥 {calculateMomentum(article.commentCount || 10, article.publishedAt)}</span>
-          </div>
-          <div class="article-card-meta-item">
-            <span class="relative-time" data-timestamp={article.publishedAt.getTime()}>
-              {getRelativeTime(article.publishedAt)}
-            </span>
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-
-  <!-- モバイル版: カードレイアウト（南関重賞） -->
-  <div id="content-nankan-mobile" class="article-list-mobile tab-content" style="display: none;">
-    {nankanArticles.map((article) => (
-      <div class="article-card">
-        <div class="article-card-title">
-          <a
-            href={getArticlePath(article)}
-            style="color: #0000ff; text-decoration: none;"
-          >
-            {article.title}
-          </a>
-          {article.category && (
-            <span style="margin-left: 6px; padding: 2px 6px; background-color: #ea8b00; color: #fff; font-size: 10px; border-radius: 3px;">
-              {article.category}
-            </span>
-          )}
-        </div>
-        <div class="article-card-meta">
-          <div class="article-card-meta-item">
-            <span>💬 {article.commentCount || 10}レス</span>
-          </div>
-          <div class="article-card-meta-item">
-            <span>🔥 {calculateMomentum(article.commentCount || 10, article.publishedAt)}</span>
-          </div>
-          <div class="article-card-meta-item">
-            <span class="relative-time" data-timestamp={article.publishedAt.getTime()}>
-              {getRelativeTime(article.publishedAt)}
-            </span>
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-
-  <!-- デスクトップ版: テーブルレイアウト（中央重賞） -->
-  <table id="content-chuou-desktop" class="article-list-desktop tab-content">
+  <!-- テーブルレイアウト（中央重賞） -->
+  <table id="content-chuou" class="article-list-table tab-content">
     <thead>
       <tr style="background-color: #e6e6dc; border-bottom: 1px solid #999;">
         <th style="padding: 6px 8px; text-align: left; font-weight: normal;">スレッドタイトル</th>
@@ -317,8 +222,8 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
     </tbody>
   </table>
 
-  <!-- デスクトップ版: テーブルレイアウト（南関重賞） -->
-  <table id="content-nankan-desktop" class="article-list-desktop tab-content" style="display: none;">
+  <!-- テーブルレイアウト（南関重賞） -->
+  <table id="content-nankan" class="article-list-table tab-content" style="display: none;">
     <thead>
       <tr style="background-color: #e6e6dc; border-bottom: 1px solid #999;">
         <th style="padding: 6px 8px; text-align: left; font-weight: normal;">スレッドタイトル</th>
@@ -395,21 +300,12 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
 
           // すべてのコンテンツを非表示
           document.getElementById('content-chuou')?.style.setProperty('display', 'none');
-          document.getElementById('content-nankan-mobile')?.style.setProperty('display', 'none');
-          document.getElementById('content-chuou-desktop')?.style.setProperty('display', 'none');
-          document.getElementById('content-nankan-desktop')?.style.setProperty('display', 'none');
+          document.getElementById('content-nankan')?.style.setProperty('display', 'none');
 
-          // 該当するコンテンツを表示
-          if (tabId === 'chuou') {
-            const mobileContent = document.getElementById('content-chuou');
-            const desktopContent = document.getElementById('content-chuou-desktop');
-            if (mobileContent) mobileContent.style.removeProperty('display');
-            if (desktopContent) desktopContent.style.removeProperty('display');
-          } else if (tabId === 'nankan') {
-            const mobileContent = document.getElementById('content-nankan-mobile');
-            const desktopContent = document.getElementById('content-nankan-desktop');
-            if (mobileContent) mobileContent.style.setProperty('display', 'block');
-            if (desktopContent) desktopContent.style.setProperty('display', 'table');
+          // 該当するコンテンツを表示（テーブル形式）
+          const content = document.getElementById(`content-${tabId}`);
+          if (content) {
+            content.style.setProperty('display', 'table');
           }
         });
       });
