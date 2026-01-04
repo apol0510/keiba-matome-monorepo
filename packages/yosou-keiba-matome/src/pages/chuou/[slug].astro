@@ -1,0 +1,493 @@
+---
+// SSRモード（新しいコメントを即座に表示）
+// ※ キャッシュシステムで高速化維持
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getArticleBySlug, getCommentsByArticleId } from '../../lib/airtable';
+import { config } from '../../config';
+
+const { slug } = Astro.params;
+
+// 記事を取得
+const rawArticle = await getArticleBySlug(slug as string);
+
+// 記事が存在しない場合は404
+if (!rawArticle) {
+  return Astro.redirect('/404', 404);
+}
+
+// publishedAtをDateオブジェクトに変換
+const article = {
+  ...rawArticle,
+  publishedAt: new Date(rawArticle.publishedAt)
+};
+
+// 中央重賞以外は404
+if (article.category !== '中央重賞') {
+  return Astro.redirect('/404', 404);
+}
+
+// SSGモードではPOSTリクエストを処理できないため、削除
+// コメント投稿はNetlify Functionsで処理
+
+// 2ch風コメントを取得
+let comments = [];
+try {
+  comments = await getCommentsByArticleId(article.id);
+  console.log(`✅ コメントを${comments.length}件取得しました (${article.title})`);
+} catch (error) {
+  console.error('コメント取得エラー:', error);
+}
+
+// 構造化データ（JSON-LD）
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "NewsArticle",
+  "headline": article.title,
+  "description": article.summary || article.title,
+  "datePublished": article.publishedAt.toISOString(),
+  "dateModified": article.publishedAt.toISOString(),
+  "author": {
+    "@type": "Organization",
+    "name": "競馬予想まとめ",
+    "url": config.siteUrl
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "競馬予想まとめ",
+    "url": config.siteUrl
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": `${config.siteUrl}/chuou/${article.slug}/`
+  },
+  "commentCount": comments.length,
+  "articleSection": article.category || "競馬予想",
+  "keywords": `${article.raceName}, ${article.grade}, 競馬予想`,
+  "inLanguage": "ja-JP"
+};
+
+// 相対時間フォーマット
+function formatTime(date: Date): string {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
+
+  if (minutes < 1) {
+    return 'たった今';
+  } else if (hours < 1) {
+    return `${minutes}分前`;
+  } else if (hours < 24) {
+    return `${hours}時間前`;
+  } else if (days < 7) {
+    return `${days}日前`;
+  } else {
+    // 7日以上前の場合は日付表示
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+    return `${year}/${month}/${day}(${dayOfWeek})`;
+  }
+}
+
+// URLを準備
+const siteUrl = config.siteUrl;
+const articleUrl = `${siteUrl}/chuou/${slug}/`;
+
+// Airtableのstructured dataを優先、なければローカル生成を使用
+const finalStructuredData = article.structuredData || JSON.stringify(structuredData);
+---
+
+<BaseLayout
+  title={article.title}
+  description={article.summary || article.title}
+  ogImage={`/og/articles/${article.slug}.png`}
+  metaTitle={article.metaTitle}
+  metaDescription={article.metaDescription}
+  ogTitle={article.ogTitle}
+  ogDescription={article.ogDescription}
+  keywords={article.keywords}
+  structuredData={finalStructuredData}
+>
+  <!-- 構造化データ（JSON-LD） - BaseLayoutで出力するため削除 -->
+  <!-- モバイル対応CSS -->
+  <style>
+    /* レスポンシブ対応 */
+    .comment-header {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 6px;
+      word-wrap: break-word;
+    }
+    .comment-content {
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .comment-form-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #999;
+      font-size: 14px;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .comment-form-textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #999;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      box-sizing: border-box;
+      min-height: 100px;
+    }
+    .submit-button {
+      padding: 10px 20px;
+      background-color: #ea8b00;
+      color: #fff;
+      border: 1px solid #999;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+      max-width: 200px;
+    }
+
+    /* タブレット以上 */
+    @media (min-width: 768px) {
+      .comment-form-input {
+        max-width: 300px;
+        font-size: 12px;
+        padding: 4px;
+      }
+      .comment-form-textarea {
+        max-width: 600px;
+        font-size: 12px;
+        padding: 4px;
+        min-height: 80px;
+      }
+      .submit-button {
+        padding: 6px 16px;
+        font-size: 12px;
+        width: auto;
+      }
+    }
+  </style>
+
+  <!-- 構造化データ（DiscussionForumPosting） -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "DiscussionForumPosting",
+    "headline": article.title,
+    "text": article.summary || article.title,
+    "datePublished": article.publishedAt.toISOString(),
+    "url": articleUrl,
+    "commentCount": comments.length,
+    "discussionUrl": articleUrl,
+    "author": {
+      "@type": "Person",
+      "name": "名無しさん@競馬板"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "競馬予想まとめ",
+      "url": siteUrl
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": articleUrl
+    },
+    "comment": comments.slice(0, 10).map(comment => ({
+      "@type": "Comment",
+      "text": comment.content,
+      "dateCreated": new Date(comment.createdAt).toISOString(),
+      "author": {
+        "@type": "Person",
+        "name": "名無しさん@競馬板"
+      }
+    }))
+  })} />
+
+  <!-- スレッド情報 -->
+  <div style="background-color: #e6e6dc; border: 1px solid #999; padding: 12px; margin-bottom: 16px;">
+    <h1 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold;">{article.title}</h1>
+    <p style="margin: 0; font-size: 11px; color: #666;">
+      カテゴリ: {article.category} |
+      公開日: {new Date(article.publishedAt).toLocaleDateString('ja-JP')} |
+      レス数: {comments.length}件
+    </p>
+  </div>
+
+  <!-- レス一覧（静的生成 + 動的追加） -->
+  <div class="comment-list" style="background-color: #fff; border: 1px solid #999; margin-bottom: 16px;">
+    {comments.length === 0 ? (
+      <div style="padding: 12px; text-align: center; color: #666;">
+        まだコメントがありません
+      </div>
+    ) : (
+      comments.map((comment, index) => {
+        const bgColor = comment.number % 2 === 0 ? '#fafafa' : '#fff';
+        const opBadge = comment.isOP ? '<span style="margin-left: 4px; padding: 1px 4px; background-color: #ea8b00; color: #fff; font-size: 9px; border-radius: 2px;">スレ主</span>' : '';
+        const timeStr = formatTime(new Date(comment.createdAt));
+
+        return (
+          <div id={`res${comment.number}`} style={`border-bottom: 1px solid #ddd; padding: 12px; background-color: ${bgColor};`}>
+            <div class="comment-header">
+              <span style="font-weight: bold; color: #000;">{comment.number}</span>
+              <span style="margin-left: 8px;">名前：{comment.userName || '名無しさん@競馬板'}</span>
+              {comment.isOP && <span style="margin-left: 4px; padding: 1px 4px; background-color: #ea8b00; color: #fff; font-size: 9px; border-radius: 2px;">スレ主</span>}
+              <span style="margin-left: 8px;">{timeStr}</span>
+              <span style="margin-left: 8px;">{comment.userID}</span>
+            </div>
+            <div class="comment-content" style="margin-top: 8px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">
+              {comment.content}
+            </div>
+          </div>
+        );
+      })
+    )}
+  </div>
+
+  <!-- CTA: 記事下バナー -->
+  <div style="background-color: #fff3cd; border: 2px solid #ea8b00; padding: 16px; margin: 16px 0; text-align: center;">
+    <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #ea8b00;">
+      🏇 このニュースについてもっと知りたい方へ
+    </p>
+    <p style="margin: 0 0 12px 0; font-size: 13px; color: #666; line-height: 1.6;">
+      競馬予想サイトの口コミ・評判を500サイト以上掲載中<br />
+      詐欺サイトを避けて、本当に当たるサイトを見つけよう
+    </p>
+    <a href="https://keiba-review.jp/"
+       target="_blank"
+       rel="noopener"
+       style="display: inline-block; padding: 12px 32px; background-color: #ea8b00; color: #fff; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px;">
+      無料で口コミを見る →
+    </a>
+  </div>
+
+  <!-- 予想記事情報 -->
+  {article.summary && (
+    <div style="background-color: #fff; border: 1px solid #999; padding: 12px; margin-bottom: 16px;">
+      <p style="margin: 0 0 4px 0; font-size: 11px; color: #666; font-weight: bold;">
+        🏇 レース情報
+      </p>
+      <p style="margin: 0 0 4px 0; font-size: 13px; line-height: 1.6; color: #333;">
+        <strong>{article.raceName}</strong>（{article.grade}）
+      </p>
+      <p style="margin: 0 0 8px 0; font-size: 12px; color: #666;">
+        開催日: {article.raceDate} | 競馬場: {article.track}
+      </p>
+      <p style="margin: 0 0 8px 0; font-size: 13px; line-height: 1.6; color: #333; white-space: pre-wrap;">
+        {article.summary}
+      </p>
+      {article.sourceURL && (
+        <a href={article.sourceURL}
+           target="_blank"
+           rel="noopener"
+           style="color: #0000ff; text-decoration: none; font-size: 12px;">
+          → 予想元を見る{article.sourceSite ? `（${article.sourceSite}）` : ''}
+        </a>
+      )}
+    </div>
+  )}
+
+  <!-- レス投稿フォーム -->
+  <div id="comment-form" style="background-color: #e6e6dc; border: 1px solid #999; padding: 12px; margin-bottom: 16px;">
+    <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">書き込む</p>
+
+    <!-- メッセージ表示エリア（動的） -->
+    <div id="message-area"></div>
+
+    <form id="submit-form" style="display: flex; flex-direction: column; gap: 12px;">
+      <div>
+        <label for="userName" style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">名前:</label>
+        <input
+          type="text"
+          id="userName"
+          name="userName"
+          placeholder="名無しさん@競馬板"
+          class="comment-form-input"
+        />
+      </div>
+      <div>
+        <label for="content" style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">本文:</label>
+        <textarea
+          id="content"
+          name="content"
+          placeholder="コメントを入力... (2-500文字)"
+          class="comment-form-textarea"
+          required
+        ></textarea>
+      </div>
+      <!-- Cloudflare Turnstile CAPTCHA -->
+      <div id="cf-turnstile" class="cf-turnstile" data-sitekey="1x00000000000000000000AA" data-theme="light"></div>
+      <div>
+        <button
+          type="submit"
+          class="submit-button"
+        >
+          書き込む
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 注意書き -->
+  <div style="margin-top: 16px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffc107; font-size: 11px; color: #856404;">
+    <p style="margin: 0 0 4px 0; font-weight: bold;">⚠️ 注意事項</p>
+    <p style="margin: 0;">
+      ・このスレッドのコメントの一部はAIによって自動生成されています。<br />
+      ・投稿されたコメントはスパム判定後、即座に表示されます。<br />
+      ・URLを含むコメントは投稿できません。
+    </p>
+  </div>
+
+  <!-- スレッド一覧に戻る -->
+  <div style="margin-top: 16px; text-align: center;">
+    <a href="/" style="color: #0000ff; text-decoration: none; font-size: 12px;">
+      ← スレッド一覧に戻る
+    </a>
+  </div>
+
+  <!-- コメント投稿 + 即時反映スクリプト -->
+  <script define:vars={{ articleId: article.id, currentCommentCount: comments.length }}>
+    // フォーム送信処理
+    const form = document.getElementById('submit-form');
+    const messageArea = document.getElementById('message-area');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+      const content = formData.get('content');
+      const userName = formData.get('userName') || '名無しさん@競馬板';
+
+      // バリデーション
+      if (!content || content.length < 2) {
+        showMessage('コメントは2文字以上入力してください', 'error');
+        return;
+      }
+
+      if (content.length > 500) {
+        showMessage('コメントは500文字以内で入力してください', 'error');
+        return;
+      }
+
+      if (content.match(/https?:\/\//) || content.match(/www\./)) {
+        showMessage('URLを含むコメントは投稿できません', 'error');
+        return;
+      }
+
+      // Cloudflare Turnstile トークン取得
+      const turnstileToken = turnstile.getResponse();
+      if (!turnstileToken) {
+        showMessage('CAPTCHA認証が必要です', 'error');
+        return;
+      }
+
+      // 送信中表示
+      const submitButton = form.querySelector('button[type="submit"]');
+      const originalButtonText = submitButton.textContent;
+      submitButton.disabled = true;
+      submitButton.textContent = '送信中...';
+
+      try {
+        // Netlify Functionsにリクエスト
+        const response = await fetch('/api/submit-comment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            newsId: articleId,
+            content: content,
+            userName: userName,
+            captchaToken: turnstileToken,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'コメント投稿に失敗しました');
+        }
+
+        // 成功メッセージ
+        showMessage(`✅ コメントを投稿しました！（レス番号: ${result.comment.number}）`, 'success');
+
+        // コメントを即座に追加（DOM操作）
+        addCommentToDOM(result.comment);
+
+        // フォームをリセット
+        form.reset();
+
+        // スクロール
+        setTimeout(() => {
+          const newComment = document.getElementById(`res${result.comment.number}`);
+          if (newComment) {
+            newComment.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            newComment.style.transition = 'background-color 0.3s';
+            newComment.style.backgroundColor = '#fff9c4';
+            setTimeout(() => {
+              newComment.style.backgroundColor = '';
+            }, 3000);
+          }
+        }, 100);
+
+      } catch (error) {
+        console.error('Comment submission error:', error);
+        showMessage('❌ ' + error.message, 'error');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+      }
+    });
+
+    // メッセージ表示関数
+    function showMessage(message, type) {
+      const bgColor = type === 'success' ? '#d4edda' : '#f8d7da';
+      const borderColor = type === 'success' ? '#c3e6cb' : '#f5c6cb';
+      const textColor = type === 'success' ? '#155724' : '#721c24';
+
+      messageArea.innerHTML = `
+        <div style="background-color: ${bgColor}; border: 1px solid ${borderColor}; padding: 12px; margin-bottom: 12px; font-size: 13px; color: ${textColor};">
+          ${message}
+        </div>
+      `;
+
+      // 5秒後に自動削除
+      setTimeout(() => {
+        messageArea.innerHTML = '';
+      }, 5000);
+    }
+
+    // コメントをDOMに追加する関数
+    function addCommentToDOM(comment) {
+      const commentList = document.querySelector('.comment-list');
+      if (!commentList) return;
+
+      const commentNumber = comment.number;
+      const bgColor = commentNumber % 2 === 0 ? '#fafafa' : '#fff';
+
+      const commentHtml = `
+        <div id="res${commentNumber}" style="border-bottom: 1px solid #ddd; padding: 12px; background-color: ${bgColor};">
+          <div class="comment-header" style="font-size: 11px; color: #666; margin-bottom: 6px; word-wrap: break-word;">
+            <span style="font-weight: bold; color: #000;">${commentNumber}</span>
+            <span style="margin-left: 8px;">名前：${comment.userName}</span>
+            <span style="margin-left: 8px;">たった今</span>
+            <span style="margin-left: 8px;">${comment.userId}</span>
+          </div>
+          <div class="comment-content" style="font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; margin-top: 8px;">
+            ${comment.content}
+          </div>
+        </div>
+      `;
+
+      commentList.insertAdjacentHTML('beforeend', commentHtml);
+    }
+  </script>
+
+</BaseLayout>

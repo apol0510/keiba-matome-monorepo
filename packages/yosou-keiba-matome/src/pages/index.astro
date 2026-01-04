@@ -27,46 +27,61 @@ const websiteStructuredData = {
 };
 
 // Airtableから予想記事を取得
-let articles = [];
+let allArticles = [];
 
 try {
   const rawArticles = await getAllArticles();
   // publishedAtを文字列からDateオブジェクトに変換
-  articles = rawArticles.map(article => ({
+  allArticles = rawArticles.map(article => ({
     ...article,
     publishedAt: new Date(article.publishedAt)
   }));
-  console.log(`✅ 予想記事を${articles.length}件取得しました`);
+  console.log(`✅ 予想記事を${allArticles.length}件取得しました`);
 } catch (error) {
   console.warn('Airtableからのデータ取得に失敗しました。');
   console.error(error);
   // モックデータ
-  articles = [
+  allArticles = [
     {
-      title: '【速報】G1有馬記念、アーモンドアイが引退レースで優勝',
-      slug: 'arima-kinen-almond-eye',
-      category: '速報',
+      title: '【中山 G1】有馬記念 予想スレ【12/25】',
+      slug: 'arima-kinen-2025',
+      category: '中央重賞',
       publishedAt: new Date('2025-12-14T10:00:00'),
       viewCount: 1234,
       commentCount: 89,
     },
     {
-      title: '【悲報】競馬予想サイト「ウマダッシュ」が突然閉鎖、被害者多数',
-      slug: 'umadash-closed',
-      category: '炎上',
+      title: '【大井 SI】ゴールドカップ 予想スレ',
+      slug: 'gold-cup-2025',
+      category: '南関重賞',
       publishedAt: new Date('2025-12-14T09:30:00'),
       viewCount: 567,
       commentCount: 45,
     },
     {
-      title: '【議論】一番当たる競馬予想サイトってどこ？',
-      slug: 'best-keiba-site',
-      category: 'まとめ',
+      title: '【船橋 9R】マリーンカップ 予想スレ',
+      slug: 'marine-cup-2025',
+      category: '南関メイン',
       publishedAt: new Date('2025-12-14T08:00:00'),
       viewCount: 890,
       commentCount: 123,
     },
   ];
+}
+
+// カテゴリ別に分類
+const chuouArticles = allArticles.filter(a => a.category === '中央重賞');
+const nankanArticles = allArticles.filter(a => a.category === '南関重賞' || a.category === '南関メイン');
+
+// カテゴリに応じたURLパスを取得
+function getArticlePath(article: any): string {
+  if (article.category === '中央重賞') {
+    return `/chuou/${article.slug}/`;
+  } else if (article.category === '南関重賞' || article.category === '南関メイン') {
+    return `/nankan/${article.slug}/`;
+  }
+  // フォールバック（通常は発生しない）
+  return `/news/${article.slug}/`;
 }
 
 // 相対時間を計算
@@ -110,21 +125,33 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
   <script slot="head" type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "ItemList",
-    "itemListElement": articles.slice(0, 10).map((article, index) => ({
+    "itemListElement": allArticles.slice(0, 10).map((article, index) => ({
       "@type": "ListItem",
       "position": index + 1,
-      "url": `${siteUrl}/news/${article.slug}/`,
+      "url": `${siteUrl}${getArticlePath(article)}`,
       "name": article.title
     }))
   })} />
 
   <!-- 板トップ -->
   <div style="background-color: #e6e6dc; border: 1px solid #999; padding: 12px; margin-bottom: 16px;">
-    <h1 style="margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">競馬ニュース板</h1>
+    <h1 style="margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">競馬予想板</h1>
     <p style="margin: 0; font-size: 12px; color: #666;">
-      netkeiba、Yahoo!ニュースなどの競馬関連ニュースをまとめています。<br />
-      新着スレッド一覧
+      netkeiba、Yahoo!競馬などの重賞予想をまとめています。<br />
+      中央重賞・南関重賞の予想スレッド
     </p>
+  </div>
+
+  <!-- タブナビゲーション -->
+  <div style="background-color: #fff; border: 1px solid #999; margin-bottom: 16px;">
+    <div style="display: flex; border-bottom: 1px solid #999;">
+      <button id="tab-chuou" class="tab-button active" style="flex: 1; padding: 12px; background: #ea8b00; color: #fff; border: none; cursor: pointer; font-weight: bold; font-size: 14px;">
+        中央重賞（{chuouArticles.length}件）
+      </button>
+      <button id="tab-nankan" class="tab-button" style="flex: 1; padding: 12px; background: #e6e6dc; color: #333; border: none; cursor: pointer; font-weight: bold; font-size: 14px; border-left: 1px solid #999;">
+        南関重賞（{nankanArticles.length}件）
+      </button>
+    </div>
   </div>
 
   <!-- スレッド一覧 -->
@@ -178,13 +205,13 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
     }
   </style>
 
-  <!-- モバイル版: カードレイアウト -->
-  <div class="article-list-mobile">
-    {articles.map((article) => (
+  <!-- モバイル版: カードレイアウト（中央重賞） -->
+  <div id="content-chuou" class="article-list-mobile tab-content">
+    {chuouArticles.map((article) => (
       <div class="article-card">
         <div class="article-card-title">
           <a
-            href={`/news/${article.slug}/`}
+            href={getArticlePath(article)}
             style="color: #0000ff; text-decoration: none;"
           >
             {article.title}
@@ -212,8 +239,42 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
     ))}
   </div>
 
-  <!-- デスクトップ版: テーブルレイアウト -->
-  <table class="article-list-desktop">
+  <!-- モバイル版: カードレイアウト（南関重賞） -->
+  <div id="content-nankan-mobile" class="article-list-mobile tab-content" style="display: none;">
+    {nankanArticles.map((article) => (
+      <div class="article-card">
+        <div class="article-card-title">
+          <a
+            href={getArticlePath(article)}
+            style="color: #0000ff; text-decoration: none;"
+          >
+            {article.title}
+          </a>
+          {article.category && (
+            <span style="margin-left: 6px; padding: 2px 6px; background-color: #ea8b00; color: #fff; font-size: 10px; border-radius: 3px;">
+              {article.category}
+            </span>
+          )}
+        </div>
+        <div class="article-card-meta">
+          <div class="article-card-meta-item">
+            <span>💬 {article.commentCount || 10}レス</span>
+          </div>
+          <div class="article-card-meta-item">
+            <span>🔥 {calculateMomentum(article.commentCount || 10, article.publishedAt)}</span>
+          </div>
+          <div class="article-card-meta-item">
+            <span class="relative-time" data-timestamp={article.publishedAt.getTime()}>
+              {getRelativeTime(article.publishedAt)}
+            </span>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <!-- デスクトップ版: テーブルレイアウト（中央重賞） -->
+  <table id="content-chuou-desktop" class="article-list-desktop tab-content">
     <thead>
       <tr style="background-color: #e6e6dc; border-bottom: 1px solid #999;">
         <th style="padding: 6px 8px; text-align: left; font-weight: normal;">スレッドタイトル</th>
@@ -223,11 +284,55 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
       </tr>
     </thead>
     <tbody>
-      {articles.map((article, index) => (
+      {chuouArticles.map((article, index) => (
         <tr style={`border-bottom: 1px solid #ddd; ${index % 2 === 0 ? 'background-color: #fafafa;' : 'background-color: #fff;'}`}>
           <td style="padding: 8px;">
             <a
-              href={`/news/${article.slug}/`}
+              href={getArticlePath(article)}
+              style="color: #0000ff; text-decoration: none;"
+              onmouseover="this.style.textDecoration='underline'"
+              onmouseout="this.style.textDecoration='none'"
+            >
+              {article.title}
+            </a>
+            {article.category && (
+              <span style="margin-left: 6px; padding: 2px 6px; background-color: #ea8b00; color: #fff; font-size: 10px; border-radius: 3px;">
+                {article.category}
+              </span>
+            )}
+          </td>
+          <td style="padding: 8px; text-align: center; color: #666;">
+            {article.commentCount || 10}
+          </td>
+          <td style="padding: 8px; text-align: center; color: #666;">
+            {calculateMomentum(article.commentCount || 10, article.publishedAt)}
+          </td>
+          <td style="padding: 8px; text-align: center; color: #999; font-size: 11px;">
+            <span class="relative-time" data-timestamp={article.publishedAt.getTime()}>
+              {getRelativeTime(article.publishedAt)}
+            </span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <!-- デスクトップ版: テーブルレイアウト（南関重賞） -->
+  <table id="content-nankan-desktop" class="article-list-desktop tab-content" style="display: none;">
+    <thead>
+      <tr style="background-color: #e6e6dc; border-bottom: 1px solid #999;">
+        <th style="padding: 6px 8px; text-align: left; font-weight: normal;">スレッドタイトル</th>
+        <th style="padding: 6px 8px; text-align: center; width: 80px; font-weight: normal;">レス数</th>
+        <th style="padding: 6px 8px; text-align: center; width: 80px; font-weight: normal;">勢い</th>
+        <th style="padding: 6px 8px; text-align: center; width: 100px; font-weight: normal;">最終更新</th>
+      </tr>
+    </thead>
+    <tbody>
+      {nankanArticles.map((article, index) => (
+        <tr style={`border-bottom: 1px solid #ddd; ${index % 2 === 0 ? 'background-color: #fafafa;' : 'background-color: #fff;'}`}>
+          <td style="padding: 8px;">
+            <a
+              href={getArticlePath(article)}
               style="color: #0000ff; text-decoration: none;"
               onmouseover="this.style.textDecoration='underline'"
               onmouseout="this.style.textDecoration='none'"
@@ -268,6 +373,48 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
 
   <!-- クライアントサイドで相対時間を更新 -->
   <script>
+    // タブ切り替え機能
+    function setupTabs() {
+      const tabButtons = document.querySelectorAll('.tab-button');
+
+      tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const tabId = this.id.replace('tab-', '');
+
+          // すべてのタブボタンのスタイルをリセット
+          tabButtons.forEach(btn => {
+            btn.style.backgroundColor = '#e6e6dc';
+            btn.style.color = '#333';
+            btn.classList.remove('active');
+          });
+
+          // クリックされたタブをアクティブに
+          this.style.backgroundColor = '#ea8b00';
+          this.style.color = '#fff';
+          this.classList.add('active');
+
+          // すべてのコンテンツを非表示
+          document.getElementById('content-chuou')?.style.setProperty('display', 'none');
+          document.getElementById('content-nankan-mobile')?.style.setProperty('display', 'none');
+          document.getElementById('content-chuou-desktop')?.style.setProperty('display', 'none');
+          document.getElementById('content-nankan-desktop')?.style.setProperty('display', 'none');
+
+          // 該当するコンテンツを表示
+          if (tabId === 'chuou') {
+            const mobileContent = document.getElementById('content-chuou');
+            const desktopContent = document.getElementById('content-chuou-desktop');
+            if (mobileContent) mobileContent.style.removeProperty('display');
+            if (desktopContent) desktopContent.style.removeProperty('display');
+          } else if (tabId === 'nankan') {
+            const mobileContent = document.getElementById('content-nankan-mobile');
+            const desktopContent = document.getElementById('content-nankan-desktop');
+            if (mobileContent) mobileContent.style.setProperty('display', 'block');
+            if (desktopContent) desktopContent.style.setProperty('display', 'table');
+          }
+        });
+      });
+    }
+
     function updateRelativeTime() {
       const elements = document.querySelectorAll('.relative-time');
       const now = Date.now();
@@ -295,6 +442,7 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
     }
 
     // 初回実行
+    setupTabs();
     updateRelativeTime();
 
     // 1分ごとに更新
@@ -302,7 +450,7 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
 
     // ページ遷移高速化: リンクホバー時にプリフェッチ
     function setupPrefetch() {
-      const links = document.querySelectorAll('a[href^="/news/"]');
+      const links = document.querySelectorAll('a[href^="/chuou/"], a[href^="/nankan/"]');
       const prefetchedUrls = new Set();
 
       links.forEach(link => {

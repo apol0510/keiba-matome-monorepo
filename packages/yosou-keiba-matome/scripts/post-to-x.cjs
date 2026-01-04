@@ -59,11 +59,22 @@ const SITE_URL = process.env.SITE_URL || 'https://yosou.keiba-matome.jp';
 function generateTweetText(news) {
   const title = news.Title || news.SourceTitle;
   const slug = news.Slug;
+  const category = news.Category;
+
+  // カテゴリに応じたURLパスを決定
+  let urlPath;
+  if (category === '中央重賞') {
+    urlPath = '/chuou/';
+  } else if (category === '南関重賞' || category === '南関メイン') {
+    urlPath = '/nankan/';
+  } else {
+    urlPath = '/news/'; // フォールバック
+  }
 
   // SlugがURLエンコードされている場合は、そのまま使用
   // されていない場合は、エンコード（念のため）
   const encodedSlug = slug.includes('%') ? slug : encodeURIComponent(slug);
-  const url = `${SITE_URL}/news/${encodedSlug}/`;
+  const url = `${SITE_URL}${urlPath}${encodedSlug}/`;
 
   // カテゴリに応じた絵文字
   const categoryEmoji = {
