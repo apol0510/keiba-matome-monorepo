@@ -145,10 +145,10 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
   <!-- タブナビゲーション -->
   <div style="background-color: #fff; border: 1px solid #999; margin-bottom: 16px;">
     <div style="display: flex; border-bottom: 1px solid #999;">
-      <button id="tab-chuou" class="tab-button active" style="flex: 1; padding: 12px; background: #ea8b00; color: #fff; border: none; cursor: pointer; font-weight: bold; font-size: 14px;">
+      <button id="tab-chuou" class="tab-button" style="flex: 1; padding: 12px; background: #e6e6dc; color: #333; border: none; cursor: pointer; font-weight: bold; font-size: 14px;">
         中央重賞（{chuouArticles.length}件）
       </button>
-      <button id="tab-nankan" class="tab-button" style="flex: 1; padding: 12px; background: #e6e6dc; color: #333; border: none; cursor: pointer; font-weight: bold; font-size: 14px; border-left: 1px solid #999;">
+      <button id="tab-nankan" class="tab-button active" style="flex: 1; padding: 12px; background: #ea8b00; color: #fff; border: none; cursor: pointer; font-weight: bold; font-size: 14px; border-left: 1px solid #999;">
         南関重賞（{nankanArticles.length}件）
       </button>
     </div>
@@ -179,7 +179,7 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
   </style>
 
   <!-- テーブルレイアウト（中央重賞） -->
-  <table id="content-chuou" class="article-list-table tab-content">
+  <table id="content-chuou" class="article-list-table tab-content" style="display: none;">
     <thead>
       <tr style="background-color: #e6e6dc; border-bottom: 1px solid #999;">
         <th style="padding: 6px 8px; text-align: left; font-weight: normal;">スレッドタイトル</th>
@@ -223,7 +223,7 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
   </table>
 
   <!-- テーブルレイアウト（南関重賞） -->
-  <table id="content-nankan" class="article-list-table tab-content" style="display: none;">
+  <table id="content-nankan" class="article-list-table tab-content">
     <thead>
       <tr style="background-color: #e6e6dc; border-bottom: 1px solid #999;">
         <th style="padding: 6px 8px; text-align: left; font-weight: normal;">スレッドタイトル</th>
