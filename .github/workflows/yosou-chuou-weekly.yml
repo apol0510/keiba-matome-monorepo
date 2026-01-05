@@ -2,7 +2,9 @@ name: Yosou Chuou Weekly (中央重賞予想)
 
 on:
   schedule:
-    # 金曜 18時（JST）に実行
+    # 火曜・金曜 18時（JST）に実行
+    # 火曜 9時UTC = 火曜 18時JST
+    - cron: '0 9 * * 2'
     # 金曜 9時UTC = 金曜 18時JST
     - cron: '0 9 * * 5'
   workflow_dispatch:

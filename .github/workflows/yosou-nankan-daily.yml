@@ -2,10 +2,12 @@ name: Yosou Nankan Daily (南関メインレース予想)
 
 on:
   schedule:
-    # 月〜金 朝6時（JST）＋夕方18時（JST）に実行
+    # 月〜金 朝6時（JST）＋昼12時（JST）＋夕方18時（JST）に実行
     # 日〜木の21時UTC = 月〜金の6時JST（朝）
     - cron: '0 21 * * 0-4'
-    # 月〜金の9時UTC = 月〜金の18時JST（夕方・バックアップ）
+    # 月〜金の3時UTC = 月〜金の12時JST（昼）
+    - cron: '0 3 * * 1-5'
+    # 月〜金の9時UTC = 月〜金の18時JST（夕方）
     - cron: '0 9 * * 1-5'
   workflow_dispatch:
     inputs:
