@@ -339,6 +339,50 @@ SITE_URL=https://yosou.keiba-matome.jp
 - [ ] 中央競馬・地方競馬・競馬予想で用語・ニュース元が異なることを理解すること
 - [ ] データベース（Airtable Base）は3つとも完全に独立していること
 
+### 🚨 monorepo作業の鉄則（2026-01-06 - ページネーション実装で学んだ教訓）
+
+**【最重要】3プロジェクトは同じ構造なので、必ず同時に処理すること**
+
+#### ❌ やってはいけないこと
+
+**1つずつ順番に処理する**:
+```
+❌ keiba-matomeのnews.tsを修正
+❌ keiba-matomeのpage/[page].astroを作成
+❌ keiba-matomeのindex.astroを修正
+❌ 次にchihou-keiba-matomeを確認...
+❌ 次にyosou-keiba-matomeを確認...
+```
+
+→ **問題**: 同じ作業を3回繰り返す = 時間の無駄、ユーザーのストレス
+
+#### ✅ 正しいやり方
+
+**3プロジェクトを同時に処理する**:
+```
+✅ 3プロジェクトのnews.tsを一気に修正
+✅ 3プロジェクトのpage/[page].astroを一気に作成
+✅ 3プロジェクトのindex.astroを一気に修正
+✅ 全プロジェクトのビルドテスト
+✅ 一括commit & push
+```
+
+→ **効果**: 作業時間1/3、ユーザー満足度向上
+
+#### 実装時の具体例
+
+**ページネーション機能追加の場合**:
+1. keiba-matomeで実装パターンを確認
+2. **すぐに** chihou-keiba-matomeとyosou-keiba-matomeにも同じ修正を適用
+3. 確認は不要（同じ構造なので）
+4. まとめてビルドテスト
+5. まとめてcommit
+
+**理由**:
+- 3プロジェクトは同じAstro 5.x構造
+- src/lib/news.ts、src/pages/index.astro、src/pages/[slug].astroは共通パターン
+- データベース（Airtable）のスキーマも同じ（Newsテーブル、Commentsテーブル）
+
 ### コメント生成改善時
 - [ ] `packages/shared/scripts/generate-2ch-comments.cjs` を修正
 - [ ] 競馬用語対応済み（南関東4競馬、トゥインクル、TCK、重賞予想など）
@@ -982,6 +1026,37 @@ ls -la dist/  # 出力ディレクトリが生成されているか確認
      - keiba-matome → chihou → yosou → nankan-analytics の導線を数値化
      - データドリブンな改善サイクルの開始
      - 月次レポートでROI測定
+
+### 2026-01-06
+
+1. ✅ **サイトの役割分担明確化（地方競馬記事フィルタリング）**
+   - **問題**: keiba-matome.jp（中央競馬）で地方競馬の記事が混入
+   - **原因**: netkeibaトップページには中央・地方の両方が混在
+   - **ユーザーからの指摘**: 「keiba-matome.jpで地方の記事が扱われている chihouで扱えば？？」
+
+   - **実装内容**:
+     - `isChihouKeiba()` 関数を全スクレイピングスクリプトに追加（keiba-matome）
+     - **判定キーワード**（27種類）:
+       - 南関東4競馬: 大井、TCK、船橋、川崎、浦和、南関
+       - 全国地方競馬場: 門別、盛岡、水沢、金沢、笠松、名古屋、園田、姫路、高知、佐賀、ホッカイドウ
+       - 地方競馬ワード: 地方競馬、地方重賞、NAR
+       - 地方G1・重賞: 東京大賞典、川崎記念、帝王賞、ジャパンダートダービー、かしわ記念、JBC、トゥインクル、羽田盃、黒潮盃、兵庫ゴールドトロフィー、東京記念
+
+     - **修正ファイル**:
+       - `packages/keiba-matome/scripts/scrape-netkeiba-news.cjs`
+       - `packages/keiba-matome/scripts/scrape-yahoo-news.cjs`
+
+   - **動作**:
+     - keiba-matome: 地方競馬記事を検出 → スキップ（chihou.keiba-matome.jpで扱います）
+     - chihou-keiba-matome: 地方競馬専用スクレイピング（変更なし）
+
+   - **効果**:
+     - サイトの役割分担明確化
+       - keiba-matome.jp: 中央競馬専用
+       - chihou.keiba-matome.jp: 地方競馬専用
+     - SEO改善（各サイトが専門性を持つ）
+     - ユーザー体験向上（適切なサイトで情報提供）
+     - 重複記事の削減
 
 ### 2026-01-05
 

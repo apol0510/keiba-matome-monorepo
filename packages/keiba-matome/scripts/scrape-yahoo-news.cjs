@@ -188,6 +188,34 @@ function getFallbackArticles() {
 }
 
 /**
+ * 地方競馬記事の判定（chihou-keiba-matomeで扱うべき記事）
+ */
+function isChihouKeiba(title) {
+  const chihouKeywords = [
+    // 南関東4競馬
+    '大井', 'TCK', '東京シティ競馬',
+    '船橋',
+    '川崎',
+    '浦和',
+    '南関',
+
+    // 全国地方競馬場
+    '門別', '盛岡', '水沢', '金沢', '笠松', '名古屋',
+    '園田', '姫路', '高知', '佐賀', 'ホッカイドウ',
+
+    // 地方競馬ワード
+    '地方競馬', '地方重賞', 'NAR', 'nar',
+
+    // 地方G1・重賞
+    '東京大賞典', '川崎記念', '帝王賞', 'ジャパンダートダービー',
+    'かしわ記念', 'JBC', 'トゥインクル', '羽田盃', '黒潮盃',
+    '兵庫ゴールドトロフィー', '東京記念'
+  ];
+
+  return chihouKeywords.some(keyword => title.includes(keyword));
+}
+
+/**
  * Airtableに記事を保存
  */
 async function saveToAirtable(articles) {
@@ -201,6 +229,13 @@ async function saveToAirtable(articles) {
     const title = generate2chTitle(article.sourceTitle, article.category);
 
     try {
+      // 地方競馬記事をフィルタリング（chihou-keiba-matomeで扱う）
+      if (isChihouKeiba(article.sourceTitle)) {
+        console.log(`⏭️  スキップ: ${title} (地方競馬記事 - chihou.keiba-matome.jpで扱います)`);
+        skipped++;
+        continue;
+      }
+
       // 既存チェック
       const existing = await base('News')
         .select({
