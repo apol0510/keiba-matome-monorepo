@@ -169,6 +169,12 @@ export async function getFeaturedNews(limit: number = 3): Promise<NewsArticle[]>
  * すべてのニュース記事を取得（静的ページ生成用）
  */
 export async function getAllNews(): Promise<NewsArticle[]> {
+  const cacheKey = 'all-news';
+
+  // キャッシュチェック
+  const cached = getCache<NewsArticle[]>(cacheKey);
+  if (cached) return cached;
+
   try {
     // 環境変数が設定されていない場合は空配列を返す（ビルド時）
     if (!config.airtable.apiKey || !config.airtable.baseId) {
@@ -184,11 +190,35 @@ export async function getAllNews(): Promise<NewsArticle[]> {
       })
       .all();
 
-    return records.map(recordToArticle);
+    const articles = records.map(recordToArticle);
+    setCache(cacheKey, articles);
+    console.log(`💾 全記事取得完了: ${articles.length}件`);
+    return articles;
   } catch (error) {
     console.error('Failed to fetch all news from Airtable:', error);
     return [];
   }
+}
+
+/**
+ * published記事の総数を取得
+ */
+export async function getTotalNewsCount(): Promise<number> {
+  const allNews = await getAllNews();
+  return allNews.length;
+}
+
+/**
+ * ページ番号を指定して記事を取得（ページネーション用）
+ * @param page ページ番号（1から開始）
+ * @param perPage 1ページあたりの記事数（デフォルト20）
+ */
+export async function getNewsByPage(page: number = 1, perPage: number = 20): Promise<NewsArticle[]> {
+  const allNews = await getAllNews();
+  const start = (page - 1) * perPage;
+  const end = start + perPage;
+
+  return allNews.slice(start, end);
 }
 
 /**
