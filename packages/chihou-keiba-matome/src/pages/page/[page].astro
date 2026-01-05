@@ -1,74 +1,47 @@
 ---
-// トップページは静的生成（SSG）
+// ページネーション: 2ページ目以降（/page/2, /page/3, ...）
 export const prerender = true;
 
-import BaseLayout from '../layouts/BaseLayout.astro';
-import { config } from '../config';
-import { getNewsByPage, getTotalNewsCount } from '../lib/news';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getNewsByPage, getTotalNewsCount } from '../../lib/news';
 
 // SEO設定
 const siteUrl = 'https://chihou.keiba-matome.jp';
 const siteName = '地方競馬ニュースまとめ';
-const siteDescription = '南関東4競馬（大井・船橋・川崎・浦和）や全国の地方競馬ニュースを2ch/5ch風にまとめています。';
+const siteDescription = 'netkeiba、Yahoo!ニュースなどの地方競馬関連ニュースを2ch/5ch風にまとめています。';
 
 // ページあたりの記事数
 const PER_PAGE = 20;
 
-// 構造化データ（JSON-LD） - WebSite
-const websiteStructuredData = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": siteName,
-  "url": siteUrl,
-  "description": siteDescription,
-  "inLanguage": "ja-JP",
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": `${siteUrl}/search?q={search_term_string}`,
-    "query-input": "required name=search_term_string"
-  }
-};
+// 静的パス生成
+export async function getStaticPaths() {
+  const totalCount = await getTotalNewsCount();
+  const totalPages = Math.ceil(totalCount / PER_PAGE);
 
-// Airtableから最新ニュースを取得（ページネーション対応）
+  const paths = [];
+  for (let i = 2; i <= totalPages; i++) {
+    paths.push({ params: { page: i.toString() } });
+  }
+
+  return paths;
+}
+
+const { page } = Astro.params;
+const currentPage = parseInt(page || '2');
+
+// 記事を取得
 let threads = [];
 let totalCount = 0;
 let totalPages = 1;
 
 try {
-  threads = await getNewsByPage(1, PER_PAGE);
+  threads = await getNewsByPage(currentPage, PER_PAGE);
   totalCount = await getTotalNewsCount();
   totalPages = Math.ceil(totalCount / PER_PAGE);
-  console.log(`✅ スレッドを${threads.length}件取得しました（全${totalCount}件、${totalPages}ページ）`);
+  console.log(`✅ ページ${currentPage}: ${threads.length}件の記事を取得（全${totalCount}件、${totalPages}ページ）`);
 } catch (error) {
   console.warn('Airtableからのデータ取得に失敗しました。');
   console.error(error);
-  // モックデータ
-  threads = [
-    {
-      title: '【速報】G1有馬記念、アーモンドアイが引退レースで優勝',
-      slug: 'arima-kinen-almond-eye',
-      category: '速報',
-      publishedAt: new Date('2025-12-14T10:00:00'),
-      viewCount: 1234,
-      commentCount: 89,
-    },
-    {
-      title: '【悲報】競馬予想サイト「ウマダッシュ」が突然閉鎖、被害者多数',
-      slug: 'umadash-closed',
-      category: '炎上',
-      publishedAt: new Date('2025-12-14T09:30:00'),
-      viewCount: 567,
-      commentCount: 45,
-    },
-    {
-      title: '【議論】一番当たる競馬予想サイトってどこ？',
-      slug: 'best-keiba-site',
-      category: 'まとめ',
-      publishedAt: new Date('2025-12-14T08:00:00'),
-      viewCount: 890,
-      commentCount: 123,
-    },
-  ];
 }
 
 // 相対時間を計算
@@ -93,40 +66,108 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
   const now = new Date();
   const diff = now.getTime() - publishedAt.getTime();
   const hours = diff / (1000 * 60 * 60);
-
-  // 1時間未満の場合は1時間として計算
   const elapsed = Math.max(hours, 1);
-
-  // 24時間あたりのレス数を計算
   const momentum = Math.round((commentCount / elapsed) * 24);
-
   return momentum;
 }
+
+// ページネーション用のページ番号配列を生成
+function generatePageNumbers(current: number, total: number): (number | string)[] {
+  const pages: (number | string)[] = [];
+  const delta = 2; // 現在のページの前後に表示する数
+
+  // 1ページ目は常に表示
+  pages.push(1);
+
+  // 現在のページの前後
+  for (let i = Math.max(2, current - delta); i <= Math.min(total - 1, current + delta); i++) {
+    if (i > 1 && pages[pages.length - 1] !== i - 1) {
+      pages.push('...');
+    }
+    pages.push(i);
+  }
+
+  // 最後のページは常に表示
+  if (total > 1) {
+    if (pages[pages.length - 1] !== total - 1) {
+      pages.push('...');
+    }
+    pages.push(total);
+  }
+
+  return pages;
+}
+
+const pageNumbers = generatePageNumbers(currentPage, totalPages);
 ---
 
-<BaseLayout title="トップ" description={siteDescription}>
-  <!-- SEO: 構造化データ（WebSite） -->
-  <script slot="head" type="application/ld+json" set:html={JSON.stringify(websiteStructuredData)} />
-
+<BaseLayout title={`ページ${currentPage}`} description={siteDescription}>
   <!-- SEO: 構造化データ（ItemList - スレッド一覧） -->
   <script slot="head" type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "ItemList",
     "itemListElement": threads.slice(0, 10).map((thread, index) => ({
       "@type": "ListItem",
-      "position": index + 1,
+      "position": (currentPage - 1) * PER_PAGE + index + 1,
       "url": `${siteUrl}/news/${thread.slug}/`,
       "name": thread.title
     }))
   })} />
 
+  <!-- SEO: rel=prev/next -->
+  {currentPage > 2 && <link slot="head" rel="prev" href={currentPage === 2 ? '/' : `/page/${currentPage - 1}/`} />}
+  {currentPage < totalPages && <link slot="head" rel="next" href={`/page/${currentPage + 1}/`} />}
+
   <!-- 板トップ -->
   <div style="background-color: #e6e6dc; border: 1px solid #999; padding: 12px; margin-bottom: 16px;">
-    <h1 style="margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">地方競馬ニュース板</h1>
+    <h1 style="margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">地方競馬ニュース板（{currentPage}ページ目）</h1>
     <p style="margin: 0; font-size: 12px; color: #666;">
-      南関東4競馬（大井・船橋・川崎・浦和）や全国の地方競馬ニュースをまとめています。<br />
-      新着スレッド一覧
+      netkeiba、Yahoo!ニュースなどの地方競馬関連ニュースをまとめています。<br />
+      全{totalCount}件のスレッド（{totalPages}ページ）
     </p>
+  </div>
+
+  <!-- ページネーション（上部） -->
+  <div style="background-color: #fff; border: 1px solid #ddd; padding: 12px; margin-bottom: 16px; text-align: center;">
+    {currentPage > 1 && (
+      <a
+        href={currentPage === 2 ? '/' : `/page/${currentPage - 1}/`}
+        style="margin: 0 4px; padding: 6px 12px; background-color: #ea8b00; color: #fff; text-decoration: none; border-radius: 3px;"
+      >
+        ← 前へ
+      </a>
+    )}
+    {pageNumbers.map((pageNum) => (
+      pageNum === '...' ? (
+        <span style="margin: 0 4px; padding: 6px 12px;">...</span>
+      ) : pageNum === currentPage ? (
+        <span style="margin: 0 4px; padding: 6px 12px; background-color: #ea8b00; color: #fff; border-radius: 3px; font-weight: bold;">
+          {pageNum}
+        </span>
+      ) : pageNum === 1 ? (
+        <a
+          href="/"
+          style="margin: 0 4px; padding: 6px 12px; background-color: #f0f0f0; color: #000; text-decoration: none; border-radius: 3px;"
+        >
+          {pageNum}
+        </a>
+      ) : (
+        <a
+          href={`/page/${pageNum}/`}
+          style="margin: 0 4px; padding: 6px 12px; background-color: #f0f0f0; color: #000; text-decoration: none; border-radius: 3px;"
+        >
+          {pageNum}
+        </a>
+      )
+    ))}
+    {currentPage < totalPages && (
+      <a
+        href={`/page/${currentPage + 1}/`}
+        style="margin: 0 4px; padding: 6px 12px; background-color: #ea8b00; color: #fff; text-decoration: none; border-radius: 3px;"
+      >
+        次へ →
+      </a>
+    )}
   </div>
 
   <!-- スレッド一覧 -->
@@ -258,11 +299,54 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
     </tbody>
   </table>
 
+  <!-- ページネーション（下部） -->
+  <div style="background-color: #fff; border: 1px solid #ddd; padding: 12px; margin-top: 16px; text-align: center;">
+    {currentPage > 1 && (
+      <a
+        href={currentPage === 2 ? '/' : `/page/${currentPage - 1}/`}
+        style="margin: 0 4px; padding: 6px 12px; background-color: #ea8b00; color: #fff; text-decoration: none; border-radius: 3px;"
+      >
+        ← 前へ
+      </a>
+    )}
+    {pageNumbers.map((pageNum) => (
+      pageNum === '...' ? (
+        <span style="margin: 0 4px; padding: 6px 12px;">...</span>
+      ) : pageNum === currentPage ? (
+        <span style="margin: 0 4px; padding: 6px 12px; background-color: #ea8b00; color: #fff; border-radius: 3px; font-weight: bold;">
+          {pageNum}
+        </span>
+      ) : pageNum === 1 ? (
+        <a
+          href="/"
+          style="margin: 0 4px; padding: 6px 12px; background-color: #f0f0f0; color: #000; text-decoration: none; border-radius: 3px;"
+        >
+          {pageNum}
+        </a>
+      ) : (
+        <a
+          href={`/page/${pageNum}/`}
+          style="margin: 0 4px; padding: 6px 12px; background-color: #f0f0f0; color: #000; text-decoration: none; border-radius: 3px;"
+        >
+          {pageNum}
+        </a>
+      )
+    ))}
+    {currentPage < totalPages && (
+      <a
+        href={`/page/${currentPage + 1}/`}
+        style="margin: 0 4px; padding: 6px 12px; background-color: #ea8b00; color: #fff; text-decoration: none; border-radius: 3px;"
+      >
+        次へ →
+      </a>
+    )}
+  </div>
+
   <!-- 注意書き -->
   <div style="margin-top: 16px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffc107; font-size: 12px; color: #856404;">
     <p style="margin: 0 0 4px 0; font-weight: bold;">⚠️ 注意事項</p>
     <p style="margin: 0;">
-      ・このサイトはnetkeiba、スポーツ報知、スポニチなどの地方競馬ニュースや、各競馬場公式サイトの情報を引用し、2ch/5ch風のコメントを追加したまとめサイトです。<br />
+      ・このサイトはnetkeiba、Yahoo!ニュースなどから引用した記事に、2ch/5ch風のコメントを追加したまとめサイトです。<br />
       ・コメントはAIによって自動生成されており、実在の人物・団体とは一切関係ありません。<br />
       ・元記事の著作権は各配信元に帰属します。
     </p>
@@ -296,47 +380,7 @@ function calculateMomentum(commentCount: number, publishedAt: Date): number {
       });
     }
 
-    // 初回実行
     updateRelativeTime();
-
-    // 1分ごとに更新
     setInterval(updateRelativeTime, 60000);
-
-    // ページ遷移高速化: リンクホバー時にプリフェッチ
-    function setupPrefetch() {
-      const links = document.querySelectorAll('a[href^="/news/"]');
-      const prefetchedUrls = new Set();
-
-      links.forEach(link => {
-        link.addEventListener('mouseenter', function() {
-          const href = this.getAttribute('href');
-          if (href && !prefetchedUrls.has(href)) {
-            // プリフェッチリンクを作成
-            const prefetchLink = document.createElement('link');
-            prefetchLink.rel = 'prefetch';
-            prefetchLink.href = href;
-            document.head.appendChild(prefetchLink);
-
-            // 重複プリフェッチを防ぐ
-            prefetchedUrls.add(href);
-          }
-        }, { once: false });
-
-        // モバイル対応: touchstart時にもプリフェッチ
-        link.addEventListener('touchstart', function() {
-          const href = this.getAttribute('href');
-          if (href && !prefetchedUrls.has(href)) {
-            const prefetchLink = document.createElement('link');
-            prefetchLink.rel = 'prefetch';
-            prefetchLink.href = href;
-            document.head.appendChild(prefetchLink);
-            prefetchedUrls.add(href);
-          }
-        }, { passive: true, once: false });
-      });
-    }
-
-    // ページ読み込み完了後にプリフェッチ設定
-    window.addEventListener('load', setupPrefetch);
   </script>
 </BaseLayout>

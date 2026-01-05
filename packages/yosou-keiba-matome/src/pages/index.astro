@@ -4,12 +4,15 @@ export const prerender = true;
 
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { config } from '../config';
-import { getAllArticles } from '../lib/airtable';
+import { getNewsByPage, getTotalNewsCount } from '../lib/news';
 
 // SEO設定
-const siteUrl = 'https://keiba-matome.jp';
-const siteName = '競馬ニュースまとめ';
-const siteDescription = 'netkeiba、Yahoo!ニュースなどの競馬関連ニュースを2ch/5ch風にまとめています。';
+const siteUrl = 'https://yosou.keiba-matome.jp';
+const siteName = '競馬予想まとめ';
+const siteDescription = 'netkeiba、Yahoo!競馬などの中央重賞・南関重賞の予想を2ch/5ch風にまとめています。';
+
+// ページあたりの記事数
+const PER_PAGE = 20;
 
 // 構造化データ（JSON-LD） - WebSite
 const websiteStructuredData = {
@@ -26,17 +29,16 @@ const websiteStructuredData = {
   }
 };
 
-// Airtableから予想記事を取得
+// Airtableから予想記事を取得（ページネーション対応）
 let allArticles = [];
+let totalCount = 0;
+let totalPages = 1;
 
 try {
-  const rawArticles = await getAllArticles();
-  // publishedAtを文字列からDateオブジェクトに変換
-  allArticles = rawArticles.map(article => ({
-    ...article,
-    publishedAt: new Date(article.publishedAt)
-  }));
-  console.log(`✅ 予想記事を${allArticles.length}件取得しました`);
+  allArticles = await getNewsByPage(1, PER_PAGE);
+  totalCount = await getTotalNewsCount();
+  totalPages = Math.ceil(totalCount / PER_PAGE);
+  console.log(`✅ 予想記事を${allArticles.length}件取得しました（全${totalCount}件、${totalPages}ページ）`);
 } catch (error) {
   console.warn('Airtableからのデータ取得に失敗しました。');
   console.error(error);
