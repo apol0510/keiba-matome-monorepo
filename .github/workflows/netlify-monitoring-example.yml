@@ -1,0 +1,47 @@
+# Netlify監視ステップの追加例
+# 既存のワークフローファイルに以下のステップを追加してください
+
+      # ========================================
+      # Netlifyデプロイ監視（追加部分）
+      # ========================================
+
+      - name: Trigger Netlify Build Hook
+        if: success()
+        env:
+          NETLIFY_BUILD_HOOK: ${{ secrets.KEIBA_MATOME_NETLIFY_BUILD_HOOK }}
+        run: |
+          if [ -n "$NETLIFY_BUILD_HOOK" ]; then
+            echo "🚀 Netlifyへのデプロイをトリガー中..."
+            curl -sS -X POST -H "Content-Type: application/json" -d '{}' "$NETLIFY_BUILD_HOOK"
+            echo "✅ デプロイリクエスト送信完了"
+          else
+            echo "⏭️  NETLIFY_BUILD_HOOK未設定のためスキップ"
+          fi
+
+      - name: Monitor Netlify Deploy Status
+        if: success()
+        env:
+          SITE_NAME: "keiba-matome"  # または chihou-keiba-matome, yosou-keiba-matome
+          NETLIFY_SITE_ID: ${{ secrets.KEIBA_MATOME_SITE_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          node packages/shared/scripts/monitor-netlify-deploy.cjs
+
+      # ========================================
+      # 既存の通知ステップ
+      # ========================================
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ 【中央競馬】2ch風ニュース生成が完了しました"
+          echo "記事数: ${{ github.event.inputs.article_count || '3' }}"
+          echo "🐦 X投稿: 最大3件投稿済み"
+          echo "🌐 Netlifyデプロイ: 監視中..."
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ 【中央競馬】ニュース生成またはデプロイに失敗しました"
+          exit 1
