@@ -28,15 +28,7 @@ jobs:
       - name: 全サイトの健全性チェック
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           node packages/shared/scripts/monitor-all-sites.cjs
 
-      - name: 結果をDiscord通知（ワークフロー失敗時）
-        if: failure()
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          curl -H "Content-Type: application/json" \
-            -d "{\"content\":\"🚨 **monorepo統合監視が失敗しました**\n\nワークフロー: health-check\n実行時刻: $(date -u '+%Y-%m-%d %H:%M:%S UTC')\n\n[ログを確認](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\"}" \
-            $DISCORD_WEBHOOK_URL
+      # Discord通知は無効化（GitHub Actionsの結果はメールで受信）

@@ -99,17 +99,7 @@ jobs:
             echo "⏭️  NETLIFY_BUILD_HOOK未設定のためスキップ"
           fi
 
-      - name: Discord notification
-        if: always()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: ${{ job.status }}
-          title: "【地方競馬】2ch風ニュース生成"
-          description: |
-            netkeiba: ${{ github.event.inputs.netkeiba_count || '5' }}件
-            Yahoo!: ${{ github.event.inputs.yahoo_count || '4' }}件
-            🌐 Netlifyデプロイ: トリガー済み
+      # Discord通知は無効化（GitHub Actionsの結果はメールで受信）
 
       - name: Notify on success
         if: success()

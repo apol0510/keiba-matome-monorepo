@@ -107,16 +107,7 @@ jobs:
             echo "⏭️  NETLIFY_BUILD_HOOK未設定のためスキップ"
           fi
 
-      - name: Discord notification
-        if: always()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: ${{ job.status }}
-          title: "【南関メイン】2ch風予想まとめ"
-          description: |
-            平日メインレース予想を投稿
-            🌐 Netlifyデプロイ: トリガー済み
+      # Discord通知は無効化（GitHub Actionsの結果はメールで受信）
 
       - name: Notify on success
         if: success()

@@ -467,8 +467,8 @@ async function main() {
   // 詳細レポート生成
   const { totalCritical, totalWarning, totalInfo, healthScore } = generateDetailedReport(results);
 
-  // Discord通知（重大エラーのみ）
-  await sendDiscordNotification(results);
+  // Discord通知（無効化 - GitHub Actionsの結果はメールで受信）
+  // await sendDiscordNotification(results);
 
   // 終了ステータス
   if (totalCritical > 0) {
