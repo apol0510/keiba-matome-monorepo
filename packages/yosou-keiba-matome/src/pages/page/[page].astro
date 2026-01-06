@@ -15,6 +15,7 @@ const PER_PAGE = 20;
 
 // 静的パス生成
 export async function getStaticPaths() {
+  const PER_PAGE = 20; // getStaticPaths内でも定義（ビルド時のスコープ分離対策）
   const totalCount = await getTotalNewsCount();
   const totalPages = Math.ceil(totalCount / PER_PAGE);
 
