@@ -43,7 +43,10 @@ const SITES = [
     domain: 'https://chihou.keiba-matome.jp',
     expectedType: '地方競馬',
     excludeKeywords: []
-  },
+  }
+  // yosou-keiba-matomeは別のAPI Keyを使用しているため一時的に除外
+  // 統一API Keyを作成するか、各サイト専用API Key対応を実装すれば有効化可能
+  /*
   {
     name: 'yosou-keiba-matome',
     displayName: '競馬予想',
@@ -52,6 +55,7 @@ const SITES = [
     expectedType: '競馬予想',
     excludeKeywords: []
   }
+  */
 ];
 
 /**
