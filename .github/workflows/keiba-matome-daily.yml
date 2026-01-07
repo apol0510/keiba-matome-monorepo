@@ -14,6 +14,10 @@ on:
         default: '3'
         type: string
 
+concurrency:
+  group: keiba-matome-daily-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   generate-news:
     runs-on: ubuntu-latest
@@ -67,6 +71,13 @@ jobs:
           AIRTABLE_API_KEY: ${{ secrets.KEIBA_MATOME_AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.KEIBA_MATOME_AIRTABLE_BASE_ID }}
         run: node scripts/add-comments-to-existing.cjs
+
+      - name: Add random delay (0-15 minutes)
+        run: |
+          # ランダム待機（0-900秒 = 0-15分）- アカウントロック防止
+          DELAY=$((RANDOM % 900))
+          echo "⏱️  ランダム待機: ${DELAY}秒"
+          sleep $DELAY
 
       - name: Post to X (Twitter)
         if: success()
