@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && npm run build --workspace=packages/chihou-keiba-matome"
+  command = "AIRTABLE_BASE_ID=appt25zmKxQDiSCwh npm install && npm run build --workspace=packages/chihou-keiba-matome"
   publish = "packages/chihou-keiba-matome/dist"
 
 [functions]
