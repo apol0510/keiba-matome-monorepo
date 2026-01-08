@@ -1244,6 +1244,62 @@ ls -la dist/  # 出力ディレクトリが生成されているか確認
    - **コミット**:
      - 670bf49 - fix: 構造化データのGoogle Search Console警告を修正
 
+### 2026-01-09
+
+1. ✅ **全3サイト緊急復旧：Airtableテーブル名統一で混乱を完全解消**
+   - **背景**: Airtable APIキーの削除・再作成により、全3サイトでスレッドが0件表示（サイト全停止）
+   - **根本原因**: yosou-keiba-matomeのみ `base('Articles')` を使用、他2サイトは `base('News')` → テーブル名の不統一
+
+   - **問題の発見プロセス**:
+     1. Airtable新APIキーで keiba-matome/chihou は即座に復旧
+     2. yosou-keiba-matomeのみ "NOT_AUTHORIZED" エラー継続
+     3. 当初、Airtableトークンの権限設定を疑う（誤診）
+     4. ユーザーからスクリーンショットで「全3ベース設定済み」を提示
+     5. 直接APIテストで判明: `base('News')` → エラー、`base('Articles')` → 成功
+     6. `src/lib/airtable.ts`を読んで確認: Line 89で `base('Articles')` を発見
+
+   - **実施した修正**:
+
+     **1. yosou-keiba-matomeのコード修正**
+     - `src/lib/airtable.ts`: `base('Articles')` → `base('News')` (2箇所)
+     - 全スクリプト(.cjs): `base('Articles')` → `base('News')` (一括置換)
+     - `netlify/functions/submit-comment.mjs`: `base('Articles')` → `base('News')`
+
+     **2. Airtableテーブルリネーム**
+     - ユーザーが手動で "Articles" → "News" に変更
+
+     **3. 環境変数更新**
+     - Netlify（3サイト）: `AIRTABLE_API_KEY` を新APIキーに更新
+     - GitHub Actions Secrets: `AIRTABLE_API_KEY` を新APIキーに更新
+
+     **4. デプロイ**
+     - Git commit & push（APIキー流出防止のため `check-all-sites.cjs` も修正）
+     - Netlify手動デプロイ（3サイト）
+
+   - **結果**:
+     - ✅ keiba-matome.jp: **210件のスレッド** 表示中
+     - ✅ chihou.keiba-matome.jp: 多数のスレッド表示中
+     - ✅ yosou.keiba-matome.jp: **18件のスレッド** 表示中（中央3件 + 南関15件）
+     - ✅ 全サイト完全復旧
+
+   - **重要な教訓**:
+     - **テーブル名の統一は必須**: monorepoで複数サイトを管理する場合、データベーススキーマは完全統一すべき
+     - **"Articles" vs "News" 問題を完全解消**: 今後は全サイトで `base('News')` のみ使用
+     - **混乱の原因を根絶**: yosou-keiba-matome作成時（2025-12-21）に keiba-matome をコピーしたが、その後 keiba-matome/chihou が "News" に変更されたことで不整合が発生
+
+   - **影響範囲**:
+     - 修正ファイル数: 11ファイル
+     - 所要時間: 約1時間（診断30分、修正15分、デプロイ15分）
+     - ダウンタイム: 数時間（ユーザー影響あり）
+
+   - **今後の対策**:
+     - monorepo全体でデータベーススキーマの統一を厳格に維持
+     - 新プロジェクト作成時は必ず既存プロジェクトとの整合性を確認
+     - テーブル名変更時は全プロジェクトを一括更新
+
+   - **コミット**:
+     - f5a4a75 - fix: yosou-keiba-matomeのテーブル名をArticles→Newsに統一
+
 ---
 
 ## 夜間長時間タスク実行ガイド
