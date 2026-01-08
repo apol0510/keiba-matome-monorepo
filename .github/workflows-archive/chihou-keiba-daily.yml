@@ -47,34 +47,34 @@ jobs:
       - name: 1️⃣ Scrape netkeiba（最優先 - 5 articles）
         env:
           ARTICLE_COUNT: ${{ github.event.inputs.netkeiba_count || '5' }}
-          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
         run: node scripts/scrape-netkeiba-chihou.cjs
 
       - name: 2️⃣ Scrape Yahoo!ニュース（優先度2 - 4 articles）
         env:
           ARTICLE_COUNT: ${{ github.event.inputs.yahoo_count || '4' }}
-          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
         run: node scripts/scrape-yahoo-chihou.cjs
 
       - name: 3️⃣ Generate SEO metadata for new articles
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
         run: node ../shared/scripts/generate-seo-for-new-articles.cjs --project=chihou-keiba-matome
 
       - name: Generate 2ch-style comments
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
         run: node ../shared/scripts/generate-2ch-comments.cjs
 
       - name: Add comments to existing articles
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
         run: node scripts/add-comments-to-published.cjs
 
@@ -88,7 +88,7 @@ jobs:
       - name: Post to X (Twitter)
         if: success()
         env:
-          AIRTABLE_API_KEY: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.CHIHOU_KEIBA_AIRTABLE_BASE_ID }}
           X_API_KEY: ${{ secrets.CHIHOU_X_API_KEY }}
           X_API_SECRET: ${{ secrets.CHIHOU_X_API_SECRET }}

@@ -1,0 +1,89 @@
+name: Unified Daily Workflow (全サイト統合)
+
+on:
+  schedule:
+    # 毎日 AM 6:00, 12:00, 18:00 JST（UTC 21:00, 3:00, 9:00）に実行
+    - cron: '0 21 * * *'  # AM 6:00 JST
+    - cron: '0 3 * * *'   # PM 12:00 JST
+    - cron: '0 9 * * *'   # PM 18:00 JST
+  workflow_dispatch:
+    inputs:
+      site:
+        description: '実行するサイト（空欄=全サイト）'
+        required: false
+        type: choice
+        options:
+          - ''
+          - keiba-matome
+          - chihou-keiba-matome
+      workflow:
+        description: 'ワークフロー名'
+        required: false
+        default: 'daily'
+        type: string
+
+concurrency:
+  group: unified-daily-${{ github.ref }}-${{ github.event.inputs.site || 'all' }}
+  cancel-in-progress: true
+
+jobs:
+  run-workflow:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - site: keiba-matome
+            workflow: daily
+          - site: chihou-keiba-matome
+            workflow: daily
+      fail-fast: false  # 1つのサイトが失敗しても他は続行
+
+    # 手動実行時にサイトが指定されている場合、そのサイトのみ実行
+    if: |
+      github.event_name == 'schedule' ||
+      github.event.inputs.site == '' ||
+      github.event.inputs.site == matrix.site
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js 20セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 依存関係をインストール
+        run: npm install
+
+      - name: ランダム待機（アカウントロック防止）
+        run: |
+          # 0-15分のランダム待機
+          DELAY=$((RANDOM % 900))
+          echo "⏱️  ランダム待機: ${DELAY}秒"
+          sleep $DELAY
+
+      - name: ワークフロー実行
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          X_CREDENTIALS_JSON: ${{ secrets.X_CREDENTIALS_JSON }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # Netlify Build Hooks（サイトごと）
+          KEIBA_MATOME_NETLIFY_BUILD_HOOK: ${{ secrets.KEIBA_MATOME_NETLIFY_BUILD_HOOK }}
+          CHIHOU_KEIBA_NETLIFY_BUILD_HOOK: ${{ secrets.CHIHOU_KEIBA_NETLIFY_BUILD_HOOK }}
+          YOSOU_KEIBA_NETLIFY_BUILD_HOOK: ${{ secrets.YOSOU_KEIBA_NETLIFY_BUILD_HOOK }}
+        run: |
+          node packages/shared/scripts/run-workflow.cjs \
+            --site=${{ matrix.site }} \
+            --workflow=${{ github.event.inputs.workflow || matrix.workflow }}
+
+      - name: 実行結果を通知
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ [${{ matrix.site }}] ワークフロー完了"
+          else
+            echo "❌ [${{ matrix.site }}] ワークフロー失敗"
+          fi

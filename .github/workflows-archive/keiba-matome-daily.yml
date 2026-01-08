@@ -41,34 +41,34 @@ jobs:
 
       - name: Fix invalid slugs
         env:
-          AIRTABLE_API_KEY: ${{ secrets.KEIBA_MATOME_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.KEIBA_MATOME_AIRTABLE_BASE_ID }}
         run: node scripts/fix-invalid-slugs.cjs
 
       - name: Scrape netkeiba news
         env:
           ARTICLE_COUNT: ${{ github.event.inputs.article_count || '3' }}
-          AIRTABLE_API_KEY: ${{ secrets.KEIBA_MATOME_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.KEIBA_MATOME_AIRTABLE_BASE_ID }}
         run: node scripts/scrape-netkeiba-news.cjs
 
       - name: Generate SEO metadata for new articles
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          AIRTABLE_API_KEY: ${{ secrets.KEIBA_MATOME_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
         run: node ../shared/scripts/generate-seo-for-new-articles.cjs --project=keiba-matome
 
       - name: Generate 2ch-style comments
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          AIRTABLE_API_KEY: ${{ secrets.KEIBA_MATOME_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.KEIBA_MATOME_AIRTABLE_BASE_ID }}
         run: node ../shared/scripts/generate-2ch-comments.cjs
 
       - name: Add comments to existing articles
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          AIRTABLE_API_KEY: ${{ secrets.KEIBA_MATOME_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.KEIBA_MATOME_AIRTABLE_BASE_ID }}
         run: node scripts/add-comments-to-existing.cjs
 
@@ -82,7 +82,7 @@ jobs:
       - name: Post to X (Twitter)
         if: success()
         env:
-          AIRTABLE_API_KEY: ${{ secrets.KEIBA_MATOME_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.KEIBA_MATOME_AIRTABLE_BASE_ID }}
           X_API_KEY: ${{ secrets.KEIBA_MATOME_X_API_KEY }}
           X_API_SECRET: ${{ secrets.KEIBA_MATOME_X_API_SECRET }}

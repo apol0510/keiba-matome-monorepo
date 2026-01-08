@@ -1,0 +1,86 @@
+{
+  "$schema": "./sites-config.schema.json",
+  "sites": {
+    "keiba-matome": {
+      "name": "中央競馬",
+      "displayName": "競馬ニュースまとめ（2ch風）",
+      "airtableBaseId": "appdHJSC4F9pTIoDj",
+      "siteUrl": "https://keiba-matome.jp",
+      "port": 4323,
+      "xAccountHandle": "@keiba_matome_jp",
+      "xCredentialKey": "KEIBA_MATOME_X",
+      "netlifyBuildHook": "KEIBA_MATOME_NETLIFY_BUILD_HOOK",
+      "workflows": {
+        "daily": {
+          "schedule": ["0 21 * * *", "0 3 * * *", "0 9 * * *"],
+          "scripts": [
+            { "name": "fix-invalid-slugs", "script": "scripts/fix-invalid-slugs.cjs" },
+            { "name": "scrape-netkeiba", "script": "scripts/scrape-netkeiba-news.cjs", "env": { "ARTICLE_COUNT": "3" } },
+            { "name": "generate-seo", "script": "../shared/scripts/generate-seo-for-new-articles.cjs", "args": ["--project=keiba-matome"] },
+            { "name": "generate-comments", "script": "../shared/scripts/generate-2ch-comments.cjs" },
+            { "name": "add-comments", "script": "scripts/add-comments-to-existing.cjs" },
+            { "name": "post-to-x", "script": "scripts/post-to-x.cjs" }
+          ]
+        }
+      }
+    },
+    "chihou-keiba-matome": {
+      "name": "地方競馬",
+      "displayName": "地方競馬ニュースまとめ（2ch風）",
+      "airtableBaseId": "appt25zmKxQDiSCwh",
+      "siteUrl": "https://chihou.keiba-matome.jp",
+      "port": 4324,
+      "xAccountHandle": "@chihou_keiba_jp",
+      "xCredentialKey": "CHIHOU_X",
+      "netlifyBuildHook": "CHIHOU_KEIBA_NETLIFY_BUILD_HOOK",
+      "workflows": {
+        "daily": {
+          "schedule": ["0 21 * * *", "0 3 * * *", "0 9 * * *"],
+          "scripts": [
+            { "name": "scrape-netkeiba", "script": "scripts/scrape-netkeiba-chihou.cjs", "env": { "ARTICLE_COUNT": "5" } },
+            { "name": "scrape-yahoo", "script": "scripts/scrape-yahoo-chihou.cjs", "env": { "ARTICLE_COUNT": "4" } },
+            { "name": "generate-seo", "script": "../shared/scripts/generate-seo-for-new-articles.cjs", "args": ["--project=chihou-keiba-matome"] },
+            { "name": "generate-comments", "script": "../shared/scripts/generate-2ch-comments.cjs" },
+            { "name": "add-comments", "script": "scripts/add-comments-to-published.cjs" },
+            { "name": "post-to-x", "script": "scripts/post-to-x.cjs" }
+          ]
+        }
+      }
+    },
+    "yosou-keiba-matome": {
+      "name": "競馬予想",
+      "displayName": "競馬予想まとめ（2ch風）",
+      "airtableBaseId": "appKPasSpjpTtabnv",
+      "siteUrl": "https://yosou.keiba-matome.jp",
+      "port": 4325,
+      "xAccountHandle": "@yosou_keiba_jp",
+      "xCredentialKey": "YOSOU_X",
+      "netlifyBuildHook": "YOSOU_KEIBA_NETLIFY_BUILD_HOOK",
+      "workflows": {
+        "nankan-daily": {
+          "schedule": ["0 21 * * 0-4", "0 3 * * 1-5", "0 9 * * 1-5"],
+          "scripts": [
+            { "name": "scrape-nankan", "script": "scripts/scrape-nankan-daily.cjs" },
+            { "name": "generate-seo", "script": "../shared/scripts/generate-seo-for-new-articles.cjs", "args": ["--project=yosou-keiba-matome"] },
+            { "name": "generate-comments", "script": "scripts/generate-2ch-comments.cjs" },
+            { "name": "post-to-x", "script": "scripts/post-to-x.cjs" }
+          ]
+        },
+        "chuou-weekly": {
+          "schedule": ["0 9 * * 2", "0 9 * * 5"],
+          "scripts": [
+            { "name": "scrape-chuou", "script": "scripts/scrape-chuou-yosou.cjs" },
+            { "name": "generate-seo", "script": "../shared/scripts/generate-seo-for-new-articles.cjs", "args": ["--project=yosou-keiba-matome"] },
+            { "name": "generate-comments", "script": "scripts/generate-2ch-comments.cjs" },
+            { "name": "post-to-x", "script": "scripts/post-to-x.cjs" }
+          ]
+        }
+      }
+    }
+  },
+  "shared": {
+    "anthropicApiKey": "ANTHROPIC_API_KEY",
+    "airtableApiKey": "AIRTABLE_API_KEY",
+    "discordWebhookUrl": "DISCORD_WEBHOOK_URL"
+  }
+}

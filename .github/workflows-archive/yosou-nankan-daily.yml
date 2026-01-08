@@ -1,12 +1,14 @@
-name: Yosou Chuou Weekly (中央重賞予想)
+name: Yosou Nankan Daily (南関メインレース予想)
 
 on:
   schedule:
-    # 火曜・金曜 18時（JST）に実行
-    # 火曜 9時UTC = 火曜 18時JST
-    - cron: '0 9 * * 2'
-    # 金曜 9時UTC = 金曜 18時JST
-    - cron: '0 9 * * 5'
+    # 月〜金 朝6時（JST）＋昼12時（JST）＋夕方18時（JST）に実行
+    # 日〜木の21時UTC = 月〜金の6時JST（朝）
+    - cron: '0 21 * * 0-4'
+    # 月〜金の3時UTC = 月〜金の12時JST（昼）
+    - cron: '0 3 * * 1-5'
+    # 月〜金の9時UTC = 月〜金の18時JST（夕方）
+    - cron: '0 9 * * 1-5'
   workflow_dispatch:
     inputs:
       skip_comments:
@@ -15,8 +17,12 @@ on:
         default: 'false'
         type: boolean
 
+concurrency:
+  group: yosou-nankan-daily-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  generate-chuou-prediction:
+  generate-nankan-prediction:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -25,6 +31,13 @@ jobs:
     steps:
       - name: Checkout keiba-matome-monorepo
         uses: actions/checkout@v4
+
+      - name: Checkout nankan-analytics
+        uses: actions/checkout@v4
+        with:
+          repository: apol0510/nankan-analytics
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          path: nankan-analytics
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,30 +49,54 @@ jobs:
         working-directory: .
         run: npm install
 
-      - name: Scrape central racing grade races
+      - name: Check nankan-analytics data
+        id: check_data
+        working-directory: ${{ github.workspace }}
+        run: |
+          DATA_FILE="nankan-analytics/astro-site/src/data/allRacesPrediction.json"
+          if [ ! -f "$DATA_FILE" ]; then
+            echo "status=no_data" >> $GITHUB_OUTPUT
+            echo "⚠️ nankan-analyticsのデータファイルが見つかりません"
+          else
+            echo "status=ok" >> $GITHUB_OUTPUT
+            echo "✅ nankan-analyticsのデータファイルを確認"
+            cat "$DATA_FILE" | head -20
+          fi
+
+      - name: Scrape nankan-analytics daily prediction
+        if: steps.check_data.outputs.status == 'ok'
         env:
-          AIRTABLE_API_KEY: ${{ secrets.YOSOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
-        run: node scripts/scrape-chuou-yosou.cjs
+          NANKAN_JSON_PATH: ${{ github.workspace }}/nankan-analytics/astro-site/src/data/allRacesPrediction.json
+        run: node scripts/scrape-nankan-daily.cjs
 
       - name: Generate SEO metadata for new articles
+        if: steps.check_data.outputs.status == 'ok'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          AIRTABLE_API_KEY: ${{ secrets.YOSOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
         run: node ../shared/scripts/generate-seo-for-new-articles.cjs --project=yosou-keiba-matome
 
       - name: Generate 2ch-style comments
-        if: github.event.inputs.skip_comments != 'true'
+        if: steps.check_data.outputs.status == 'ok' && github.event.inputs.skip_comments != 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          AIRTABLE_API_KEY: ${{ secrets.YOSOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
         run: node scripts/generate-2ch-comments.cjs
+
+      - name: Add random delay (0-15 minutes)
+        run: |
+          # ランダム待機（0-900秒 = 0-15分）- アカウントロック防止
+          DELAY=$((RANDOM % 900))
+          echo "⏱️  ランダム待機: ${DELAY}秒"
+          sleep $DELAY
 
       - name: Post to X (Twitter)
         if: success()
         env:
-          AIRTABLE_API_KEY: ${{ secrets.YOSOU_KEIBA_AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
           X_API_KEY: ${{ secrets.YOSOU_X_API_KEY }}
           X_API_SECRET: ${{ secrets.YOSOU_X_API_SECRET }}
@@ -86,11 +123,11 @@ jobs:
       - name: Notify on success
         if: success()
         run: |
-          echo "✅ 【中央重賞】2ch風予想まとめ投稿完了"
+          echo "✅ 【南関メイン】2ch風予想まとめ投稿完了"
           echo "🌐 Netlifyデプロイ: トリガー済み"
 
       - name: Notify on failure
         if: failure()
         run: |
-          echo "❌ 【中央重賞】予想まとめ投稿に失敗しました"
+          echo "❌ 【南関メイン】予想まとめ投稿に失敗しました"
           exit 1
