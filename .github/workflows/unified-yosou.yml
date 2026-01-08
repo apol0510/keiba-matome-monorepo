@@ -119,6 +119,30 @@ jobs:
             --site=yosou-keiba-matome \
             --workflow=nankan-daily
 
+      - name: Discord通知（南関・成功時）
+        if: success() && needs.determine-workflow.outputs.nankan == 'true'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
+            curl -X POST "$DISCORD_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "{\"embeds\":[{\"title\":\"✅ 南関メイン予想ワークフロー成功\",\"description\":\"**サイト**: yosou-keiba-matome\\n**実行時刻**: $(date '+%Y-%m-%d %H:%M:%S JST')\",\"color\":3066993}]}"
+          fi
+
+      - name: Discord通知（南関・失敗時）
+        if: failure() && needs.determine-workflow.outputs.nankan == 'true'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
+            ERROR_LOG="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            curl -X POST "$DISCORD_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "{\"content\":\"@everyone\",\"embeds\":[{\"title\":\"🚨 南関メイン予想ワークフロー失敗\",\"description\":\"**サイト**: yosou-keiba-matome\\n**実行時刻**: $(date '+%Y-%m-%d %H:%M:%S JST')\\n**ログ**: [確認する]($ERROR_LOG)\",\"color\":15158332}]}"
+          fi
+          exit 1
+
   run-chuou:
     needs: determine-workflow
     if: needs.determine-workflow.outputs.chuou == 'true'
@@ -152,3 +176,27 @@ jobs:
           node packages/shared/scripts/run-workflow.cjs \
             --site=yosou-keiba-matome \
             --workflow=chuou-weekly
+
+      - name: Discord通知（中央・成功時）
+        if: success() && needs.determine-workflow.outputs.chuou == 'true'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
+            curl -X POST "$DISCORD_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "{\"embeds\":[{\"title\":\"✅ 中央重賞予想ワークフロー成功\",\"description\":\"**サイト**: yosou-keiba-matome\\n**実行時刻**: $(date '+%Y-%m-%d %H:%M:%S JST')\",\"color\":3066993}]}"
+          fi
+
+      - name: Discord通知（中央・失敗時）
+        if: failure() && needs.determine-workflow.outputs.chuou == 'true'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
+            ERROR_LOG="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            curl -X POST "$DISCORD_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "{\"content\":\"@everyone\",\"embeds\":[{\"title\":\"🚨 中央重賞予想ワークフロー失敗\",\"description\":\"**サイト**: yosou-keiba-matome\\n**実行時刻**: $(date '+%Y-%m-%d %H:%M:%S JST')\\n**ログ**: [確認する]($ERROR_LOG)\",\"color\":15158332}]}"
+          fi
+          exit 1

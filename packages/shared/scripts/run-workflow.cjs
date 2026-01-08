@@ -97,9 +97,13 @@ console.log('');
 
 const workingDir = path.join(__dirname, `../../../packages/${siteName}`);
 
-async function runScript(scriptConfig, index, total) {
+async function runScript(scriptConfig, index, total, retryCount = 0) {
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 5000; // 5秒
+
   return new Promise((resolve, reject) => {
-    console.log(`[${index}/${total}] ${scriptConfig.name}...`);
+    const retryLabel = retryCount > 0 ? ` (リトライ ${retryCount}/${MAX_RETRIES})` : '';
+    console.log(`[${index}/${total}] ${scriptConfig.name}${retryLabel}...`);
 
     const scriptPath = path.join(workingDir, scriptConfig.script);
 
@@ -134,15 +138,33 @@ async function runScript(scriptConfig, index, total) {
       stdio: 'inherit'
     });
 
-    child.on('close', (code) => {
+    child.on('close', async (code) => {
       if (code === 0) {
         console.log(`  ✅ 完了`);
         console.log('');
         resolve();
       } else {
         console.error(`  ❌ エラー (exit code: ${code})`);
-        console.log('');
-        reject(new Error(`Script failed with exit code ${code}`));
+
+        // リトライ可能なエラーかチェック
+        const isRetryable = code !== 1 || retryCount < MAX_RETRIES;
+
+        if (isRetryable && retryCount < MAX_RETRIES) {
+          console.log(`  ⏳ ${RETRY_DELAY/1000}秒後にリトライします...`);
+          console.log('');
+
+          await new Promise(r => setTimeout(r, RETRY_DELAY));
+
+          try {
+            await runScript(scriptConfig, index, total, retryCount + 1);
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        } else {
+          console.log('');
+          reject(new Error(`Script failed with exit code ${code} after ${retryCount} retries`));
+        }
       }
     });
   });
