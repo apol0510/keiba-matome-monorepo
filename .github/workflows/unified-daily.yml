@@ -38,26 +38,50 @@ jobs:
             workflow: daily
       fail-fast: false  # 1つのサイトが失敗しても他は続行
 
-    # 手動実行時にサイトが指定されている場合、そのサイトのみ実行
-    if: |
-      github.event_name == 'schedule' ||
-      github.event.inputs.site == '' ||
-      github.event.inputs.site == matrix.site
-
     steps:
+      - name: 実行判定（手動実行時のフィルタリング）
+        id: should_run
+        run: |
+          # スケジュール実行: 常に実行
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            echo "result=true" >> $GITHUB_OUTPUT
+            echo "✅ スケジュール実行: ${{ matrix.site }} を実行"
+            exit 0
+          fi
+
+          # 手動実行でサイト未指定: 常に実行
+          if [ -z "${{ github.event.inputs.site }}" ]; then
+            echo "result=true" >> $GITHUB_OUTPUT
+            echo "✅ 手動実行（全サイト）: ${{ matrix.site }} を実行"
+            exit 0
+          fi
+
+          # 手動実行でサイト指定あり: 一致する場合のみ実行
+          if [ "${{ github.event.inputs.site }}" == "${{ matrix.site }}" ]; then
+            echo "result=true" >> $GITHUB_OUTPUT
+            echo "✅ 手動実行（指定サイト）: ${{ matrix.site }} を実行"
+          else
+            echo "result=false" >> $GITHUB_OUTPUT
+            echo "⏭️  スキップ: ${{ matrix.site }}（${{ github.event.inputs.site }} のみ実行）"
+          fi
+
       - name: リポジトリをチェックアウト
+        if: steps.should_run.outputs.result == 'true'
         uses: actions/checkout@v4
 
       - name: Node.js 20セットアップ
+        if: steps.should_run.outputs.result == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: 依存関係をインストール
+        if: steps.should_run.outputs.result == 'true'
         run: npm install
 
       - name: ランダム待機（アカウントロック防止）
+        if: steps.should_run.outputs.result == 'true'
         run: |
           # 0-15分のランダム待機
           DELAY=$((RANDOM % 900))
@@ -65,6 +89,7 @@ jobs:
           sleep $DELAY
 
       - name: ワークフロー実行
+        if: steps.should_run.outputs.result == 'true'
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -80,7 +105,7 @@ jobs:
             --workflow=${{ github.event.inputs.workflow || matrix.workflow }}
 
       - name: Discord通知（成功時）
-        if: success()
+        if: steps.should_run.outputs.result == 'true' && success()
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
@@ -100,7 +125,7 @@ jobs:
           echo "✅ [${{ matrix.site }}] ワークフロー完了"
 
       - name: Discord通知（失敗時）
-        if: failure()
+        if: steps.should_run.outputs.result == 'true' && failure()
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
