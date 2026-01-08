@@ -27,7 +27,7 @@ async function checkPostCount(site) {
   let recentPosts = 0;
 
   try {
-    const records = await base('Articles').select({
+    const records = await base('News').select({
       fields: ['Title', 'isPostedToX', 'CreatedAt', 'PostedToXAt']
     }).all();
 
