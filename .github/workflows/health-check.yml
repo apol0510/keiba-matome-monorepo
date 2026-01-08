@@ -1,0 +1,46 @@
+name: Health Check (Daily Site Monitoring)
+
+on:
+  schedule:
+    # 毎日9:00 JST（0:00 UTC）に実行
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # 手動実行も可能
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js 20セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 依存関係をインストール
+        run: npm install
+
+      - name: 包括的サイト健全性チェック実行
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_API_KEY_YOSOU: ${{ secrets.AIRTABLE_API_KEY_YOSOU }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node packages/shared/scripts/comprehensive-health-check.cjs
+
+      - name: エラー統計ダッシュボード生成
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node packages/shared/scripts/generate-dashboard.cjs
+
+      - name: ダッシュボードをアーティファクトとして保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard
+          path: dashboard.html
+          retention-days: 30
