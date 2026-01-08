@@ -200,7 +200,7 @@ ${trackShort} ${raceNumber} ${raceInfo.raceName}
 async function saveToAirtable(article) {
   try {
     // 既存記事チェック（同じSlugがないか）
-    const existingRecords = await base('Articles')
+    const existingRecords = await base('News')
       .select({
         filterByFormula: `{Slug} = '${article.Slug}'`,
         maxRecords: 1,
@@ -214,7 +214,7 @@ async function saveToAirtable(article) {
     }
 
     // 新規作成
-    const record = await base('Articles').create(article);
+    const record = await base('News').create(article);
     console.log(`✅ 記事を投稿しました: ${article.Title}`);
     console.log(`   Slug: ${article.Slug}`);
     console.log(`   レース日: ${article.RaceDate}`);

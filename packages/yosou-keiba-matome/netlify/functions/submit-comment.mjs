@@ -427,7 +427,7 @@ async function sendDiscordNotification({ newsId, content, userName, userId, next
     const baseId = process.env.AIRTABLE_BASE_ID;
     const base = new Airtable({ apiKey }).base(baseId);
 
-    const newsRecord = await base('Articles').find(newsId);
+    const newsRecord = await base('News').find(newsId);
     const newsTitle = newsRecord.fields.Title || '（タイトルなし）';
     const newsSlug = newsRecord.fields.Slug || '';
     const articleUrl = `https://yosou.keiba-matome.jp/keiba-yosou/${newsSlug}/`;

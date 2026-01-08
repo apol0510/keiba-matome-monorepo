@@ -228,7 +228,7 @@ async function saveCommentsToAirtable(newsRecordId, comments) {
  */
 async function publishArticle(recordId, commentCount) {
   try {
-    await base('Articles').update([
+    await base('News').update([
       {
         id: recordId,
         fields: {
@@ -250,7 +250,7 @@ async function publishArticle(recordId, commentCount) {
 async function getDraftArticles() {
   console.log('📰 draft状態の記事を取得中...');
 
-  const records = await base('Articles')
+  const records = await base('News')
     .select({
       filterByFormula: `{Status} = 'draft'`,
       maxRecords: 10, // 一度に最大10件

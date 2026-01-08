@@ -122,7 +122,7 @@ async function main() {
 
     // 3. 既存記事を検索
     console.log(`🔍 記事を検索中: ${targetSlug}`);
-    const records = await base('Articles')
+    const records = await base('News')
       .select({
         filterByFormula: `{Slug} = '${targetSlug}'`,
         maxRecords: 1,
@@ -139,7 +139,7 @@ async function main() {
 
     // 4. 記事を更新
     console.log('💾 記事を更新中...');
-    await base('Articles').update(record.id, {
+    await base('News').update(record.id, {
       Summary: newSummary,
     });
 

@@ -38,7 +38,7 @@ async function main() {
   try {
     // 1. 記事を検索
     console.log(`🔍 記事を検索中: ${slug}`);
-    const articles = await base('Articles')
+    const articles = await base('News')
       .select({ filterByFormula: `{Slug} = '${slug}'`, maxRecords: 1 })
       .firstPage();
 
@@ -115,7 +115,7 @@ async function main() {
 
     // 5. Articlesテーブルを更新（HasResult = true）
     console.log('📝 Articlesテーブルを更新中...');
-    await base('Articles').update(article.id, {
+    await base('News').update(article.id, {
       HasResult: true,
     });
 

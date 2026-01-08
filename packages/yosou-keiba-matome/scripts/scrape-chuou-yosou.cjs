@@ -187,7 +187,7 @@ function formatArticle(article) {
  */
 async function isDuplicate(slug) {
   try {
-    const records = await base('Articles')
+    const records = await base('News')
       .select({
         filterByFormula: `{Slug} = '${slug}'`,
         maxRecords: 1
@@ -206,7 +206,7 @@ async function isDuplicate(slug) {
  */
 async function saveToAirtable(article) {
   try {
-    await base('Articles').create(article);
+    await base('News').create(article);
     console.log(`   ✅ 保存成功: ${article.Title}`);
     return true;
   } catch (error) {

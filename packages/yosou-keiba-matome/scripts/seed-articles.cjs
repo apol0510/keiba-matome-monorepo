@@ -130,7 +130,7 @@ async function main() {
   try {
     // 既存記事の確認
     console.log('📊 既存記事を確認中...');
-    const existingRecords = await base('Articles')
+    const existingRecords = await base('News')
       .select({ maxRecords: 100 })
       .firstPage();
 
@@ -142,7 +142,7 @@ async function main() {
 
     for (const article of sampleArticles) {
       try {
-        const record = await base('Articles').create(article.fields);
+        const record = await base('News').create(article.fields);
         createdRecords.push(record);
         console.log(`   ✅ ${article.fields.Title}`);
         console.log(`      Slug: ${article.fields.Slug}`);

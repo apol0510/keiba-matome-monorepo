@@ -46,7 +46,7 @@ function detectGrade(raceName) {
 async function main() {
   try {
     console.log('🔍 全記事のGrade/Categoryを確認中...\n');
-    const articles = await base('Articles').select().all();
+    const articles = await base('News').select().all();
 
     console.log(`  全記事数: ${articles.length}`);
     console.log('');
@@ -95,7 +95,7 @@ async function main() {
     for (let i = 0; i < toUpdate.length; i += 10) {
       const batch = toUpdate.slice(i, i + 10);
 
-      await base('Articles').update(
+      await base('News').update(
         batch.map(item => ({
           id: item.id,
           fields: {

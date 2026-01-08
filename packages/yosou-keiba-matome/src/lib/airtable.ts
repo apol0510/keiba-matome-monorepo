@@ -86,7 +86,7 @@ export interface Comment {
 
 // 予想記事取得関数
 export async function getAllArticles(): Promise<Article[]> {
-  const records = await base('Articles').select({
+  const records = await base('News').select({
     filterByFormula: '{Status} = "published"',
     sort: [{ field: 'PublishedAt', direction: 'desc' }]
   }).all();
@@ -114,7 +114,7 @@ export async function getAllArticles(): Promise<Article[]> {
 
 // Slug指定で記事取得
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
-  const records = await base('Articles').select({
+  const records = await base('News').select({
     filterByFormula: `{Slug} = '${slug}'`,
     maxRecords: 1
   }).all();
