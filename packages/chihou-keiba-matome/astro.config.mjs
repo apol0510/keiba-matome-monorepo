@@ -1,11 +1,6 @@
 // @ts-check
-import { loadEnv } from 'vite';
 import { defineConfig } from 'astro/config';
-
 import netlify from '@astrojs/netlify';
-
-// .envファイルを明示的に読み込み
-const env = loadEnv('', process.cwd(), '');
 
 // https://astro.build/config
 export default defineConfig({
@@ -17,10 +12,12 @@ export default defineConfig({
   output: 'server', // サーバーモード（Netlify Functions用）
   adapter: netlify(),
   vite: {
-    // 環境変数をViteに明示的に渡す
+    // 環境変数をViteに明示的に渡す（Netlifyの環境変数から直接読み込み）
     define: {
-      'process.env.AIRTABLE_API_KEY': JSON.stringify(env.AIRTABLE_API_KEY || ''),
-      'process.env.AIRTABLE_BASE_ID': JSON.stringify(env.AIRTABLE_BASE_ID || ''),
+      'process.env.CHIHOU_KEIBA_AIRTABLE_API_KEY': JSON.stringify(process.env.CHIHOU_KEIBA_AIRTABLE_API_KEY || process.env.AIRTABLE_API_KEY || ''),
+      'process.env.CHIHOU_KEIBA_AIRTABLE_BASE_ID': JSON.stringify(process.env.CHIHOU_KEIBA_AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID || ''),
+      'process.env.AIRTABLE_API_KEY': JSON.stringify(process.env.CHIHOU_KEIBA_AIRTABLE_API_KEY || process.env.AIRTABLE_API_KEY || ''),
+      'process.env.AIRTABLE_BASE_ID': JSON.stringify(process.env.CHIHOU_KEIBA_AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID || ''),
     },
   },
   // 圧縮を有効化

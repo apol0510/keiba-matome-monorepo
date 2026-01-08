@@ -42,8 +42,8 @@ export const config: SiteConfig = {
 
   // Airtable設定（モノレポ対応：プロジェクト固有の環境変数名を優先）
   airtable: {
-    baseId: process.env.AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID || '',
-    apiKey: process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_API_KEY || '',
+    baseId: process.env.KEIBA_MATOME_AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID || '',
+    apiKey: process.env.KEIBA_MATOME_AIRTABLE_API_KEY || process.env.AIRTABLE_API_KEY || '',
   },
 };
 
