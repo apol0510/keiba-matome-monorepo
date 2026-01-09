@@ -93,7 +93,27 @@ jobs:
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          X_CREDENTIALS_JSON: ${{ secrets.X_CREDENTIALS_JSON }}
+          X_CREDENTIALS_JSON: |
+            {
+              "KEIBA_MATOME_X": {
+                "apiKey": "${{ secrets.KEIBA_MATOME_X_API_KEY }}",
+                "apiSecret": "${{ secrets.KEIBA_MATOME_X_API_SECRET }}",
+                "accessToken": "${{ secrets.KEIBA_MATOME_X_ACCESS_TOKEN }}",
+                "accessSecret": "${{ secrets.KEIBA_MATOME_X_ACCESS_SECRET }}"
+              },
+              "CHIHOU_X": {
+                "apiKey": "${{ secrets.CHIHOU_X_API_KEY }}",
+                "apiSecret": "${{ secrets.CHIHOU_X_API_SECRET }}",
+                "accessToken": "${{ secrets.CHIHOU_X_ACCESS_TOKEN }}",
+                "accessSecret": "${{ secrets.CHIHOU_X_ACCESS_SECRET }}"
+              },
+              "YOSOU_X": {
+                "apiKey": "${{ secrets.YOSOU_X_API_KEY }}",
+                "apiSecret": "${{ secrets.YOSOU_X_API_SECRET }}",
+                "accessToken": "${{ secrets.YOSOU_X_ACCESS_TOKEN }}",
+                "accessSecret": "${{ secrets.YOSOU_X_ACCESS_SECRET }}"
+              }
+            }
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           # Netlify Build Hooks（サイトごと）
           KEIBA_MATOME_NETLIFY_BUILD_HOOK: ${{ secrets.KEIBA_MATOME_NETLIFY_BUILD_HOOK }}
