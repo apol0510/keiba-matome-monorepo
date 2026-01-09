@@ -38,7 +38,7 @@ const PROJECTS = {
   },
   'yosou-keiba-matome': {
     baseId: 'appKPasSpjpTtabnv',
-    tableName: 'Articles',
+    tableName: 'News',
     siteUrl: 'https://yosou.keiba-matome.jp',
     siteName: '競馬予想まとめ',
     backgroundColor: '#ffffee',

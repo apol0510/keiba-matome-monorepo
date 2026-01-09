@@ -36,7 +36,7 @@ const PROJECTS = {
   },
   'yosou-keiba-matome': {
     baseId: 'appKPasSpjpTtabnv',
-    tableName: 'Articles',
+    tableName: 'News',
     siteUrl: 'https://yosou.keiba-matome.jp',
     siteName: '競馬予想まとめ（2ch風）',
     description: '中央重賞＋南関重賞の予想コラムまとめ。2ch/5ch風の予想コメントで馬券購入をサポート。',

@@ -25,7 +25,7 @@ const PROJECT_CONFIG = {
   },
   'yosou-keiba-matome': {
     baseId: 'appKPasSpjpTtabnv',
-    tableName: 'Articles',
+    tableName: 'News',
     metadataPath: 'packages/seo-output/yosou-keiba-matome/metadata.json'
   }
 };
