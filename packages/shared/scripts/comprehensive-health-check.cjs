@@ -344,7 +344,7 @@ async function main() {
 
   if (!hasErrors && !hasWarnings) {
     console.log('✅ 全サイト正常です！');
-    await sendDiscordNotification('全サイトが正常に動作しています。', false);
+    // Discord通知は重大エラー時のみ（ノイズ削減）
   } else {
     let message = '';
 

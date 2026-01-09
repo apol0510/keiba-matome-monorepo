@@ -124,24 +124,9 @@ jobs:
             --site=${{ matrix.site }} \
             --workflow=${{ github.event.inputs.workflow || matrix.workflow }}
 
-      - name: Discord通知（成功時）
+      - name: 完了ログ出力
         if: steps.should_run.outputs.result == 'true' && success()
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
-            curl -X POST "$DISCORD_WEBHOOK_URL" \
-              -H "Content-Type: application/json" \
-              -d "{
-                \"embeds\": [{
-                  \"title\": \"✅ ワークフロー成功\",
-                  \"description\": \"**サイト**: ${{ matrix.site }}\\n**ワークフロー**: ${{ github.event.inputs.workflow || matrix.workflow }}\\n**実行時刻**: $(date '+%Y-%m-%d %H:%M:%S JST')\",
-                  \"color\": 3066993,
-                  \"footer\": {\"text\": \"GitHub Actions\"},
-                  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
-                }]
-              }"
-          fi
           echo "✅ [${{ matrix.site }}] ワークフロー完了"
 
       - name: Discord通知（失敗時）

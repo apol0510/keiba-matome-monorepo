@@ -139,16 +139,10 @@ jobs:
             --site=yosou-keiba-matome \
             --workflow=nankan-daily
 
-      - name: Discord通知（南関・成功時）
+      - name: 完了ログ出力（南関）
         if: success() && needs.determine-workflow.outputs.nankan == 'true'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
-            curl -X POST "$DISCORD_WEBHOOK_URL" \
-              -H "Content-Type: application/json" \
-              -d "{\"embeds\":[{\"title\":\"✅ 南関メイン予想ワークフロー成功\",\"description\":\"**サイト**: yosou-keiba-matome\\n**実行時刻**: $(date '+%Y-%m-%d %H:%M:%S JST')\",\"color\":3066993}]}"
-          fi
+          echo "✅ [yosou-keiba-matome/南関] ワークフロー完了"
 
       - name: Discord通知（南関・失敗時）
         if: failure() && needs.determine-workflow.outputs.nankan == 'true'
@@ -217,16 +211,10 @@ jobs:
             --site=yosou-keiba-matome \
             --workflow=chuou-weekly
 
-      - name: Discord通知（中央・成功時）
+      - name: 完了ログ出力（中央）
         if: success() && needs.determine-workflow.outputs.chuou == 'true'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
-            curl -X POST "$DISCORD_WEBHOOK_URL" \
-              -H "Content-Type: application/json" \
-              -d "{\"embeds\":[{\"title\":\"✅ 中央重賞予想ワークフロー成功\",\"description\":\"**サイト**: yosou-keiba-matome\\n**実行時刻**: $(date '+%Y-%m-%d %H:%M:%S JST')\",\"color\":3066993}]}"
-          fi
+          echo "✅ [yosou-keiba-matome/中央] ワークフロー完了"
 
       - name: Discord通知（中央・失敗時）
         if: failure() && needs.determine-workflow.outputs.chuou == 'true'
