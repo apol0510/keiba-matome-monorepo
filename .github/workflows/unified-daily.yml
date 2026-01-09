@@ -83,8 +83,8 @@ jobs:
       - name: ランダム待機（アカウントロック防止）
         if: steps.should_run.outputs.result == 'true'
         run: |
-          # 0-15分のランダム待機
-          DELAY=$((RANDOM % 900))
+          # 0-3分のランダム待機（GitHub Actions無料枠最適化）
+          DELAY=$((RANDOM % 180))
           echo "⏱️  ランダム待機: ${DELAY}秒"
           sleep $DELAY
 
