@@ -172,9 +172,20 @@ async function scrapeYahooChihouNews() {
       // 記事リンクを取得
       const links = Array.from(document.querySelectorAll('a'));
 
+      // 除外ドメインリスト（hochiとsponichiを除外）
+      const excludedDomains = ['hochi.news', 'hochi.co.jp', 'sponichi.co.jp'];
+
       links.forEach((link) => {
         let title = link.textContent?.trim() || '';
         const url = link.href || '';
+        const fullText = link.textContent?.trim() || '';
+
+        // 日付情報を抽出（例: "3日前", "12時間前"）
+        let daysAgo = 0;
+        const dayMatch = fullText.match(/(\d+)日前/);
+        if (dayMatch) {
+          daysAgo = parseInt(dayMatch[1], 10);
+        }
 
         // タイトルクリーンアップ
         title = title
@@ -184,12 +195,19 @@ async function scrapeYahooChihouNews() {
           .replace(/\s+\d+日前.*$/, '')
           .trim();
 
-        // 記事URLパターン
-        if (title && url && url.includes('news.yahoo.co.jp/articles/') && title.length > 10) {
+        // 除外ドメインチェック
+        const isExcluded = excludedDomains.some(domain => url.includes(domain));
+
+        // 14日以上前の記事を除外
+        const isTooOld = daysAgo > 14;
+
+        // 記事URLパターン（除外ドメイン・古い記事を弾く）
+        if (title && url && url.includes('news.yahoo.co.jp/articles/') && title.length > 10 && !isExcluded && !isTooOld) {
           items.push({
             sourceTitle: title,
             sourceURL: url,
             sourceSite: 'yahoo',
+            daysAgo: daysAgo,
           });
         }
       });
@@ -260,15 +278,17 @@ async function saveToAirtable(articles) {
     }
 
     try {
+      // SourceURLで重複チェック（過去記事の再スクレイピングを防止）
+      const escapedURL = article.sourceURL.replace(/'/g, "\\'");
       const existing = await base('News')
         .select({
-          filterByFormula: `{Slug} = '${slug}'`,
+          filterByFormula: `{SourceURL} = '${escapedURL}'`,
           maxRecords: 1,
         })
         .firstPage();
 
       if (existing.length > 0) {
-        console.log(`⏭️  スキップ: ${title} (既存)`);
+        console.log(`⏭️  スキップ: ${title} (既存URL)`);
         skipped++;
         continue;
       }
