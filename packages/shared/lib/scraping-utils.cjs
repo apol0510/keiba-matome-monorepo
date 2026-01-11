@@ -41,7 +41,14 @@ function generateSlug(title) {
     .replace(/[!！?？。、，,\.]/g, '')  // 句読点を削除
     .replace(/\-/g, '')  // ハイフンを削除
     .replace(/…/g, '')  // 三点リーダー削除
+    .replace(/[\/:#&%?=+@]/g, '')  // URL不適切文字を削除（スラッシュ、コロン等）
     .trim();
+
+  // 空Slug防止（フォールバック）
+  if (!cleaned || cleaned.length === 0) {
+    const timestamp = new Date().getTime();
+    cleaned = `news-${timestamp}`;
+  }
 
   // 50文字以内に切り詰め（URL長対策）
   if (cleaned.length > 50) {
