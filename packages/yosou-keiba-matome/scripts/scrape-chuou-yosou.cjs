@@ -177,7 +177,7 @@ function formatArticle(article) {
     SourceURL: article.url,
     SourceSite: 'その他',  // 既存の選択肢を使用
     Summary: summary,
-    Status: 'published',
+    Status: 'draft',  // コメント生成前はdraft
     PublishedAt: today.toISOString()
   };
 }
