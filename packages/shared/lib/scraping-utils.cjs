@@ -41,6 +41,7 @@ function generateSlug(title) {
     .replace(/[!！?？。、，,\.]/g, '')  // 句読点を削除
     .replace(/\-/g, '')  // ハイフンを削除
     .replace(/…/g, '')  // 三点リーダー削除
+    .replace(/["']/g, '')  // 引用符を削除（二重引用符、シングル引用符）
     .replace(/[\/:#&%?=+@]/g, '')  // URL不適切文字を削除（スラッシュ、コロン等）
     .trim();
 

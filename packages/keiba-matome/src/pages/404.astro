@@ -3,97 +3,49 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout
-  title="ページが見つかりません"
-  description="お探しのページは見つかりませんでした。URLをご確認いただくか、トップページから目的のページをお探しください。"
+  title="404 - ページが見つかりません | 競馬ニュースまとめ"
+  description="お探しのページは削除されたか、URLが変更された可能性があります。トップページから最新の競馬ニュースをご覧ください。"
 >
-  <div class="min-h-[calc(100vh-200px)] flex items-center justify-center px-4 py-16">
-    <div class="max-w-2xl mx-auto text-center">
-      <!-- Error Code -->
-      <div class="mb-8">
-        <h1 class="text-8xl md:text-9xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          404
-        </h1>
-      </div>
-
-      <!-- Icon -->
-      <div class="mb-8">
-        <svg class="w-24 h-24 md:w-32 md:h-32 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
-
-      <!-- Message -->
-      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
-        ページが見つかりません
-      </h2>
-      <p class="text-lg text-gray-600 mb-8 leading-relaxed">
-        お探しのページは削除されたか、URLが変更された可能性があります。<br class="hidden sm:block" />
-        URLをご確認いただくか、下記のリンクからお探しください。
+  <div style="text-align: center; padding: 60px 20px; max-width: 800px; margin: 0 auto;">
+    <!-- 2ch風エラーメッセージ -->
+    <div style="background-color: #fff; border: 2px solid #ea8b00; padding: 30px; margin-bottom: 30px;">
+      <h1 style="font-size: 72px; color: #ea8b00; margin: 0 0 20px 0; font-weight: bold;">404</h1>
+      <h2 style="font-size: 24px; color: #000; margin: 0 0 15px 0;">ページが見つかりません</h2>
+      <p style="font-size: 16px; color: #666; line-height: 1.6; margin: 0;">
+        お探しのスレッド（記事）は削除されたか、URLが変更された可能性があります。<br />
+        過去のブックマークや外部リンクから来られた方は、お手数ですがトップページから目的の記事をお探しください。
       </p>
+    </div>
 
-      <!-- Actions -->
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a
-          href="/"
-          class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-          トップページへ
-        </a>
-        <a
-          href="/keiba-yosou/"
-          class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-gray-700 font-medium rounded-lg border-2 border-gray-300 hover:border-blue-600 hover:text-blue-600 transition-all duration-200"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          サイト一覧を見る
-        </a>
-      </div>
+    <!-- ナビゲーション -->
+    <div style="margin-bottom: 30px;">
+      <a
+        href="/"
+        style="display: inline-block; background-color: #ea8b00; color: #fff; padding: 12px 30px; text-decoration: none; font-weight: bold; border-radius: 4px; margin: 0 10px 10px 0;"
+      >
+        トップページへ戻る
+      </a>
+    </div>
 
-      <!-- Popular Categories -->
-      <div class="mt-12 pt-8 border-t border-gray-200">
-        <p class="text-sm text-gray-600 mb-4">人気のカテゴリ</p>
-        <div class="flex flex-wrap gap-2 justify-center">
-          <a
-            href="/keiba-yosou/nankan/"
-            class="px-4 py-2 bg-gradient-to-r from-red-50 to-red-100 text-red-700 text-sm font-medium rounded-full hover:shadow-md transition-all"
-          >
-            南関競馬
-          </a>
-          <a
-            href="/keiba-yosou/chuo/"
-            class="px-4 py-2 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 text-sm font-medium rounded-full hover:shadow-md transition-all"
-          >
-            中央競馬
-          </a>
-          <a
-            href="/keiba-yosou/chihou/"
-            class="px-4 py-2 bg-gradient-to-r from-green-50 to-green-100 text-green-700 text-sm font-medium rounded-full hover:shadow-md transition-all"
-          >
-            地方競馬
-          </a>
-        </div>
-      </div>
+    <!-- よくある質問 -->
+    <div style="background-color: #f9f9f9; border: 1px solid #ddd; padding: 20px; text-align: left;">
+      <h3 style="font-size: 18px; color: #ea8b00; margin: 0 0 15px 0;">よくある質問</h3>
+      <dl style="margin: 0;">
+        <dt style="font-weight: bold; color: #000; margin-bottom: 5px;">Q. 以前見た記事が表示されません</dt>
+        <dd style="color: #666; margin: 0 0 15px 20px;">
+          A. 古い記事や不正確な情報を含む記事は定期的に削除しています。ご了承ください。
+        </dd>
 
-      <!-- Help Section -->
-      <div class="mt-12 p-6 bg-slate-50 rounded-lg">
-        <h3 class="font-semibold text-gray-900 mb-2">お困りですか？</h3>
-        <p class="text-sm text-gray-600 mb-4">
-          問題が解決しない場合は、お問い合わせフォームからご連絡ください。
-        </p>
-        <a
-          href="/contact/"
-          class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
-        >
-          お問い合わせ
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-      </div>
+        <dt style="font-weight: bold; color: #000; margin-bottom: 5px;">Q. ブックマークが使えなくなりました</dt>
+        <dd style="color: #666; margin: 0 0 15px 20px;">
+          A. URLが変更された可能性があります。トップページから最新の記事をブックマークし直してください。
+        </dd>
+
+        <dt style="font-weight: bold; color: #000; margin-bottom: 5px;">Q. 記事を検索する方法はありますか？</dt>
+        <dd style="color: #666; margin: 0 20px;">
+          A. トップページから最新の競馬ニュースをご覧いただけます。カテゴリ別の絞り込みも可能です。
+        </dd>
+      </dl>
     </div>
   </div>
 </BaseLayout>
