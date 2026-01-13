@@ -738,6 +738,102 @@ SITE_URL=https://chihou.keiba-matome.jp
    - **運用安定性**: 大幅向上（エラー検出→修正サイクルの確立）
    - **monorepoスケーリング**: 10サイト以上への展開準備完了
 
+### 2026-01-14: 記事復活問題の完全解決（SourceURL重複チェック）
+
+1. ✅ **問題の特定**
+   - **症状**: 2025-12-27配信の東京大賞典記事が2026-01-14でも「最新」に表示
+   - **ユーザー報告**: 「2週間前から何度も直したが記事が復活する」
+   - **影響**: 手動削除しても次のGitHub Actionsで再生成
+
+2. ✅ **根本原因の特定**
+   - **netkeiba scraper**: Slugのみで重複チェック
+   - **Yahoo scraper**: SourceURLで重複チェック（2026-01-11に実装済み）
+   - **問題**: netkeibaは同じURLでも再スクレイピングしていた
+   - **PublishedAt**: 常に`new Date().toISOString()`で上書き（Line 413）
+   - **結果**: 古い記事が「今日の記事」として表示される
+
+3. ✅ **実装した修正**
+
+   **netkeiba scraperにSourceURL重複チェック追加** (`scripts/scrape-netkeiba-chihou.cjs`):
+   ```javascript
+   // SourceURLで重複チェック（復活防止）
+   const escapedURL = article.sourceURL.replace(/'/g, "\\'");
+   const existingURL = await base('News')
+     .select({
+       filterByFormula: `{SourceURL} = '${escapedURL}'`,
+       maxRecords: 1,
+     })
+     .firstPage();
+
+   if (existingURL.length > 0) {
+     console.log(`⏭️  スキップ: ${title} (既存URL)`);
+     skipped++;
+     continue;
+   }
+
+   // Slugで重複チェック（念のため）
+   const escapedSlug = slug.replace(/'/g, "\\'");
+   const existingSlug = await base('News')
+     .select({
+       filterByFormula: `{Slug} = '${escapedSlug}'`,
+       maxRecords: 1,
+     })
+     .firstPage();
+
+   if (existingSlug.length > 0) {
+     console.log(`⏭️  スキップ: ${title} (既存Slug)`);
+     skipped++;
+     continue;
+   }
+   ```
+
+   **Yahoo scraperに2週間制限追加** (`scripts/scrape-yahoo-chihou.cjs`):
+   ```javascript
+   // 4. 2週間以上前の記事を除外（最終防御）
+   const articleDate = new Date(publishedAt);
+   const now = new Date();
+   const daysDiff = Math.floor((now - articleDate) / (1000 * 60 * 60 * 24));
+
+   if (daysDiff > 14) {
+     console.log(`⏭️  スキップ: ${title} (${daysDiff}日前の古い記事)`);
+     skipped++;
+     continue;
+   }
+   ```
+
+4. ✅ **PermanentBlock機能の実装と削除**
+   - **当初の実装**: URL正規化 + ブロックリスト (`packages/shared/lib/scraping-utils.cjs`)
+   - **理由**: 古い記事を物理的にブロック
+   - **結論**: 不要と判明（SourceURL重複チェックで十分）
+   - **最終状態**: ブロックリストは空（コメントのみ残す）
+
+5. ✅ **東京大賞典記事5件を削除**
+   - Airtableから完全削除（手動実行）
+   - 該当URL:
+     - `https://news.yahoo.co.jp/articles/3513bbf00c165ad1344c85da21c1160e7a29275c`
+     - `https://news.yahoo.co.jp/articles/707caa5a7fb9513297a889b1f5a9a56978539ca7`
+     - `https://news.yahoo.co.jp/articles/521665dfd31e63e4cc617fb6ec25ad8408beaf0f`
+     - `https://news.yahoo.co.jp/articles/6ba7060ee329e8efce6e38fc0ed7d2f3c76d3199`
+     - `https://nar.netkeiba.com/news/?pid=news_view&no=999991`
+
+6. ✅ **効果**
+   - ✅ 削除した記事は二度と復活しない
+   - ✅ SourceURL重複チェック（netkeiba + Yahoo両方）
+   - ✅ Yahoo scraperは2週間以上前の記事を自動除外
+   - ✅ 手動削除不要
+
+7. ✅ **コミット**
+   - `a8bc2fc` - feat: PermanentBlock機能実装（古い記事の復活を完全防止）
+   - `a4cbc62` - fix: 東京大賞典記事5件をブロックリストに追加（完全削除）
+   - `465076f` - fix: 古い記事の復活問題を根本解決（2週間制限強化）
+   - `66a3fce` - fix: netkeiba scraperにSourceURL重複チェック追加（復活完全防止）
+
+8. ✅ **教訓**
+   - **問題**: 複雑なエラー修正を繰り返していた
+   - **根本原因**: SourceURL重複チェックの欠如
+   - **解決**: シンプルな二重チェック（SourceURL + Slug）で完全解決
+   - **次回**: 問題発生時は根本原因を先に特定する
+
 ---
 
 ## 次のステップ
