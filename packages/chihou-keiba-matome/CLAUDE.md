@@ -565,6 +565,37 @@ SITE_URL=https://chihou.keiba-matome.jp
      - テスト時間: 17分 → **10分** (40%短縮)
      - メンテナンス負荷: 大幅削減
 
+### 2026-01-13: Yahoo scraper完全修正（hochi/sponichi除外 + 古い記事復活防止）
+
+1. ✅ **hochi/sponichi混入問題の根本解決**
+   - **問題**: hochi/sponichiから取得しないはずが、Yahoo経由で混入（最新20件中13件）
+   - **原因**: Yahoo記事のURL（`news.yahoo.co.jp/articles/xxx`）ではhochi/sponichi検出不可
+
+   - **実装した3つの防御策**:
+
+     **防御策1: 除外メディア名リスト追加** (Line 178-179, 205)
+     - タイトル・本文から「スポーツ報知」「報知」「スポニチ」「スポニチアネックス」を検出
+     - 早期除外（リダイレクト確認前）
+
+     **防御策2: リダイレクト先URL確認** (Line 232-261)
+     - Puppeteerでページを開いて最終URLを取得
+     - `hochi.news`, `hochi.co.jp`, `sponichi.co.jp` を除外
+     - 最終URLをAirtableに保存（トレーサビリティ向上）
+
+     **防御策3: Slug重複チェック追加** (Line 334-347)
+     - SourceURLだけでなく、Slugでも重複判定
+     - 同じネタの異なるURL（Yahoo → hochi等）を検出
+     - 古い記事の復活を完全防止
+
+   - **効果**:
+     - ✅ hochi/sponichiの完全除外（3段構えの防御）
+     - ✅ 古い記事の復活完全防止（Slug重複チェック）
+     - ✅ データ品質向上（netkeiba + Yahoo独自記事のみ）
+     - ✅ トレーサビリティ向上（最終URLを記録）
+
+   - **コミット**:
+     - beea67b - fix: Yahoo scraper完全修正（hochi/sponichi除外 + 古い記事復活防止）
+
 ### 2026-01-11: データ品質の根本改善（3つの防御策実装）
 
 1. ✅ **Slug生成の共通ライブラリ化（全プロジェクト統一）**
