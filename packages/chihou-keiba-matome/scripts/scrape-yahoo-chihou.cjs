@@ -256,26 +256,52 @@ async function scrapeYahooChihouNews() {
           console.log(`⏭️  スキップ（除外ドメイン）: ${article.sourceTitle} (${finalURL})`);
           await redirectPage.close();
         } else {
-          // 公開日時を取得（Yahoo記事ページから）
+          // 公開日時を取得（遷移先DOMから取得）
+          // 注意: goto()時点で自動リダイレクトされるため、Yahoo DOMではなく
+          //       遷移先（netkeiba, スポーツ紙等）のDOMから取得している
           let publishedAt = null;
           try {
             publishedAt = await redirectPage.evaluate(() => {
-              // <time>タグから取得
+              // パターン1: 標準的な<time>タグ（最も一般的）
               const timeTag = document.querySelector('time[datetime]');
               if (timeTag && timeTag.getAttribute('datetime')) {
                 return timeTag.getAttribute('datetime');
               }
 
-              // 別パターン: Yahoo記事の公開日時
-              const dateElement = document.querySelector('.article-date time, .article-header time, .yjDirectSlink time');
-              if (dateElement && dateElement.getAttribute('datetime')) {
-                return dateElement.getAttribute('datetime');
+              // パターン2: Yahoo記事のDOM（リダイレクトされなかった場合）
+              const yahooDate = document.querySelector('.article-date time, .article-header time, .yjDirectSlink time');
+              if (yahooDate && yahooDate.getAttribute('datetime')) {
+                return yahooDate.getAttribute('datetime');
+              }
+
+              // パターン3: netkeiba DOM（地方競馬ニュース）
+              const netkeibaDate = document.querySelector('.newsDetail_date time, .news_date time');
+              if (netkeibaDate && netkeibaDate.getAttribute('datetime')) {
+                return netkeibaDate.getAttribute('datetime');
+              }
+
+              // パターン4: スポーツ紙のDOM（hochi, sponichi等）
+              const sportsDate = document.querySelector('.date time, .article-time time, .post-date time');
+              if (sportsDate && sportsDate.getAttribute('datetime')) {
+                return sportsDate.getAttribute('datetime');
+              }
+
+              // パターン5: class無しの<time>タグ（最後の手段）
+              const allTimeTags = document.querySelectorAll('time');
+              for (const tag of allTimeTags) {
+                const dt = tag.getAttribute('datetime');
+                if (dt) return dt;
               }
 
               return null;
             });
           } catch (e) {
             // 公開日時取得失敗は致命的ではない
+          }
+
+          // デバッグ: 取得できた日時形式をログ出力（最初の3件のみ）
+          if (publishedAt && validArticles.length < 3) {
+            console.log(`   🔍 取得した日時（生データ）: "${publishedAt}" from ${finalURL}`);
           }
 
           await redirectPage.close();
@@ -358,6 +384,18 @@ function getFallbackArticles() {
 }
 
 /**
+ * 日時文字列をISO形式に正規化
+ * @param {string} dateStr - 日時文字列（ISO/非ISO混在）
+ * @returns {string|null} - ISO形式の日時文字列、または null
+ */
+function normalizeDate(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (!Number.isFinite(d.getTime())) return null;
+  return d.toISOString();
+}
+
+/**
  * Airtableに記事を保存
  */
 async function saveToAirtable(articles) {
@@ -412,10 +450,11 @@ async function saveToAirtable(articles) {
       // PublishedAt優先順位: ページから取得 → daysAgo逆算 → スキップ
       let publishedAt;
 
-      // 1. Yahoo記事ページから取得した日時を優先
-      if (article.publishedAtFromPage) {
-        publishedAt = article.publishedAtFromPage;
-        console.log(`  📅 公開日時: ${publishedAt} (ページから取得)`);
+      // 1. Yahoo記事ページから取得した日時を優先（ISO形式に正規化）
+      const normalizedDate = normalizeDate(article.publishedAtFromPage);
+      if (normalizedDate) {
+        publishedAt = normalizedDate;
+        console.log(`  📅 公開日時: ${publishedAt} (ページから取得, ISO正規化済み)`);
       }
       // 2. daysAgoから逆算
       else if (Number.isFinite(article.daysAgo) && article.daysAgo !== null) {
@@ -429,6 +468,14 @@ async function saveToAirtable(articles) {
         console.log(`⏭️  スキップ: ${title} (公開日時不明)`);
         skipped++;
         continue;
+      }
+
+      // 保存直前の検証（Yahoo URL混入の最終確認）
+      if (article.sourceURL.includes('news.yahoo.co.jp/articles/')) {
+        console.error(`⚠️  警告: Yahoo URLのまま保存されようとしています: ${article.sourceURL}`);
+        console.error(`   記事タイトル: ${title}`);
+        // 開発中は強制停止（本番では警告のみ）
+        // throw new Error('Yahoo URL混入を検出');
       }
 
       await base('News').create([
@@ -451,6 +498,7 @@ async function saveToAirtable(articles) {
       ]);
 
       console.log(`✅ 作成: ${title}`);
+      console.log(`   SourceURL: ${article.sourceURL}`); // 保存されたURL確認
       created++;
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
