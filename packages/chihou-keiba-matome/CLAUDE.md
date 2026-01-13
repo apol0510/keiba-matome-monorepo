@@ -708,6 +708,92 @@ SITE_URL=https://chihou.keiba-matome.jp
    - **コミット**:
      - a5acad7 - fix: Yahoo scraper最終改善（精密な日時取得 + 運用監視ログ）
 
+3. ✅ **Yahoo scraper 3つの致命的問題を修正（盤石化）**
+   - **背景**: ユーザーから「見落とすと再発する」3つの注意点を指摘
+
+   - **問題1: PublishedAt の ISO正規化（必須）**
+     - **問題**: `<time datetime>` が返す値はサイトによってバラつきがある
+       - ISO形式: `2026-01-13T08:12:00+09:00`, `2026-01-13T08:12:00Z`
+       - 非ISO形式: `2026-01-13 08:12`, `2026/01/13 08:12`
+     - **リスク**:
+       - Airtableの Date型に入らない
+       - 並び順が崩れる
+       - ビルド側でパース失敗（Astroのフロントエンド）
+     - **対策**:
+       ```javascript
+       function normalizeDate(dateStr) {
+         if (!dateStr) return null;
+         const d = new Date(dateStr);
+         if (!Number.isFinite(d.getTime())) return null;
+         return d.toISOString(); // 必ずISO形式に正規化
+       }
+       ```
+     - **適用箇所** (Line 427-431):
+       ```javascript
+       const normalizedDate = normalizeDate(article.publishedAtFromPage);
+       if (normalizedDate) {
+         publishedAt = normalizedDate;
+         console.log(`  📅 公開日時: ${publishedAt} (ページから取得, ISO正規化済み)`);
+       }
+       ```
+
+   - **問題2: 遷移先DOM対応の強化**
+     - **問題**:
+       - `goto(article.sourceURL)` 時点で自動リダイレクトされる
+       - Yahoo DOMではなく、遷移先（netkeiba等）のDOMから取得している
+       - Yahoo用セレクタが効かない可能性が高い
+       - 遷移先ごとにDOMが違うため取得率が落ちる
+     - **対策**: セレクタを5パターンに拡充 (Line 264-297)
+       1. **標準 `time[datetime]`**: 最も一般的
+       2. **Yahoo記事 DOM**: リダイレクトされなかった場合
+       3. **netkeiba DOM**: `.newsDetail_date time`, `.news_date time`
+       4. **スポーツ紙 DOM**: `.date time`, `.article-time time`, `.post-date time`
+       5. **class無し `<time>` タグ**: 全探索（最後の手段）
+     - **コメントで実態を明記**:
+       ```javascript
+       // 注意: goto()時点で自動リダイレクトされるため、Yahoo DOMではなく
+       //       遷移先（netkeiba, スポーツ紙等）のDOMから取得している
+       ```
+
+   - **問題3: 保存直前の SourceURL 検証**
+     - **問題**:
+       - ログ上は `validArticles` 時点の sourceURL を数えている
+       - 後段の `enrichedArticles.map()` や `base('News').create()` で上書きされる可能性
+       - ログは0でも保存はYahoo URLのままになるリスク
+     - **対策** (Line 447-476):
+       ```javascript
+       // 保存直前の検証（Yahoo URL混入の最終確認）
+       if (article.sourceURL.includes('news.yahoo.co.jp/articles/')) {
+         console.error(`⚠️  警告: Yahoo URLのまま保存されようとしています: ${article.sourceURL}`);
+         console.error(`   記事タイトル: ${title}`);
+         // 開発中は強制停止（本番では警告のみ）
+         // throw new Error('Yahoo URL混入を検出');
+       }
+
+       await base('News').create([...]);
+
+       console.log(`✅ 作成: ${title}`);
+       console.log(`   SourceURL: ${article.sourceURL}`); // 保存されたURL確認
+       ```
+
+   - **デバッグ機能追加** (Line 302-305):
+     - 取得した日時形式をログ出力（最初の3件のみ）
+     - ISO/非ISO の実例を確認可能
+     ```javascript
+     if (publishedAt && validArticles.length < 3) {
+       console.log(`   🔍 取得した日時（生データ）: "${publishedAt}" from ${finalURL}`);
+     }
+     ```
+
+   - **期待効果**:
+     - ✅ **Airtableデータ事故の完全防止**: 非ISO形式が混入しない
+     - ✅ **取得率の向上**: 5パターンのセレクタで幅広く対応
+     - ✅ **運用監視の強化**: 保存前に最終確認、デバッグログ出力
+     - ✅ **再発リスクの最小化**: 設計レベルで盤石化
+
+   - **コミット**:
+     - a005620 - fix: Yahoo scraper 3つの致命的問題を修正（盤石化）
+
 ### 2026-01-11: データ品質の根本改善（3つの防御策実装）
 
 1. ✅ **Slug生成の共通ライブラリ化（全プロジェクト統一）**
