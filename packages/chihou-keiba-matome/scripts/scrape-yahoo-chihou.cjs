@@ -409,7 +409,42 @@ function normalizeDate(dateStr) {
     dateStr = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:00+09:00`;
   }
 
+  // パターン3: YYYY/M/D H:mm（ゼロ埋め無し、1桁許容）
+  const pattern3 = /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/;
+  if (pattern3.test(dateStr)) {
+    const match = dateStr.match(pattern3);
+    const mm = match[2].padStart(2, '0');
+    const dd = match[3].padStart(2, '0');
+    const hh = match[4].padStart(2, '0');
+    dateStr = `${match[1]}-${mm}-${dd}T${hh}:${match[5]}:00+09:00`;
+  }
+
+  // パターン4: YYYY-M-D H:mm（ゼロ埋め無し、1桁許容）
+  const pattern4 = /^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})$/;
+  if (pattern4.test(dateStr)) {
+    const match = dateStr.match(pattern4);
+    const mm = match[2].padStart(2, '0');
+    const dd = match[3].padStart(2, '0');
+    const hh = match[4].padStart(2, '0');
+    dateStr = `${match[1]}-${mm}-${dd}T${hh}:${match[5]}:00+09:00`;
+  }
+
+  // パターン5: YYYY/MM/DD（日付のみ、00:00:00 扱い）
+  const pattern5 = /^(\d{4})\/(\d{2})\/(\d{2})$/;
+  if (pattern5.test(dateStr)) {
+    const match = dateStr.match(pattern5);
+    dateStr = `${match[1]}-${match[2]}-${match[3]}T00:00:00+09:00`;
+  }
+
+  // パターン6: YYYY-MM-DD（日付のみ、00:00:00 扱い）
+  const pattern6 = /^(\d{4})-(\d{2})-(\d{2})$/;
+  if (pattern6.test(dateStr)) {
+    const match = dateStr.match(pattern6);
+    dateStr = `${match[1]}-${match[2]}-${match[3]}T00:00:00+09:00`;
+  }
+
   // ISO形式に変換済みの文字列、または元々ISO形式の文字列を new Date() に渡す
+  // 変則TZ（例: +0900）はそのまま new Date() に任せる（環境差あり、失敗したら null）
   const d = new Date(dateStr);
   if (!Number.isFinite(d.getTime())) return null;
   return d.toISOString();
