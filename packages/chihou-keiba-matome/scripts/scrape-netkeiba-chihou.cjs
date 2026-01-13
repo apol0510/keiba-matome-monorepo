@@ -7,6 +7,7 @@
 
 const Airtable = require('airtable');
 const puppeteer = require('puppeteer');
+const { isBlockedURL } = require('../../shared/lib/scraping-utils.cjs');
 
 // 環境変数チェック
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_API_KEY;
@@ -375,6 +376,13 @@ async function saveToAirtable(articles) {
     }
 
     try {
+      // ブロックリストチェック（最優先）
+      if (isBlockedURL(article.sourceURL)) {
+        console.log(`⛔ ブロックリスト該当（スキップ）: ${article.sourceURL}`);
+        skipped++;
+        continue;
+      }
+
       // 既存チェック
       const existing = await base('News')
         .select({

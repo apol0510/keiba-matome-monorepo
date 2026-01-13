@@ -7,6 +7,7 @@
 
 const Airtable = require('airtable');
 const puppeteer = require('puppeteer');
+const { isBlockedURL } = require('../../shared/lib/scraping-utils.cjs');
 
 // 環境変数チェック
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_API_KEY;
@@ -309,6 +310,12 @@ async function scrapeYahooChihouNews() {
 
           await redirectPage.close();
 
+          // ブロックリストチェック（P0: 最優先）
+          if (isBlockedURL(finalURL)) {
+            console.log(`⛔ ブロックリスト該当（スキップ）: ${finalURL}`);
+            continue;
+          }
+
           // 最終URLを記録
           validArticles.push({
             ...article,
@@ -478,6 +485,13 @@ async function saveToAirtable(articles) {
     }
 
     try {
+      // ブロックリストチェック（二重防御: Airtable保存前の最終確認）
+      if (isBlockedURL(article.sourceURL)) {
+        console.log(`⛔ ブロックリスト該当（保存前スキップ）: ${article.sourceURL}`);
+        skipped++;
+        continue;
+      }
+
       // SourceURLで重複チェック（過去記事の再スクレイピングを防止）
       const escapedURL = article.sourceURL.replace(/'/g, "\\'");
       const existingURL = await base('News')
