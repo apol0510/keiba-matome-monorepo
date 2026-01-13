@@ -230,37 +230,98 @@ async function scrapeYahooChihouNews() {
 
     const filteredArticles = articles.slice(0, ARTICLE_COUNT);
 
-    // リダイレクト先URLを確認して除外ドメインをフィルタ
+    // リダイレクト先URLを確認して除外ドメインをフィルタ + 公開日時取得
     console.log('🔍 リダイレクト先URLを確認中...');
     const excludedDomains = ['hochi.news', 'hochi.co.jp', 'sponichi.co.jp'];
     const validArticles = [];
+
+    // エラー統計（運用監視用）
+    const errorStats = {
+      timeout: 0,
+      navigation: 0,
+      other: 0,
+      total: 0,
+    };
 
     for (const article of filteredArticles) {
       try {
         const redirectPage = await browser.newPage();
         await redirectPage.goto(article.sourceURL, { waitUntil: 'domcontentloaded', timeout: 15000 });
         const finalURL = redirectPage.url();
-        await redirectPage.close();
 
         // 最終URLが除外ドメインかチェック
         const isExcluded = excludedDomains.some(domain => finalURL.includes(domain));
 
         if (isExcluded) {
           console.log(`⏭️  スキップ（除外ドメイン）: ${article.sourceTitle} (${finalURL})`);
+          await redirectPage.close();
         } else {
+          // 公開日時を取得（Yahoo記事ページから）
+          let publishedAt = null;
+          try {
+            publishedAt = await redirectPage.evaluate(() => {
+              // <time>タグから取得
+              const timeTag = document.querySelector('time[datetime]');
+              if (timeTag && timeTag.getAttribute('datetime')) {
+                return timeTag.getAttribute('datetime');
+              }
+
+              // 別パターン: Yahoo記事の公開日時
+              const dateElement = document.querySelector('.article-date time, .article-header time, .yjDirectSlink time');
+              if (dateElement && dateElement.getAttribute('datetime')) {
+                return dateElement.getAttribute('datetime');
+              }
+
+              return null;
+            });
+          } catch (e) {
+            // 公開日時取得失敗は致命的ではない
+          }
+
+          await redirectPage.close();
+
           // 最終URLを記録
           validArticles.push({
             ...article,
             sourceURL: finalURL, // リダイレクト先URLに更新
+            publishedAtFromPage: publishedAt, // ページから取得した公開日時
           });
         }
       } catch (error) {
+        // エラー種類別カウント（運用監視用）
+        errorStats.total++;
+        if (error.message.includes('timeout') || error.message.includes('Timeout')) {
+          errorStats.timeout++;
+        } else if (error.message.includes('navigation') || error.message.includes('Navigation')) {
+          errorStats.navigation++;
+        } else {
+          errorStats.other++;
+        }
+
         console.error(`⚠️  URL確認エラー: ${article.sourceTitle}`, error.message);
         // 混入ゼロを最優先するため、エラー時は除外（取りこぼしより混入の方がダメージ大）
         console.log(`⏭️  スキップ（URL確認エラー）: ${article.sourceTitle}`);
         continue;
       }
     }
+
+    // エラー統計レポート（運用監視用）
+    if (errorStats.total > 0) {
+      console.log('\n📊 URL確認エラー統計:');
+      console.log(`   合計: ${errorStats.total}件`);
+      console.log(`   - Timeout: ${errorStats.timeout}件`);
+      console.log(`   - Navigation: ${errorStats.navigation}件`);
+      console.log(`   - その他: ${errorStats.other}件`);
+
+      // 取りこぼし警告（全体の半分超えたら要調査）
+      if (errorStats.total > filteredArticles.length / 2) {
+        console.log('   ⚠️  警告: エラー率が高すぎます（要調査）');
+      }
+    }
+
+    // Yahoo URLのまま保存された件数（保証ログ）
+    const yahooUrlCount = validArticles.filter(a => a.sourceURL.includes('news.yahoo.co.jp/articles/')).length;
+    console.log(`\n✅ Yahoo URLのまま保存: ${yahooUrlCount}件（期待値: 0件）`);
 
     await browser.close();
 
@@ -348,15 +409,23 @@ async function saveToAirtable(articles) {
         continue;
       }
 
-      // PublishedAtは元記事の公開日時（daysAgoから逆算）
+      // PublishedAt優先順位: ページから取得 → daysAgo逆算 → スキップ
       let publishedAt;
-      if (Number.isFinite(article.daysAgo) && article.daysAgo !== null) {
-        // daysAgo日前の日時を計算
+
+      // 1. Yahoo記事ページから取得した日時を優先
+      if (article.publishedAtFromPage) {
+        publishedAt = article.publishedAtFromPage;
+        console.log(`  📅 公開日時: ${publishedAt} (ページから取得)`);
+      }
+      // 2. daysAgoから逆算
+      else if (Number.isFinite(article.daysAgo) && article.daysAgo !== null) {
         const date = new Date();
         date.setDate(date.getDate() - article.daysAgo);
         publishedAt = date.toISOString();
-      } else {
-        // daysAgo取れない記事は保存しない（新着誤爆防止）
+        console.log(`  📅 公開日時: ${publishedAt} (daysAgoから逆算: ${article.daysAgo}日前)`);
+      }
+      // 3. どちらも取れない場合はスキップ
+      else {
         console.log(`⏭️  スキップ: ${title} (公開日時不明)`);
         skipped++;
         continue;
