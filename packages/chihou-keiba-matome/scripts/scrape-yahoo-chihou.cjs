@@ -181,11 +181,11 @@ async function scrapeYahooChihouNews() {
       links.forEach((link) => {
         let title = link.textContent?.trim() || '';
         const url = link.href || '';
-        const fullText = link.textContent?.trim() || '';
+        const rawText = link.textContent?.trim() || '';
 
         // 日付情報を抽出（例: "3日前", "12時間前"）
-        let daysAgo = 0;
-        const dayMatch = fullText.match(/(\d+)日前/);
+        let daysAgo = null;
+        const dayMatch = rawText.match(/(\d+)日前/);
         if (dayMatch) {
           daysAgo = parseInt(dayMatch[1], 10);
         }
@@ -201,11 +201,12 @@ async function scrapeYahooChihouNews() {
         // 除外ドメインチェック
         const isExcluded = excludedDomains.some(domain => url.includes(domain));
 
-        // 除外メディアチェック（タイトルからメディア名を検出）
-        const isExcludedMedia = excludedMedia.some(media => title.includes(media) || fullText.includes(media));
+        // 除外メディアチェック（タイトルのみで判定、fullText不要）
+        const isExcludedMedia = excludedMedia.some(media => title.includes(media));
 
-        // 14日以上前の記事を除外
-        const isTooOld = daysAgo > 14;
+        // 14日以上前の記事を除外（daysAgo取れない場合は古い扱い）
+        const safeDaysAgo = Number.isFinite(daysAgo) && daysAgo !== null ? daysAgo : 9999;
+        const isTooOld = safeDaysAgo > 14;
 
         // 記事URLパターン（除外ドメイン・除外メディア・古い記事を弾く）
         if (title && url && url.includes('news.yahoo.co.jp/articles/') && title.length > 10 && !isExcluded && !isExcludedMedia && !isTooOld) {
@@ -255,8 +256,9 @@ async function scrapeYahooChihouNews() {
         }
       } catch (error) {
         console.error(`⚠️  URL確認エラー: ${article.sourceTitle}`, error.message);
-        // エラーの場合は一旦保持（保守的アプローチ）
-        validArticles.push(article);
+        // 混入ゼロを最優先するため、エラー時は除外（取りこぼしより混入の方がダメージ大）
+        console.log(`⏭️  スキップ（URL確認エラー）: ${article.sourceTitle}`);
+        continue;
       }
     }
 
@@ -346,6 +348,20 @@ async function saveToAirtable(articles) {
         continue;
       }
 
+      // PublishedAtは元記事の公開日時（daysAgoから逆算）
+      let publishedAt;
+      if (Number.isFinite(article.daysAgo) && article.daysAgo !== null) {
+        // daysAgo日前の日時を計算
+        const date = new Date();
+        date.setDate(date.getDate() - article.daysAgo);
+        publishedAt = date.toISOString();
+      } else {
+        // daysAgo取れない記事は保存しない（新着誤爆防止）
+        console.log(`⏭️  スキップ: ${title} (公開日時不明)`);
+        skipped++;
+        continue;
+      }
+
       await base('News').create([
         {
           fields: {
@@ -360,7 +376,7 @@ async function saveToAirtable(articles) {
             Status: 'draft',
             ViewCount: 0,
             CommentCount: 0,
-            PublishedAt: new Date().toISOString(),
+            PublishedAt: publishedAt, // 元記事の公開日時
           },
         },
       ]);
