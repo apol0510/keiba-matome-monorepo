@@ -445,8 +445,12 @@ function normalizeDate(dateStr) {
     dateStr = `${match[1]}-${match[2]}-${match[3]}T00:00:00+09:00`;
   }
 
+  // タイムゾーン表記の揺れを吸収（+0900 → +09:00）
+  // 例: 2026-01-13T08:12:00+0900 → 2026-01-13T08:12:00+09:00
+  // 環境によって +0900（コロン無し）が Invalid Date になるのを防ぐ
+  dateStr = dateStr.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+
   // ISO形式に変換済みの文字列、または元々ISO形式の文字列を new Date() に渡す
-  // 変則TZ（例: +0900）はそのまま new Date() に任せる（環境差あり、失敗したら null）
   const d = new Date(dateStr);
   if (!Number.isFinite(d.getTime())) return null;
   return d.toISOString();
