@@ -256,37 +256,40 @@ async function scrapeYahooChihouNews() {
           console.log(`⏭️  スキップ（除外ドメイン）: ${article.sourceTitle} (${finalURL})`);
           await redirectPage.close();
         } else {
-          // 公開日時を取得（遷移先DOMから取得）
-          // 注意: goto()時点で自動リダイレクトされるため、Yahoo DOMではなく
-          //       遷移先（netkeiba, スポーツ紙等）のDOMから取得している
+          // 公開日時を取得（基本: 遷移先DOMから取得）
+          // ────────────────────────────────────────
+          // 実態: goto(yahooURL) 時点で自動リダイレクトされるため、
+          //       Yahoo DOMではなく遷移先（netkeiba, スポーツ紙等）のDOMから取得
+          // 設計: Yahoo DOMセレクタは「稀にリダイレクトされなかった場合」の保険
+          // ────────────────────────────────────────
           let publishedAt = null;
           try {
             publishedAt = await redirectPage.evaluate(() => {
-              // パターン1: 標準的な<time>タグ（最も一般的）
+              // パターン1: 標準的な<time>タグ（最も一般的、遷移先で使われる）
               const timeTag = document.querySelector('time[datetime]');
               if (timeTag && timeTag.getAttribute('datetime')) {
                 return timeTag.getAttribute('datetime');
               }
 
-              // パターン2: Yahoo記事のDOM（リダイレクトされなかった場合）
-              const yahooDate = document.querySelector('.article-date time, .article-header time, .yjDirectSlink time');
-              if (yahooDate && yahooDate.getAttribute('datetime')) {
-                return yahooDate.getAttribute('datetime');
-              }
-
-              // パターン3: netkeiba DOM（地方競馬ニュース）
+              // パターン2: netkeiba DOM（地方競馬ニュースの遷移先）
               const netkeibaDate = document.querySelector('.newsDetail_date time, .news_date time');
               if (netkeibaDate && netkeibaDate.getAttribute('datetime')) {
                 return netkeibaDate.getAttribute('datetime');
               }
 
-              // パターン4: スポーツ紙のDOM（hochi, sponichi等）
+              // パターン3: スポーツ紙のDOM（遷移先: hochi, sponichi等）
               const sportsDate = document.querySelector('.date time, .article-time time, .post-date time');
               if (sportsDate && sportsDate.getAttribute('datetime')) {
                 return sportsDate.getAttribute('datetime');
               }
 
-              // パターン5: class無しの<time>タグ（最後の手段）
+              // パターン4: Yahoo記事のDOM（保険: リダイレクトされなかった稀なケース）
+              const yahooDate = document.querySelector('.article-date time, .article-header time, .yjDirectSlink time');
+              if (yahooDate && yahooDate.getAttribute('datetime')) {
+                return yahooDate.getAttribute('datetime');
+              }
+
+              // パターン5: class無しの<time>タグ（最後の手段、全探索）
               const allTimeTags = document.querySelectorAll('time');
               for (const tag of allTimeTags) {
                 const dt = tag.getAttribute('datetime');
@@ -384,12 +387,29 @@ function getFallbackArticles() {
 }
 
 /**
- * 日時文字列をISO形式に正規化
+ * 日時文字列をISO形式に正規化（環境依存を排除）
  * @param {string} dateStr - 日時文字列（ISO/非ISO混在）
  * @returns {string|null} - ISO形式の日時文字列、または null
  */
 function normalizeDate(dateStr) {
   if (!dateStr) return null;
+
+  // 日本語ニュース系のよくある形式を事前変換（JST前提で扱う）
+  // パターン1: YYYY/MM/DD HH:mm → YYYY-MM-DDTHH:mm:00+09:00
+  const pattern1 = /^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/;
+  if (pattern1.test(dateStr)) {
+    const match = dateStr.match(pattern1);
+    dateStr = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:00+09:00`;
+  }
+
+  // パターン2: YYYY-MM-DD HH:mm → YYYY-MM-DDTHH:mm:00+09:00
+  const pattern2 = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/;
+  if (pattern2.test(dateStr)) {
+    const match = dateStr.match(pattern2);
+    dateStr = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:00+09:00`;
+  }
+
+  // ISO形式に変換済みの文字列、または元々ISO形式の文字列を new Date() に渡す
   const d = new Date(dateStr);
   if (!Number.isFinite(d.getTime())) return null;
   return d.toISOString();
