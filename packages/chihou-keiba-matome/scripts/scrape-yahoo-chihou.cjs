@@ -175,6 +175,9 @@ async function scrapeYahooChihouNews() {
       // 除外ドメインリスト（hochiとsponichiを除外）
       const excludedDomains = ['hochi.news', 'hochi.co.jp', 'sponichi.co.jp'];
 
+      // 除外メディア名リスト（記事タイトルから検出）
+      const excludedMedia = ['スポーツ報知', '報知', 'スポニチ', 'スポニチアネックス', 'Sponichi', 'Hochi'];
+
       links.forEach((link) => {
         let title = link.textContent?.trim() || '';
         const url = link.href || '';
@@ -198,11 +201,14 @@ async function scrapeYahooChihouNews() {
         // 除外ドメインチェック
         const isExcluded = excludedDomains.some(domain => url.includes(domain));
 
+        // 除外メディアチェック（タイトルからメディア名を検出）
+        const isExcludedMedia = excludedMedia.some(media => title.includes(media) || fullText.includes(media));
+
         // 14日以上前の記事を除外
         const isTooOld = daysAgo > 14;
 
-        // 記事URLパターン（除外ドメイン・古い記事を弾く）
-        if (title && url && url.includes('news.yahoo.co.jp/articles/') && title.length > 10 && !isExcluded && !isTooOld) {
+        // 記事URLパターン（除外ドメイン・除外メディア・古い記事を弾く）
+        if (title && url && url.includes('news.yahoo.co.jp/articles/') && title.length > 10 && !isExcluded && !isExcludedMedia && !isTooOld) {
           items.push({
             sourceTitle: title,
             sourceURL: url,
@@ -215,16 +221,48 @@ async function scrapeYahooChihouNews() {
       return items;
     });
 
-    await browser.close();
-
     if (articles.length === 0) {
+      await browser.close();
       console.log('⚠️  記事が見つかりませんでした。モックデータを使用します。');
       return getFallbackArticles();
     }
 
     const filteredArticles = articles.slice(0, ARTICLE_COUNT);
 
-    const enrichedArticles = filteredArticles.map(article => {
+    // リダイレクト先URLを確認して除外ドメインをフィルタ
+    console.log('🔍 リダイレクト先URLを確認中...');
+    const excludedDomains = ['hochi.news', 'hochi.co.jp', 'sponichi.co.jp'];
+    const validArticles = [];
+
+    for (const article of filteredArticles) {
+      try {
+        const redirectPage = await browser.newPage();
+        await redirectPage.goto(article.sourceURL, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        const finalURL = redirectPage.url();
+        await redirectPage.close();
+
+        // 最終URLが除外ドメインかチェック
+        const isExcluded = excludedDomains.some(domain => finalURL.includes(domain));
+
+        if (isExcluded) {
+          console.log(`⏭️  スキップ（除外ドメイン）: ${article.sourceTitle} (${finalURL})`);
+        } else {
+          // 最終URLを記録
+          validArticles.push({
+            ...article,
+            sourceURL: finalURL, // リダイレクト先URLに更新
+          });
+        }
+      } catch (error) {
+        console.error(`⚠️  URL確認エラー: ${article.sourceTitle}`, error.message);
+        // エラーの場合は一旦保持（保守的アプローチ）
+        validArticles.push(article);
+      }
+    }
+
+    await browser.close();
+
+    const enrichedArticles = validArticles.map(article => {
       const category = detectCategory(article.sourceTitle);
       const tags = detectTags(article.sourceTitle, category);
 
@@ -236,7 +274,7 @@ async function scrapeYahooChihouNews() {
       };
     });
 
-    console.log(`✅ ${enrichedArticles.length}件の記事を取得しました`);
+    console.log(`✅ ${enrichedArticles.length}件の記事を取得しました（${filteredArticles.length - validArticles.length}件を除外）`);
     return enrichedArticles;
 
   } catch (error) {
@@ -280,15 +318,30 @@ async function saveToAirtable(articles) {
     try {
       // SourceURLで重複チェック（過去記事の再スクレイピングを防止）
       const escapedURL = article.sourceURL.replace(/'/g, "\\'");
-      const existing = await base('News')
+      const existingURL = await base('News')
         .select({
           filterByFormula: `{SourceURL} = '${escapedURL}'`,
           maxRecords: 1,
         })
         .firstPage();
 
-      if (existing.length > 0) {
+      if (existingURL.length > 0) {
         console.log(`⏭️  スキップ: ${title} (既存URL)`);
+        skipped++;
+        continue;
+      }
+
+      // Slugで重複チェック（同じネタの異なるURLを検出）
+      const escapedSlug = slug.replace(/'/g, "\\'");
+      const existingSlug = await base('News')
+        .select({
+          filterByFormula: `{Slug} = '${escapedSlug}'`,
+          maxRecords: 1,
+        })
+        .firstPage();
+
+      if (existingSlug.length > 0) {
+        console.log(`⏭️  スキップ: ${title} (類似記事あり)`);
         skipped++;
         continue;
       }
