@@ -545,6 +545,17 @@ async function saveToAirtable(articles) {
         continue;
       }
 
+      // 4. 2週間以上前の記事を除外（最終防御）
+      const articleDate = new Date(publishedAt);
+      const now = new Date();
+      const daysDiff = Math.floor((now - articleDate) / (1000 * 60 * 60 * 24));
+
+      if (daysDiff > 14) {
+        console.log(`⏭️  スキップ: ${title} (${daysDiff}日前の古い記事)`);
+        skipped++;
+        continue;
+      }
+
       // 保存直前の検証（Yahoo URL混入の最終確認）
       if (article.sourceURL.includes('news.yahoo.co.jp/articles/')) {
         console.error(`⚠️  警告: Yahoo URLのまま保存されようとしています: ${article.sourceURL}`);
