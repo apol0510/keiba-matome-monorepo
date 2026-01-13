@@ -409,24 +409,26 @@ function normalizeDate(dateStr) {
     dateStr = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:00+09:00`;
   }
 
-  // パターン3: YYYY/M/D H:mm（ゼロ埋め無し、1桁許容）
-  const pattern3 = /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/;
+  // パターン3: YYYY/M/D H:m（ゼロ埋め無し、1桁許容、分も1桁対応）
+  const pattern3 = /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{1,2})$/;
   if (pattern3.test(dateStr)) {
     const match = dateStr.match(pattern3);
     const mm = match[2].padStart(2, '0');
     const dd = match[3].padStart(2, '0');
     const hh = match[4].padStart(2, '0');
-    dateStr = `${match[1]}-${mm}-${dd}T${hh}:${match[5]}:00+09:00`;
+    const min = match[5].padStart(2, '0');
+    dateStr = `${match[1]}-${mm}-${dd}T${hh}:${min}:00+09:00`;
   }
 
-  // パターン4: YYYY-M-D H:mm（ゼロ埋め無し、1桁許容）
-  const pattern4 = /^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})$/;
+  // パターン4: YYYY-M-D H:m（ゼロ埋め無し、1桁許容、分も1桁対応）
+  const pattern4 = /^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2})$/;
   if (pattern4.test(dateStr)) {
     const match = dateStr.match(pattern4);
     const mm = match[2].padStart(2, '0');
     const dd = match[3].padStart(2, '0');
     const hh = match[4].padStart(2, '0');
-    dateStr = `${match[1]}-${mm}-${dd}T${hh}:${match[5]}:00+09:00`;
+    const min = match[5].padStart(2, '0');
+    dateStr = `${match[1]}-${mm}-${dd}T${hh}:${min}:00+09:00`;
   }
 
   // パターン5: YYYY/MM/DD（日付のみ、00:00:00 扱い）
