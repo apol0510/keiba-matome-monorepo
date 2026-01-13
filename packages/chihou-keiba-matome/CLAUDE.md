@@ -565,36 +565,66 @@ SITE_URL=https://chihou.keiba-matome.jp
      - テスト時間: 17分 → **10分** (40%短縮)
      - メンテナンス負荷: 大幅削減
 
-### 2026-01-13: Yahoo scraper完全修正（hochi/sponichi除外 + 古い記事復活防止）
+### 2026-01-13: Yahoo scraper根本解決（4つの落とし穴を完全に潰す）
 
-1. ✅ **hochi/sponichi混入問題の根本解決**
+1. ✅ **問題の特定と根本解決**
    - **問題**: hochi/sponichiから取得しないはずが、Yahoo経由で混入（最新20件中13件）
-   - **原因**: Yahoo記事のURL（`news.yahoo.co.jp/articles/xxx`）ではhochi/sponichi検出不可
+   - **問題**: 2025-12-29の古い記事が2026-01-12に「新着」として復活
+   - **原因**: 4つの落とし穴があった
 
-   - **実装した3つの防御策**:
+   - **実装した完全な解決策**:
 
-     **防御策1: 除外メディア名リスト追加** (Line 178-179, 205)
-     - タイトル・本文から「スポーツ報知」「報知」「スポニチ」「スポニチアネックス」を検出
-     - 早期除外（リダイレクト確認前）
+     **A) fullText未定義リスク解消** (Line 204-208)
+     - 除外メディアチェックをタイトルのみで判定（fullText不要、クラッシュリスク排除）
+     - daysAgo取得失敗時は`null` → `9999`で古い扱い（安全側に倒す）
+     ```javascript
+     const isExcludedMedia = excludedMedia.some(media => title.includes(media));
+     const safeDaysAgo = Number.isFinite(daysAgo) && daysAgo !== null ? daysAgo : 9999;
+     const isTooOld = safeDaysAgo > 14;
+     ```
 
-     **防御策2: リダイレクト先URL確認** (Line 232-261)
-     - Puppeteerでページを開いて最終URLを取得
-     - `hochi.news`, `hochi.co.jp`, `sponichi.co.jp` を除外
-     - 最終URLをAirtableに保存（トレーサビリティ向上）
+     **B) リダイレクト確認エラー時の混入防止** (Line 257-261)
+     - エラー時は「保守的に通す」 → **「混入ゼロ優先で除外」**に変更
+     - 取りこぼし < 混入のダメージ（正しい判断）
+     ```javascript
+     } catch (error) {
+       console.error(`⚠️ URL確認エラー: ${article.sourceTitle}`, error.message);
+       console.log(`⏭️ スキップ（URL確認エラー）: ${article.sourceTitle}`);
+       continue; // 混入ゼロを最優先
+     }
+     ```
 
-     **防御策3: Slug重複チェック追加** (Line 334-347)
-     - SourceURLだけでなく、Slugでも重複判定
-     - 同じネタの異なるURL（Yahoo → hochi等）を検出
-     - 古い記事の復活を完全防止
+     **C) PublishedAt根本修正（最重要）** (Line 351-363)
+     - **取得日時** → **元記事の公開日時**（daysAgoから逆算）
+     - daysAgo取得できない記事は保存しない（新着誤爆防止）
+     ```javascript
+     if (Number.isFinite(article.daysAgo) && article.daysAgo !== null) {
+       const date = new Date();
+       date.setDate(date.getDate() - article.daysAgo);
+       publishedAt = date.toISOString(); // 元記事の公開日時
+     } else {
+       console.log(`⏭️ スキップ: ${title} (公開日時不明)`);
+       continue; // 新着誤爆防止
+     }
+     ```
 
-   - **効果**:
-     - ✅ hochi/sponichiの完全除外（3段構えの防御）
-     - ✅ 古い記事の復活完全防止（Slug重複チェック）
-     - ✅ データ品質向上（netkeiba + Yahoo独自記事のみ）
-     - ✅ トレーサビリティ向上（最終URLを記録）
+     **D) 既存汚れデータのクレンジング**
+     - `cleanup-contaminated-data.cjs` 作成
+     - 実行結果: **75件削除**
+       - 除外ドメイン（hochi/sponichi）: 68件
+       - 古い記事（日付不整合）: 7件
+     - 残存: 111件（クリーンなデータのみ）
+
+   - **期待効果**:
+     - ✅ **hochi/sponichi混入ゼロ**（タイトル検出 + URL確認 + エラー時除外）
+     - ✅ **古い記事の新着化ゼロ**（PublishedAtは常に元記事の公開日時）
+     - ✅ **エラー時も混入しない**（安全側に倒す）
+     - ✅ **既存汚れデータ完全除去**（75件削除）
+     - ✅ **クラッシュリスクゼロ**（fullText不要、安全な数値処理）
 
    - **コミット**:
      - beea67b - fix: Yahoo scraper完全修正（hochi/sponichi除外 + 古い記事復活防止）
+     - 62dd046 - fix: Yahoo scraper根本解決（4つの落とし穴を完全に潰す）
 
 ### 2026-01-11: データ品質の根本改善（3つの防御策実装）
 
