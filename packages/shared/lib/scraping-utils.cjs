@@ -65,8 +65,13 @@ function normalizeURL(url) {
  * 2. 理由をコメントで記載
  */
 const BLOCKED_URLS = [
-  // 東京大賞典2025（古い記事、2025-12-27配信だが2026-01-14でも復活）
+  // 東京大賞典2025（古い記事、何度削除しても復活）
   'https://news.yahoo.co.jp/articles/26bb69bac9f0b1d1d5e4cc4db8ee03b2dc2c8c94',
+  'https://news.yahoo.co.jp/articles/3513bbf00c165ad1344c85da21c1160e7a29275c',
+  'https://news.yahoo.co.jp/articles/707caa5a7fb9513297a889b1f5a9a56978539ca7',
+  'https://news.yahoo.co.jp/articles/521665dfd31e63e4cc617fb6ec25ad8408beaf0f',
+  'https://news.yahoo.co.jp/articles/6ba7060ee329e8efce6e38fc0ed7d2f3c76d3199',
+  'https://nar.netkeiba.com/news/?pid=news_view&no=999991',
 
   // 今後追加する場合はここに追加
   // 'https://example.com/article/12345',
