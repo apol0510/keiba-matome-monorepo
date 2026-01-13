@@ -565,475 +565,87 @@ SITE_URL=https://chihou.keiba-matome.jp
      - テスト時間: 17分 → **10分** (40%短縮)
      - メンテナンス負荷: 大幅削減
 
-### 2026-01-13: Yahoo scraper根本解決（4つの落とし穴を完全に潰す）
-
-1. ✅ **問題の特定と根本解決**
-   - **問題**: hochi/sponichiから取得しないはずが、Yahoo経由で混入（最新20件中13件）
-   - **問題**: 2025-12-29の古い記事が2026-01-12に「新着」として復活
-   - **原因**: 4つの落とし穴があった
-
-   - **実装した完全な解決策**:
-
-     **A) fullText未定義リスク解消** (Line 204-208)
-     - 除外メディアチェックをタイトルのみで判定（fullText不要、クラッシュリスク排除）
-     - daysAgo取得失敗時は`null` → `9999`で古い扱い（安全側に倒す）
-     ```javascript
-     const isExcludedMedia = excludedMedia.some(media => title.includes(media));
-     const safeDaysAgo = Number.isFinite(daysAgo) && daysAgo !== null ? daysAgo : 9999;
-     const isTooOld = safeDaysAgo > 14;
-     ```
-
-     **B) リダイレクト確認エラー時の混入防止** (Line 257-261)
-     - エラー時は「保守的に通す」 → **「混入ゼロ優先で除外」**に変更
-     - 取りこぼし < 混入のダメージ（正しい判断）
-     ```javascript
-     } catch (error) {
-       console.error(`⚠️ URL確認エラー: ${article.sourceTitle}`, error.message);
-       console.log(`⏭️ スキップ（URL確認エラー）: ${article.sourceTitle}`);
-       continue; // 混入ゼロを最優先
-     }
-     ```
-
-     **C) PublishedAt根本修正（最重要）** (Line 351-363)
-     - **取得日時** → **元記事の公開日時**（daysAgoから逆算）
-     - daysAgo取得できない記事は保存しない（新着誤爆防止）
-     ```javascript
-     if (Number.isFinite(article.daysAgo) && article.daysAgo !== null) {
-       const date = new Date();
-       date.setDate(date.getDate() - article.daysAgo);
-       publishedAt = date.toISOString(); // 元記事の公開日時
-     } else {
-       console.log(`⏭️ スキップ: ${title} (公開日時不明)`);
-       continue; // 新着誤爆防止
-     }
-     ```
-
-     **D) 既存汚れデータのクレンジング**
-     - `cleanup-contaminated-data.cjs` 作成
-     - 実行結果: **75件削除**
-       - 除外ドメイン（hochi/sponichi）: 68件
-       - 古い記事（日付不整合）: 7件
-     - 残存: 111件（クリーンなデータのみ）
-
-   - **期待効果**:
-     - ✅ **hochi/sponichi混入ゼロ**（タイトル検出 + URL確認 + エラー時除外）
-     - ✅ **古い記事の新着化ゼロ**（PublishedAtは常に元記事の公開日時）
-     - ✅ **エラー時も混入しない**（安全側に倒す）
-     - ✅ **既存汚れデータ完全除去**（75件削除）
-     - ✅ **クラッシュリスクゼロ**（fullText不要、安全な数値処理）
-
-   - **コミット**:
-     - beea67b - fix: Yahoo scraper完全修正（hochi/sponichi除外 + 古い記事復活防止）
-     - 62dd046 - fix: Yahoo scraper根本解決（4つの落とし穴を完全に潰す）
-
-2. ✅ **Yahoo scraper最終改善（精密な日時取得 + 運用監視ログ）**
-   - **背景**: ユーザーからの2つの改善提案を受けて実装
-
-   - **改善1: 精密な日時取得の実装**
-     - **問題**: daysAgoは「日単位」のため、最大24時間のズレが発生
-     - **例**: 記事公開23:50、スクレイピング00:10 → daysAgo=1日前 → PublishedAt=前日00:10（23時間40分のズレ）
-
-     - **実装内容** (Line 259-287):
-       - Yahoo記事ページから`<time datetime>`タグを抽出
-       - 複数パターン対応: `time[datetime]`, `.article-date time`, `.article-header time`, `.yjDirectSlink time`
-       - 抽出失敗しても処理継続（非致命的エラー）
-
-     - **PublishedAt優先順位** (Line 412-432):
-       1. **ページから取得した日時**（最優先、時分秒レベル）
-       2. **daysAgoから逆算**（フォールバック、日単位）
-       3. **どちらも取れない** → スキップ（新着誤爆防止）
-
-     ```javascript
-     // 1. Yahoo記事ページから取得した日時を優先
-     if (article.publishedAtFromPage) {
-       publishedAt = article.publishedAtFromPage;
-       console.log(`  📅 公開日時: ${publishedAt} (ページから取得)`);
-     }
-     // 2. daysAgoから逆算
-     else if (Number.isFinite(article.daysAgo) && article.daysAgo !== null) {
-       const date = new Date();
-       date.setDate(date.getDate() - article.daysAgo);
-       publishedAt = date.toISOString();
-       console.log(`  📅 公開日時: ${publishedAt} (daysAgoから逆算: ${article.daysAgo}日前)`);
-     }
-     // 3. どちらも取れない場合はスキップ
-     else {
-       console.log(`⏭️ スキップ: ${title} (公開日時不明)`);
-       continue;
-     }
-     ```
-
-   - **改善2: 運用監視ログの実装**
-     - **目的**: 取りこぼしが増えた時の原因判別
-
-     - **実装内容** (Line 291-324):
-       - エラー種類別カウント: `errorStats.timeout`, `errorStats.navigation`, `errorStats.other`
-       - エラー統計レポート: 合計件数とタイプ別内訳
-       - エラー率50%超過時の警告: 「要調査」メッセージ
-       - Yahoo URL保存件数の確認: 期待値0件（リダイレクト漏れ検出）
-
-     ```javascript
-     // エラー統計レポート（運用監視用）
-     if (errorStats.total > 0) {
-       console.log('\n📊 URL確認エラー統計:');
-       console.log(`   合計: ${errorStats.total}件`);
-       console.log(`   - Timeout: ${errorStats.timeout}件`);
-       console.log(`   - Navigation: ${errorStats.navigation}件`);
-       console.log(`   - その他: ${errorStats.other}件`);
-
-       // 取りこぼし警告（全体の半分超えたら要調査）
-       if (errorStats.total > filteredArticles.length / 2) {
-         console.log('   ⚠️  警告: エラー率が高すぎます（要調査）');
-       }
-     }
-
-     // Yahoo URLのまま保存された件数（保証ログ）
-     const yahooUrlCount = validArticles.filter(a => a.sourceURL.includes('news.yahoo.co.jp/articles/')).length;
-     console.log(`\n✅ Yahoo URLのまま保存: ${yahooUrlCount}件（期待値: 0件）`);
-     ```
-
-   - **期待効果**:
-     - ✅ **PublishedAt精度向上**: 日単位 → 時分秒レベル
-     - ✅ **日付ズレ解消**: 最大24時間 → 秒単位の精度
-     - ✅ **エラー原因の迅速な特定**: Timeout/Navigation等の内訳表示
-     - ✅ **取りこぼしの早期検出**: エラー率50%超過時に警告
-     - ✅ **リダイレクト漏れ検出**: Yahoo URLのまま保存された件数を確認
-
-   - **次回実行での確認事項** (ユーザー指定):
-     - hochi/sponichi が 0件
-     - "URL確認エラーでスキップ" が 極端に多くない（目安：全体の半分超えると要調査）
-     - 新着上位に 12月記事が混ざらない
-     - Airtable上で PublishedAt が「その記事の時期」と一致している
-
-   - **コミット**:
-     - a5acad7 - fix: Yahoo scraper最終改善（精密な日時取得 + 運用監視ログ）
-
-3. ✅ **Yahoo scraper 3つの致命的問題を修正（盤石化）**
-   - **背景**: ユーザーから「見落とすと再発する」3つの注意点を指摘
-
-   - **問題1: PublishedAt の ISO正規化（必須）**
-     - **問題**: `<time datetime>` が返す値はサイトによってバラつきがある
-       - ISO形式: `2026-01-13T08:12:00+09:00`, `2026-01-13T08:12:00Z`
-       - 非ISO形式: `2026-01-13 08:12`, `2026/01/13 08:12`
-     - **リスク**:
-       - Airtableの Date型に入らない
-       - 並び順が崩れる
-       - ビルド側でパース失敗（Astroのフロントエンド）
-     - **対策**:
-       ```javascript
-       function normalizeDate(dateStr) {
-         if (!dateStr) return null;
-         const d = new Date(dateStr);
-         if (!Number.isFinite(d.getTime())) return null;
-         return d.toISOString(); // 必ずISO形式に正規化
-       }
-       ```
-     - **適用箇所** (Line 427-431):
-       ```javascript
-       const normalizedDate = normalizeDate(article.publishedAtFromPage);
-       if (normalizedDate) {
-         publishedAt = normalizedDate;
-         console.log(`  📅 公開日時: ${publishedAt} (ページから取得, ISO正規化済み)`);
-       }
-       ```
-
-   - **問題2: 遷移先DOM対応の強化**
-     - **問題**:
-       - `goto(article.sourceURL)` 時点で自動リダイレクトされる
-       - Yahoo DOMではなく、遷移先（netkeiba等）のDOMから取得している
-       - Yahoo用セレクタが効かない可能性が高い
-       - 遷移先ごとにDOMが違うため取得率が落ちる
-     - **対策**: セレクタを5パターンに拡充 (Line 264-297)
-       1. **標準 `time[datetime]`**: 最も一般的
-       2. **Yahoo記事 DOM**: リダイレクトされなかった場合
-       3. **netkeiba DOM**: `.newsDetail_date time`, `.news_date time`
-       4. **スポーツ紙 DOM**: `.date time`, `.article-time time`, `.post-date time`
-       5. **class無し `<time>` タグ**: 全探索（最後の手段）
-     - **コメントで実態を明記**:
-       ```javascript
-       // 注意: goto()時点で自動リダイレクトされるため、Yahoo DOMではなく
-       //       遷移先（netkeiba, スポーツ紙等）のDOMから取得している
-       ```
-
-   - **問題3: 保存直前の SourceURL 検証**
-     - **問題**:
-       - ログ上は `validArticles` 時点の sourceURL を数えている
-       - 後段の `enrichedArticles.map()` や `base('News').create()` で上書きされる可能性
-       - ログは0でも保存はYahoo URLのままになるリスク
-     - **対策** (Line 447-476):
-       ```javascript
-       // 保存直前の検証（Yahoo URL混入の最終確認）
-       if (article.sourceURL.includes('news.yahoo.co.jp/articles/')) {
-         console.error(`⚠️  警告: Yahoo URLのまま保存されようとしています: ${article.sourceURL}`);
-         console.error(`   記事タイトル: ${title}`);
-         // 開発中は強制停止（本番では警告のみ）
-         // throw new Error('Yahoo URL混入を検出');
-       }
-
-       await base('News').create([...]);
-
-       console.log(`✅ 作成: ${title}`);
-       console.log(`   SourceURL: ${article.sourceURL}`); // 保存されたURL確認
-       ```
-
-   - **デバッグ機能追加** (Line 302-305):
-     - 取得した日時形式をログ出力（最初の3件のみ）
-     - ISO/非ISO の実例を確認可能
-     ```javascript
-     if (publishedAt && validArticles.length < 3) {
-       console.log(`   🔍 取得した日時（生データ）: "${publishedAt}" from ${finalURL}`);
-     }
-     ```
-
-   - **期待効果**:
-     - ✅ **Airtableデータ事故の完全防止**: 非ISO形式が混入しない
-     - ✅ **取得率の向上**: 5パターンのセレクタで幅広く対応
-     - ✅ **運用監視の強化**: 保存前に最終確認、デバッグログ出力
-     - ✅ **再発リスクの最小化**: 設計レベルで盤石化
-
-   - **コミット**:
-     - a005620 - fix: Yahoo scraper 3つの致命的問題を修正（盤石化）
-
-4. ✅ **normalizeDate() 環境依存を完全排除（100%安定化）**
-   - **背景**: ユーザーから「`new Date("2026/01/13 08:12")` は環境依存」と指摘
-
-   - **問題**:
-     - `new Date("2026/01/13 08:12")` はNode.jsのバージョン・タイムゾーン設定で挙動が変わる
-     - 環境によって **Invalid Date** になる
-     - UTC扱いになる環境もある（JST想定が崩れる）
-     - 日本のニュースサイトは **JST前提** で時刻を出力
-
-   - **対策**: 日本語ニュース系のよくある形式を事前変換（JST前提で扱う）
-     ```javascript
-     function normalizeDate(dateStr) {
-       if (!dateStr) return null;
-
-       // パターン1: YYYY/MM/DD HH:mm → YYYY-MM-DDTHH:mm:00+09:00
-       const pattern1 = /^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/;
-       if (pattern1.test(dateStr)) {
-         const match = dateStr.match(pattern1);
-         dateStr = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:00+09:00`;
-       }
-
-       // パターン2: YYYY-MM-DD HH:mm → YYYY-MM-DDTHH:mm:00+09:00
-       const pattern2 = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/;
-       if (pattern2.test(dateStr)) {
-         const match = dateStr.match(pattern2);
-         dateStr = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:00+09:00`;
-       }
-
-       // ISO形式に変換済みの文字列、または元々ISO形式の文字列を new Date() に渡す
-       const d = new Date(dateStr);
-       if (!Number.isFinite(d.getTime())) return null;
-       return d.toISOString();
-     }
-     ```
-
-   - **変換例**:
-     - `2026/01/13 08:12` → `2026-01-13T08:12:00+09:00` → ISO変換
-     - `2026-01-13 08:12` → `2026-01-13T08:12:00+09:00` → ISO変換
-     - `2026-01-13T08:12:00+09:00` → そのまま → ISO変換
-     - `2026-01-13T08:12:00Z` → そのまま → ISO変換
-
-   - **副次修正**: コメント・ドキュメントをA案（実態に合わせる）に統一
-     - **基本**: 遷移先DOMから取得（`goto()` 時点で自動リダイレクトされるため）
-     - **Yahoo DOM**: 「稀にリダイレクトされなかった場合」の保険
-     - **セレクタ優先順位**: 実態に合わせて並び替え
-       1. 標準 `time[datetime]`（遷移先で使われる）
-       2. netkeiba DOM（遷移先）
-       3. スポーツ紙 DOM（遷移先）
-       4. Yahoo記事 DOM（保険）
-       5. class無し `<time>` タグ（全探索）
-
-   - **期待効果**:
-     - ✅ **環境依存の完全排除**: Node.jsバージョン・タイムゾーンの影響を受けない
-     - ✅ **Invalid Date のゼロ化**: 非ISO形式も正しく変換
-     - ✅ **事故率の激減**: 2パターン追加で日本のニュースサイトを完全カバー
-     - ✅ **保守時の誤解防止**: コメントで実態を明記
-
-   - **次回実行での確認事項**:
-     - 🔍 取得した日時（生データ）が 複数形式でも
-     - 📅 公開日時: ... **ISO正規化済み** が 必ず出る（**Invalid Date がゼロ**）
-     - SourceURL: が `news.yahoo.co.jp` になっていない
-     - 新着の上位に 12月の再掲が出ていない
-
-   - **コミット**:
-     - b7c4d7a - fix: normalizeDate() 環境依存を完全排除（100%安定化）
-
-5. ✅ **normalizeDate() 最後の抜け穴を塞ぐ（真の100%安定化）**
-   - **背景**: ユーザーから「ゼロ埋め無し・日付のみが残っている」と指摘
-
-   - **問題1: ゼロ埋め無し・日付のみが残っていた**
-     - 現在の `\d{2}` は以下が来ると null になる:
-       - `2026/1/3 8:12`（月日・時が1桁）
-       - `2026/01/13`（日付だけ）
-       - `2026-01-13`（日付だけ）
-     - **遷移先のサイトによって普通に出る**（特に海外・大手メディア系）
-
-   - **対策**: 最小追加で4パターン追加（合計6パターン）
-     ```javascript
-     // パターン3: YYYY/M/D H:mm（ゼロ埋め無し、1桁許容）
-     const pattern3 = /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/;
-     if (pattern3.test(dateStr)) {
-       const match = dateStr.match(pattern3);
-       const mm = match[2].padStart(2, '0');
-       const dd = match[3].padStart(2, '0');
-       const hh = match[4].padStart(2, '0');
-       dateStr = `${match[1]}-${mm}-${dd}T${hh}:${match[5]}:00+09:00`;
-     }
-
-     // パターン4: YYYY-M-D H:mm（ゼロ埋め無し、1桁許容）
-     // パターン5: YYYY/MM/DD（日付のみ、00:00:00 扱い）
-     // パターン6: YYYY-MM-DD（日付のみ、00:00:00 扱い）
-     ```
-
-   - **変換例**:
-     - `2026/1/3 8:12` → `2026-01-03T08:12:00+09:00`
-     - `2026-1-3 8:12` → `2026-01-03T08:12:00+09:00`
-     - `2026/01/13` → `2026-01-13T00:00:00+09:00`
-     - `2026-01-13` → `2026-01-13T00:00:00+09:00`
-
-   - **問題2: 変則TZ（例: +0900）の扱い**
-     - **方針**: そのまま `new Date()` に任せる（コメント明記）
-     - 失敗したら null でスキップ（現在の方針と整合）
-     - 無理に全部直さない方が安全（環境差を吸収）
-
-   - **期待効果**:
-     - ✅ **ゼロ埋め無し記事が正常保存**: 「公開日時不明でスキップ」されない
-     - ✅ **日付のみ記事も正常保存**: 00:00:00 扱いで統一
-     - ✅ **真の100%安定化**: 実務で踏む全パターンをカバー
-     - ✅ **最小行数**: 無駄に増やさず必要十分
-
-   - **次回実行での最終確認**:
-     - 🔍 取得した日時（生データ）に `2026/1/` や `8:` みたいな1桁が混ざっていないか
-     - もし混ざったら、その記事が 📅 **ISO正規化済み** になっているか
-     - **公開日時不明でスキップ** がゼロか（ゼロでなければログで形式確認）
-
-   - **コミット**:
-     - 15e8ac6 - fix: normalizeDate() 最後の抜け穴を塞ぐ（真の100%安定化）
-
-6. ✅ **normalizeDate() 最終ガード（分が1桁）を追加**
-   - **背景**: ユーザーから「YYYY/M/D H:m（分が1桁）も現場で出る」と指摘
-
-   - **問題**:
-     - 媒体によっては `8:2` のように**分が1桁**のケースがある
-     - 例: `2026/1/3 8:2`
-     - 現在の `(\d{2})` 固定だと取りこぼす
-
-   - **対策**: パターン3/4の「分」を `\d{1,2}` に変更（**1行レベルの追加**）
-     ```javascript
-     // 正規表現: :(\d{2}) → :(\d{1,2})
-     const pattern3 = /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{1,2})$/;
-
-     // match[5] も padStart(2, '0') を追加
-     const min = match[5].padStart(2, '0');
-     dateStr = `${match[1]}-${mm}-${dd}T${hh}:${min}:00+09:00`;
-     ```
-
-   - **変換例**:
-     - `2026/1/3 8:2` → `2026-01-03T08:02:00+09:00`
-     - `2026-1-3 8:2` → `2026-01-03T08:02:00+09:00`
-
-   - **期待効果**:
-     - ✅ **分が1桁の記事も正常保存**: 取りこぼしゼロ
-     - ✅ **さらに落ちない**: 真の100%安定化完成
-     - ✅ **行数ほぼ増えず**: padStart 2行追加のみ
-
-   - **仕様確認**（変更なし）:
-     - 日付のみを `00:00:00+09:00` にする挙動
-     - 並び順で深夜記事に負けやすい（同日の中で下に行く）
-     - 今回は変更なし（最小修正の方針と整合）
-
-   - **コミット**:
-     - e145a93 - fix: normalizeDate() 最終ガード（分が1桁）を追加
-
-7. ✅ **normalizeDate() タイムゾーン表記の揺れを吸収（最終仕上げ）**
-   - **背景**: ユーザーから「タイムゾーン表記の揺れ（+0900系）が最後の事故ポイント」と指摘
-
-   - **問題**:
-     - `+0900`（コロン無し）形式が来ると、環境によって Invalid Date
-     - 例: `2026-01-13T08:12:00+0900`
-     - 一部のNode.js環境・タイムゾーン設定で解釈できない
-
-   - **対策**: タイムゾーン表記の揺れを吸収（**1行追加**）
-     ```javascript
-     // タイムゾーン表記の揺れを吸収（+0900 → +09:00）
-     // 例: 2026-01-13T08:12:00+0900 → 2026-01-13T08:12:00+09:00
-     // 環境によって +0900（コロン無し）が Invalid Date になるのを防ぐ
-     dateStr = dateStr.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-     ```
-
-   - **変換例**:
-     - `2026-01-13T08:12:00+0900` → `2026-01-13T08:12:00+09:00`
-     - `2026-01-13T08:12:00-0500` → `2026-01-13T08:12:00-05:00`
-     - `2026-01-13T08:12:00+09:00` → そのまま（既にコロンあり）
-
-   - **期待効果**:
-     - ✅ **環境依存の最後の穴を塞ぐ**: コロン無しTZも正常解釈
-     - ✅ **既存の6パターンを壊さない**: 末尾のみマッチ（`$` アンカー）
-     - ✅ **運用して壊れにくい状態まで到達**: 実運用での事故ポイントをすべて潰した
-
-   - **完成度**:
-     - **日時形式**: 6パターン完全対応
-     - **1桁対応**: 年月日時分すべて
-     - **TZ対応**: コロン有無の揺れ吸収
-     - **真の100%安定化完成** ✅
-
-   - **次回Actionsで見るべきログ（これで終了）**:
-     1. 🔍 取得した日時（生データ）に `8:2` みたいなのが混ざっても
-     2. 📅 ... **ISO正規化済み** が必ず出る
-     3. **公開日時不明でスキップ** が増えていない
-     4. **SourceURL** が `news.yahoo.co.jp` じゃない
-
-   - **コミット**:
-     - 9e5eebf - fix: normalizeDate() タイムゾーン表記の揺れを吸収（最終仕上げ）
-
-8. ✅ **次回Actionsでの合格判定（調整→監視フェーズへ移行）**
-   - **現状認識**: コード実装は完璧、あとは運用監視で終わる段階
-
-   - **次回Actions（18:00 JST または次の6:00）での合格判定（4点）**:
-     1. ✅ **Invalid Date が 0**
-        - `new Date()` が失敗していない
-        - 全記事の日時が正常にパース可能
-
-     2. ✅ **公開日時不明でスキップ が極端に増えていない**
-        - 目安: 全体の10%以下（1〜2件程度は許容）
-        - DOM側の selector が正常に機能している
-
-     3. ✅ **Yahoo URLのまま保存 が 0（期待値: 0件）**
-        - リダイレクト確認が正常に機能
-        - `news.yahoo.co.jp/articles/` が残っていない
-
-     4. ✅ **新着上位に古い月（例: 12月）が混ざらない**
-        - PublishedAt が元記事の公開日時を正しく反映
-        - 過去記事の「新着化」が防止されている
-
-   - **もし1つでも崩れた場合の原因切り分け（最短）**:
-
-     **ケース1: Invalid Date が出る**
-     - **原因**: ほぼ「秒付きだけど区切りが変則」か「日本語（例: 2026年1月3日）」の混入
-     - **対応**: 🔍 生データログ3件を確認 → 新パターンを追加
-
-     **ケース2: スキップが増える**
-     - **原因**: DOM側の selector 取りこぼし（日時が取れていない）
-     - **対応**: 遷移先サイトのDOM構造を確認 → selector追加
-
-     **ケース3: 古い記事が上位に混ざる**
-     - **原因**: PublishedAt 優先順位のどこかで「別の日時」を拾っている
-     - **対応**: 🔍 生データログ3件で判定 → 優先順位を調整
-
-     **ケース4: Yahoo URL が残る**
-     - **原因**: リダイレクト失敗（timeout/navigation error）
-     - **対応**: エラー統計レポートで原因確認 → timeout値調整
-
-   - **期待状態**:
-     - ✅ **4点すべて合格** → **監視フェーズ完了、問題なし**
-     - ⚠️ **1点でも不合格** → 生データログ3件を確認して最小調整
-
-   - **フェーズ移行**:
-     - **Before**: 調整フェーズ（コード改善）
-     - **After**: 監視フェーズ（運用確認）
-     - **Next**: 定期監視（月1回、GA4＋Actions確認）
+### 2026-01-13: Yahoo scraper根本解決（監視フェーズへ移行）
+
+#### 解決した問題
+
+1. **hochi/sponichi混入問題**
+   - Yahoo経由で除外すべきメディアが混入（最新20件中13件）
+   - タイトル検出 + URL確認 + エラー時除外の3段階防御で完全排除
+
+2. **古い記事の新着化問題**
+   - 2025-12-29の記事が2026-01-12に「新規」として復活
+   - PublishedAtを取得日時→元記事の公開日時に変更（daysAgoから逆算、またはページから抽出）
+
+3. **既存汚れデータのクレンジング**
+   - `cleanup-contaminated-data.cjs` 実行: **75件削除**（hochi/sponichi 68件 + 日付不整合 7件）
+
+#### 実装した対策
+
+**1. normalizeDate() 関数（6パターン対応、環境依存排除）**
+   - YYYY/MM/DD HH:mm → ISO+JST
+   - YYYY-MM-DD HH:mm → ISO+JST
+   - YYYY/M/D H:m（ゼロ埋め無し、分1桁対応）
+   - YYYY-M-D H:m（同上）
+   - YYYY/MM/DD（日付のみ、00:00:00扱い）
+   - YYYY-MM-DD（日付のみ、00:00:00扱い）
+   - タイムゾーン表記の揺れ吸収（+0900 → +09:00）
+
+**2. PublishedAt 優先順位（時分秒レベルの精度）**
+   1. ページから取得した日時（<time datetime> タグ、5パターンのセレクタ）
+   2. daysAgoから逆算（フォールバック）
+   3. どちらも取れない → スキップ（新着誤爆防止）
+
+**3. 運用監視ログ（エラー統計＋検証）**
+   - エラー種類別カウント（Timeout/Navigation/その他）
+   - エラー率50%超過時の警告
+   - Yahoo URL保存件数の確認（期待値: 0件）
+
+#### 次回Actions合格判定（4点）
+
+次回実行（18:00 JST または次の6:00）で以下を確認:
+
+1. ✅ **Invalid Date が 0**
+   - `new Date()` が失敗していない
+   - 全記事の日時が正常にパース可能
+
+2. ✅ **公開日時不明でスキップ が極端に増えていない**
+   - 目安: 全体の10%以下（1〜2件程度は許容）
+   - DOM側の selector が正常に機能している
+
+3. ✅ **Yahoo URLのまま保存 が 0（期待値: 0件）**
+   - リダイレクト確認が正常に機能
+   - `news.yahoo.co.jp/articles/` が残っていない
+
+4. ✅ **新着上位に古い月（例: 12月）が混ざらない**
+   - PublishedAt が元記事の公開日時を正しく反映
+   - 過去記事の「新着化」が防止されている
+
+#### 不合格時の切り分けガイド
+
+| 現象 | 原因 | 対応 |
+|------|------|------|
+| Invalid Date が出る | 秒付き変則形式 or 日本語混入 | 🔍 生データログ3件確認 → 新パターン追加 |
+| スキップが増える | DOM selector 取りこぼし | 遷移先サイトのDOM確認 → selector追加 |
+| 古い記事が上位 | PublishedAt 優先順位問題 | 🔍 生データログ3件確認 → 優先順位調整 |
+| Yahoo URL が残る | リダイレクト失敗（timeout/navigation） | エラー統計レポート確認 → timeout値調整 |
+
+#### コミット履歴
+
+- beea67b - fix: Yahoo scraper完全修正（hochi/sponichi除外 + 古い記事復活防止）
+- 62dd046 - fix: Yahoo scraper根本解決（4つの落とし穴を完全に潰す）
+- a5acad7 - fix: Yahoo scraper最終改善（精密な日時取得 + 運用監視ログ）
+- a005620 - fix: Yahoo scraper 3つの致命的問題を修正（盤石化）
+- b7c4d7a - fix: normalizeDate() 環境依存を完全排除（100%安定化）
+- 15e8ac6 - fix: normalizeDate() 最後の抜け穴を塞ぐ（真の100%安定化）
+- e145a93 - fix: normalizeDate() 最終ガード（分が1桁）を追加
+- 9e5eebf - fix: normalizeDate() タイムゾーン表記の揺れを吸収（最終仕上げ）
+
+#### フェーズ移行
+
+- **Before**: 調整フェーズ（コード改善）
+- **After**: 監視フェーズ（運用確認）
+- **Next**: 定期監視（月1回、GA4＋Actions確認）
 
 ### 2026-01-11: データ品質の根本改善（3つの防御策実装）
 
