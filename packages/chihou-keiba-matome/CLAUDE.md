@@ -626,6 +626,88 @@ SITE_URL=https://chihou.keiba-matome.jp
      - beea67b - fix: Yahoo scraper完全修正（hochi/sponichi除外 + 古い記事復活防止）
      - 62dd046 - fix: Yahoo scraper根本解決（4つの落とし穴を完全に潰す）
 
+2. ✅ **Yahoo scraper最終改善（精密な日時取得 + 運用監視ログ）**
+   - **背景**: ユーザーからの2つの改善提案を受けて実装
+
+   - **改善1: 精密な日時取得の実装**
+     - **問題**: daysAgoは「日単位」のため、最大24時間のズレが発生
+     - **例**: 記事公開23:50、スクレイピング00:10 → daysAgo=1日前 → PublishedAt=前日00:10（23時間40分のズレ）
+
+     - **実装内容** (Line 259-287):
+       - Yahoo記事ページから`<time datetime>`タグを抽出
+       - 複数パターン対応: `time[datetime]`, `.article-date time`, `.article-header time`, `.yjDirectSlink time`
+       - 抽出失敗しても処理継続（非致命的エラー）
+
+     - **PublishedAt優先順位** (Line 412-432):
+       1. **ページから取得した日時**（最優先、時分秒レベル）
+       2. **daysAgoから逆算**（フォールバック、日単位）
+       3. **どちらも取れない** → スキップ（新着誤爆防止）
+
+     ```javascript
+     // 1. Yahoo記事ページから取得した日時を優先
+     if (article.publishedAtFromPage) {
+       publishedAt = article.publishedAtFromPage;
+       console.log(`  📅 公開日時: ${publishedAt} (ページから取得)`);
+     }
+     // 2. daysAgoから逆算
+     else if (Number.isFinite(article.daysAgo) && article.daysAgo !== null) {
+       const date = new Date();
+       date.setDate(date.getDate() - article.daysAgo);
+       publishedAt = date.toISOString();
+       console.log(`  📅 公開日時: ${publishedAt} (daysAgoから逆算: ${article.daysAgo}日前)`);
+     }
+     // 3. どちらも取れない場合はスキップ
+     else {
+       console.log(`⏭️ スキップ: ${title} (公開日時不明)`);
+       continue;
+     }
+     ```
+
+   - **改善2: 運用監視ログの実装**
+     - **目的**: 取りこぼしが増えた時の原因判別
+
+     - **実装内容** (Line 291-324):
+       - エラー種類別カウント: `errorStats.timeout`, `errorStats.navigation`, `errorStats.other`
+       - エラー統計レポート: 合計件数とタイプ別内訳
+       - エラー率50%超過時の警告: 「要調査」メッセージ
+       - Yahoo URL保存件数の確認: 期待値0件（リダイレクト漏れ検出）
+
+     ```javascript
+     // エラー統計レポート（運用監視用）
+     if (errorStats.total > 0) {
+       console.log('\n📊 URL確認エラー統計:');
+       console.log(`   合計: ${errorStats.total}件`);
+       console.log(`   - Timeout: ${errorStats.timeout}件`);
+       console.log(`   - Navigation: ${errorStats.navigation}件`);
+       console.log(`   - その他: ${errorStats.other}件`);
+
+       // 取りこぼし警告（全体の半分超えたら要調査）
+       if (errorStats.total > filteredArticles.length / 2) {
+         console.log('   ⚠️  警告: エラー率が高すぎます（要調査）');
+       }
+     }
+
+     // Yahoo URLのまま保存された件数（保証ログ）
+     const yahooUrlCount = validArticles.filter(a => a.sourceURL.includes('news.yahoo.co.jp/articles/')).length;
+     console.log(`\n✅ Yahoo URLのまま保存: ${yahooUrlCount}件（期待値: 0件）`);
+     ```
+
+   - **期待効果**:
+     - ✅ **PublishedAt精度向上**: 日単位 → 時分秒レベル
+     - ✅ **日付ズレ解消**: 最大24時間 → 秒単位の精度
+     - ✅ **エラー原因の迅速な特定**: Timeout/Navigation等の内訳表示
+     - ✅ **取りこぼしの早期検出**: エラー率50%超過時に警告
+     - ✅ **リダイレクト漏れ検出**: Yahoo URLのまま保存された件数を確認
+
+   - **次回実行での確認事項** (ユーザー指定):
+     - hochi/sponichi が 0件
+     - "URL確認エラーでスキップ" が 極端に多くない（目安：全体の半分超えると要調査）
+     - 新着上位に 12月記事が混ざらない
+     - Airtable上で PublishedAt が「その記事の時期」と一致している
+
+   - **コミット**:
+     - a5acad7 - fix: Yahoo scraper最終改善（精密な日時取得 + 運用監視ログ）
+
 ### 2026-01-11: データ品質の根本改善（3つの防御策実装）
 
 1. ✅ **Slug生成の共通ライブラリ化（全プロジェクト統一）**
