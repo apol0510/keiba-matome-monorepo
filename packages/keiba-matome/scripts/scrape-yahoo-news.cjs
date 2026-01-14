@@ -138,7 +138,7 @@ async function scrapeYahooNews() {
             items.push({
               sourceTitle: title,
               sourceURL: url,
-              sourceSite: 'Yahoo', // Airtableの既存オプション「Yahoo」に統一
+              sourceSite: 'netkeiba', // Airtable既存オプションに統一
             });
           }
         }
@@ -274,7 +274,7 @@ async function saveToAirtable(articles) {
             Slug: slug,
             SourceTitle: article.sourceTitle,
             SourceURL: article.sourceURL,
-            SourceSite: 'yahoo', // Yahoo!ニュースのため 'yahoo' を使用
+            SourceSite: 'netkeiba', // Airtable既存オプションに統一
             Summary: article.summary,
             Category: article.category,
             Tags: article.tags,
