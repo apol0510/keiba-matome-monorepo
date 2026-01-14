@@ -236,16 +236,32 @@ async function saveToAirtable(articles) {
         continue;
       }
 
-      // 既存チェック
-      const existing = await base('News')
+      // SourceURLで重複チェック（復活防止）
+      const escapedURL = article.sourceURL.replace(/'/g, "\\'");
+      const existingURL = await base('News')
         .select({
-          filterByFormula: `{Slug} = '${slug}'`,
+          filterByFormula: `{SourceURL} = '${escapedURL}'`,
           maxRecords: 1,
         })
         .firstPage();
 
-      if (existing.length > 0) {
-        console.log(`⏭️  スキップ: ${title} (既存)`);
+      if (existingURL.length > 0) {
+        console.log(`⏭️  スキップ: ${title} (既存URL)`);
+        skipped++;
+        continue;
+      }
+
+      // Slugで重複チェック（念のため）
+      const escapedSlug = slug.replace(/'/g, "\\'");
+      const existingSlug = await base('News')
+        .select({
+          filterByFormula: `{Slug} = '${escapedSlug}'`,
+          maxRecords: 1,
+        })
+        .firstPage();
+
+      if (existingSlug.length > 0) {
+        console.log(`⏭️  スキップ: ${title} (類似記事あり)`);
         skipped++;
         continue;
       }
@@ -258,7 +274,7 @@ async function saveToAirtable(articles) {
             Slug: slug,
             SourceTitle: article.sourceTitle,
             SourceURL: article.sourceURL,
-            SourceSite: 'netkeiba', // 既存のオプション「netkeiba」を使用（Yahoo記事も一旦これで保存）
+            SourceSite: 'yahoo', // Yahoo!ニュースのため 'yahoo' を使用
             Summary: article.summary,
             Category: article.category,
             Tags: article.tags,

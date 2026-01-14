@@ -20,6 +20,8 @@ if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
 }
 
 console.log(`📰 記事取得数: ${ARTICLE_COUNT}件`);
+console.log(`🔑 API Key: ${AIRTABLE_API_KEY.substring(0, 20)}...`);
+console.log(`🗂️  Base ID: ${AIRTABLE_BASE_ID}`);
 
 // Airtable初期化
 const base = new Airtable({ apiKey: AIRTABLE_API_KEY }).base(AIRTABLE_BASE_ID);
@@ -233,13 +235,13 @@ async function scrapeNetkeibaChihouNews() {
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
 
-    // 地方競馬ニュースページにアクセス
-    console.log('🌐 https://nar.netkeiba.com/top/news_list.html にアクセス中...');
-    await page.goto('https://nar.netkeiba.com/top/news_list.html', { waitUntil: 'networkidle2', timeout: 60000 });
+    // netkeibaニュースページにアクセス（中央・地方統合）
+    console.log('🌐 https://news.netkeiba.com/ にアクセス中...');
+    await page.goto('https://news.netkeiba.com/', { waitUntil: 'networkidle2', timeout: 60000 });
 
     // JavaScriptレンダリング完了を待つ
-    await page.waitForSelector('.NewsTitle, a', { timeout: 10000 }).catch(() => {
-      console.log('⚠️  セレクタが見つかりません。全てのaタグを試します...');
+    await page.waitForSelector('.NewsTitle', { timeout: 10000 }).catch(() => {
+      console.log('⚠️  NewsTitleが見つかりません。別のセレクタを試します...');
     });
 
     // 記事リストを取得
@@ -247,7 +249,7 @@ async function scrapeNetkeibaChihouNews() {
       const items = [];
 
       // ニュース記事タイトルを取得
-      const newsTitles = Array.from(document.querySelectorAll('h2.NewsTitle, h3.NewsTitle, .news-title'));
+      const newsTitles = Array.from(document.querySelectorAll('h2.NewsTitle'));
 
       newsTitles.slice(0, 10).forEach((h2) => {
         // h2の中または直後のaタグを探す
@@ -259,6 +261,7 @@ async function scrapeNetkeibaChihouNews() {
           const url = link.href || '';
 
           // タイトルから余計な情報を削除
+          // （例: 改行以降の時刻情報「35分前 3 0」など）
           title = title
             .replace(/\n.*$/s, '')  // 最初の改行以降を削除
             .replace(/\s+\d+分前.*$/, '')  // 時刻情報を削除
@@ -291,8 +294,8 @@ async function scrapeNetkeibaChihouNews() {
             .replace(/\s+\d+日前.*$/, '')
             .trim();
 
-          // ニュース記事のURLパターン（地方競馬用）
-          if (title && url && (url.includes('nar.netkeiba.com') || url.includes('news.netkeiba.com')) && title.length > 10) {
+          // ニュース記事のURLパターン
+          if (title && url && url.includes('news.netkeiba.com') && url.includes('?pid=news_view')) {
             items.push({
               sourceTitle: title,
               sourceURL: url,
@@ -355,6 +358,34 @@ function getFallbackArticles() {
 }
 
 /**
+ * 地方競馬記事の判定（地方競馬キーワードを含む記事のみ）
+ */
+function isChihouKeiba(title) {
+  const chihouKeywords = [
+    // 南関東4競馬
+    '大井', 'TCK', '東京シティ競馬',
+    '船橋',
+    '川崎',
+    '浦和',
+    '南関',
+
+    // 全国地方競馬場
+    '門別', '盛岡', '水沢', '金沢', '笠松', '名古屋',
+    '園田', '姫路', '高知', '佐賀', 'ホッカイドウ',
+
+    // 地方競馬ワード
+    '地方競馬', '地方重賞', 'NAR', 'nar',
+
+    // 地方G1・重賞
+    '東京大賞典', '川崎記念', '帝王賞', 'ジャパンダートダービー',
+    'かしわ記念', 'JBC', 'トゥインクル', '羽田盃', '黒潮盃',
+    '兵庫ゴールドトロフィー', '東京記念'
+  ];
+
+  return chihouKeywords.some(keyword => title.includes(keyword));
+}
+
+/**
  * Airtableに記事を保存
  */
 async function saveToAirtable(articles) {
@@ -376,6 +407,13 @@ async function saveToAirtable(articles) {
     }
 
     try {
+      // 中央競馬記事をフィルタリング（keiba-matomeで扱う）
+      if (!isChihouKeiba(cleanedTitle)) {
+        console.log(`⏭️  スキップ: ${title} (中央競馬記事 - keiba-matome.jpで扱います)`);
+        skipped++;
+        continue;
+      }
+
       // ブロックリストチェック（最優先）
       if (isBlockedURL(article.sourceURL)) {
         console.log(`⛔ ブロックリスト該当（スキップ）: ${article.sourceURL}`);
@@ -442,7 +480,9 @@ async function saveToAirtable(articles) {
       // レート制限対策（1秒待機）
       await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (error) {
-      console.error(`❌ エラー: ${title}`, error.message);
+      console.error(`❌ エラー: ${title}`);
+      console.error(`   メッセージ: ${error.message}`);
+      console.error(`   スタック:`, error.stack);
     }
   }
 

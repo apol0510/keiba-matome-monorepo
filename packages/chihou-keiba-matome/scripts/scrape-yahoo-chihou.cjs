@@ -522,7 +522,7 @@ async function saveToAirtable(articles) {
         continue;
       }
 
-      // PublishedAt優先順位: ページから取得 → daysAgo逆算 → スキップ
+      // PublishedAt優先順位: ページから取得のみ（daysAgoは信頼性が低いため使用しない）
       let publishedAt;
 
       // 1. Yahoo記事ページから取得した日時を優先（ISO形式に正規化）
@@ -531,16 +531,9 @@ async function saveToAirtable(articles) {
         publishedAt = normalizedDate;
         console.log(`  📅 公開日時: ${publishedAt} (ページから取得, ISO正規化済み)`);
       }
-      // 2. daysAgoから逆算
-      else if (Number.isFinite(article.daysAgo) && article.daysAgo !== null) {
-        const date = new Date();
-        date.setDate(date.getDate() - article.daysAgo);
-        publishedAt = date.toISOString();
-        console.log(`  📅 公開日時: ${publishedAt} (daysAgoから逆算: ${article.daysAgo}日前)`);
-      }
-      // 3. どちらも取れない場合はスキップ
+      // 2. ページから取得できない場合はスキップ（daysAgoは不正確なため使用しない）
       else {
-        console.log(`⏭️  スキップ: ${title} (公開日時不明)`);
+        console.log(`⏭️  スキップ: ${title} (ページから公開日時取得失敗 - daysAgo=${article.daysAgo})`);
         skipped++;
         continue;
       }

@@ -215,9 +215,24 @@ async function saveToAirtable(articles) {
         continue;
       }
 
-      // 重複チェック（共通ユーティリティ使用）
+      // SourceURLで重複チェック（復活防止）
+      const escapedURL = article.sourceURL.replace(/'/g, "\\'");
+      const existingURL = await base('News')
+        .select({
+          filterByFormula: `{SourceURL} = '${escapedURL}'`,
+          maxRecords: 1,
+        })
+        .firstPage();
+
+      if (existingURL.length > 0) {
+        console.log(`⏭️  スキップ: ${title} (既存URL)`);
+        skipped++;
+        continue;
+      }
+
+      // Slugで重複チェック（念のため）
       if (await isDuplicate(base, 'News', slug)) {
-        console.log(`⏭️  スキップ: ${title} (既存)`);
+        console.log(`⏭️  スキップ: ${title} (類似記事あり)`);
         skipped++;
         continue;
       }
