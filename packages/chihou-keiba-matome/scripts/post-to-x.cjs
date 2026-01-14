@@ -175,8 +175,8 @@ async function updateNewsWithTweetId(recordId, tweetId) {
     const now = new Date().toISOString();
     await base('News').update(recordId, {
       TweetID: tweetId,
-      TweetedAt: now,
-      PublishedAt: now  // 公開日時をX投稿時刻に更新
+      TweetedAt: now
+      // PublishedAtは元記事の公開日時を維持（更新しない）
     });
     console.log(`✅ Airtableを更新しました（RecordID: ${recordId}）`);
   } catch (error) {

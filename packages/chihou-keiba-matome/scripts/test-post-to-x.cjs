@@ -199,8 +199,8 @@ async function main() {
       const now = new Date().toISOString();
       await base('News').update(news.id, {
         TweetID: tweet.data.id,
-        TweetedAt: now,
-        PublishedAt: now  // 公開日時をX投稿時刻に更新
+        TweetedAt: now
+        // PublishedAtは元記事の公開日時を維持（更新しない）
       });
       console.log(`✅ AirtableにTweetIDを保存しました`);
     } catch (error) {
