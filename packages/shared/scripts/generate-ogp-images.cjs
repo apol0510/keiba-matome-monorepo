@@ -16,7 +16,39 @@
 const Airtable = require('airtable');
 const fs = require('fs');
 const path = require('path');
-const { createCanvas } = require('canvas');
+const { createCanvas, registerFont } = require('canvas');
+
+// 日本語フォントを登録（macOS/Linux両対応）
+const fontPaths = [
+  // macOS system fonts (supports Japanese)
+  { path: '/System/Library/Fonts/AppleSDGothicNeo.ttc', family: 'Apple SD Gothic Neo', weight: 'bold' },
+  { path: '/System/Library/Fonts/AppleSDGothicNeo.ttc', family: 'Apple SD Gothic Neo', weight: 'normal' },
+  { path: '/System/Library/Fonts/Hiragino Sans GB.ttc', family: 'Hiragino Sans', weight: 'bold' },
+  // Linux Noto Sans CJK
+  { path: '/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc', family: 'Noto Sans CJK JP', weight: 'bold' },
+  { path: '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc', family: 'Noto Sans CJK JP', weight: 'normal' },
+  // Custom fonts
+  { path: path.join(__dirname, '../fonts/NotoSansJP-Bold.ttf'), family: 'Noto Sans JP', weight: 'bold' },
+  { path: path.join(__dirname, '../fonts/NotoSansJP-Regular.ttf'), family: 'Noto Sans JP', weight: 'normal' },
+];
+
+let registeredFont = null;
+for (const font of fontPaths) {
+  if (fs.existsSync(font.path)) {
+    try {
+      registerFont(font.path, { family: font.family, weight: font.weight });
+      console.log(`✅ Registered font: ${font.family} (${font.weight})`);
+      if (!registeredFont) registeredFont = font.family;
+    } catch (err) {
+      console.warn(`⚠️  Failed to register ${font.path}: ${err.message}`);
+    }
+  }
+}
+
+if (!registeredFont) {
+  console.warn('⚠️  No Japanese font found, using system default');
+  registeredFont = 'sans-serif';
+}
 
 // プロジェクト設定
 const PROJECTS = {
@@ -67,13 +99,13 @@ function generateOGImage(article, projectConfig) {
 
   // サイト名（ヘッダー内）
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 48px sans-serif';
+  ctx.font = `bold 48px "${registeredFont}", sans-serif`;
   ctx.textAlign = 'center';
   ctx.fillText(projectConfig.siteName, OG_WIDTH / 2, 75);
 
   // 記事タイトル（メイン）
   ctx.fillStyle = '#000000';
-  ctx.font = 'bold 56px sans-serif';
+  ctx.font = `bold 56px "${registeredFont}", sans-serif`;
   ctx.textAlign = 'left';
 
   // タイトルを複数行に分割（50文字で改行）
@@ -117,14 +149,14 @@ function generateOGImage(article, projectConfig) {
 
     // バッジテキスト
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 36px sans-serif';
+    ctx.font = `bold 36px "${registeredFont}", sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText(article.category, badgeX + badgeWidth / 2, badgeY + 42);
   }
 
   // 2ch風フッター
   ctx.fillStyle = '#666666';
-  ctx.font = '24px sans-serif';
+  ctx.font = `24px "${registeredFont}", sans-serif`;
   ctx.textAlign = 'center';
   ctx.fillText('2ch/5ch風コメント付き', OG_WIDTH / 2, OG_HEIGHT - 30);
 
