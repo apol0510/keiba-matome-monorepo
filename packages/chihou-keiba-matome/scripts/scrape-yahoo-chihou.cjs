@@ -25,6 +25,48 @@ console.log(`📰 記事取得数: ${ARTICLE_COUNT}件`);
 const base = new Airtable({ apiKey: AIRTABLE_API_KEY }).base(AIRTABLE_BASE_ID);
 
 /**
+ * Levenshtein距離を計算（文字列の類似度判定用）
+ */
+function levenshteinDistance(str1, str2) {
+  const matrix = [];
+
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  return matrix[str2.length][str1.length];
+}
+
+/**
+ * タイトルの類似度を計算（0-100のパーセンテージ）
+ */
+function calculateTitleSimilarity(title1, title2) {
+  const len = Math.max(title1.length, title2.length);
+  if (len === 0) return 100;
+
+  const distance = levenshteinDistance(title1, title2);
+  return ((len - distance) / len) * 100;
+}
+
+/**
  * タイトルクリーンアップ（メディア名+日時削除、50文字前後）
  */
 function cleanTitle(title) {
@@ -518,6 +560,33 @@ async function saveToAirtable(articles) {
 
       if (existingSlug.length > 0) {
         console.log(`⏭️  スキップ: ${title} (類似記事あり)`);
+        skipped++;
+        continue;
+      }
+
+      // タイトル類似度チェック（過去7日間の記事と比較、85%以上類似でスキップ）
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const recentRecords = await base('News')
+        .select({
+          filterByFormula: `IS_AFTER({PublishedAt}, '${sevenDaysAgo.toISOString()}')`,
+          fields: ['Title', 'SourceTitle'],
+        })
+        .all();
+
+      let isSimilarTitle = false;
+      for (const record of recentRecords) {
+        const existingTitle = record.get('SourceTitle') || record.get('Title') || '';
+        const similarity = calculateTitleSimilarity(cleanedTitle, existingTitle);
+
+        if (similarity >= 85) {
+          console.log(`⏭️  スキップ: ${title} (類似タイトル ${similarity.toFixed(1)}%: "${existingTitle.substring(0, 30)}...")`);
+          isSimilarTitle = true;
+          break;
+        }
+      }
+
+      if (isSimilarTitle) {
         skipped++;
         continue;
       }
