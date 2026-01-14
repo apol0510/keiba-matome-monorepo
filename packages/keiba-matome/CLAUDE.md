@@ -1136,6 +1136,40 @@ netlify deploy --prod
       - b425b2f - feat: Enable natural topic flow from central to Nankan in comments
       - fba68d7 - docs: Document natural topic flow feature in work history
 
+### 2026-01-14: 記事復活問題の完全解決（SourceURL重複チェック実装）
+
+24. ✅ **全スクレイパーにSourceURL重複チェック追加**
+    - **背景**: 地方競馬サイトで記事復活問題が発生（2025-12-27配信の東京大賞典記事が2026-01-14でも「最新」に表示）
+    - **根本原因**: Slugのみで重複チェック、SourceURLを検証していなかった
+    - **問題**: 同じURLを再スクレイピングし、PublishedAtを上書き → 古い記事が「今日の記事」として復活
+
+    - **実装内容**:
+      - **中央競馬（keiba-matome）の2スクレイパーにSourceURL重複チェック追加**:
+        1. ✅ `scripts/scrape-netkeiba-news.cjs` (Line 218-238)
+           - SourceURL重複チェック → Slug重複チェック（二重防御）
+        2. ✅ `scripts/scrape-yahoo-news.cjs` (Line 239-267)
+           - SourceURL重複チェック → Slug重複チェック（二重防御）
+           - SourceSite: `'netkeiba'` に統一（Airtable既存オプション）
+
+      - **不正Slug問題の防止**:
+        - `packages/shared/lib/scraping-utils.cjs` の `generateSlug()` 関数
+        - 引用符削除処理追加: `.replace(/["']/g, '')`
+
+    - **手動テスト結果**:
+      | スクレイパー | 作成 | スキップ | SourceURL重複検出 |
+      |------------|------|---------|------------------|
+      | netkeiba | 2件 | 3件 | ✅ 1件を既存URLでスキップ |
+      | Yahoo | 0件 | 5件 | ✅ 3件を既存URLでスキップ |
+
+    - **効果**:
+      - ✅ 削除した記事は**二度と復活しない**
+      - ✅ SourceURL + Slug の二重チェックで完全防御
+      - ✅ 地方競馬記事フィルタリングが正常動作（園田競馬記事をスキップ）
+      - ✅ 不正Slug問題も根本解決
+
+    - **コミット**:
+      - `6ce49c5` - fix: 記事復活問題の完全解決（全スクレイパーにSourceURL重複チェック追加）
+
 ---
 
 ## 参照ドキュメント

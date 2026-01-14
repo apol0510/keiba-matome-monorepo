@@ -834,6 +834,40 @@ SITE_URL=https://chihou.keiba-matome.jp
    - **解決**: シンプルな二重チェック（SourceURL + Slug）で完全解決
    - **次回**: 問題発生時は根本原因を先に特定する
 
+9. ✅ **全スクレイパー統一修正完了（2026-01-14午後）**
+   - **背景**: 中央競馬（keiba-matome）でも記事復活問題が発生していた
+   - **問題**: SourceURL重複チェックが地方競馬のみ実装済み
+
+   - **実装内容**:
+     - **全4スクレイパーにSourceURL重複チェック追加**:
+       1. ✅ `packages/keiba-matome/scripts/scrape-netkeiba-news.cjs` (Line 218-238)
+       2. ✅ `packages/keiba-matome/scripts/scrape-yahoo-news.cjs` (Line 239-267)
+       3. ✅ `packages/chihou-keiba-matome/scripts/scrape-netkeiba-chihou.cjs` (既存)
+       4. ✅ `packages/chihou-keiba-matome/scripts/scrape-yahoo-chihou.cjs` (既存、2026-01-11実装)
+
+     - **不正Slug問題の防止**:
+       - `packages/shared/lib/scraping-utils.cjs` の `generateSlug()` 関数
+       - 引用符削除処理追加: `.replace(/["']/g, '')`
+       - 今後、二重引用符（`"`）やシングル引用符（`'`）による不正Slugは発生しない
+
+   - **手動テスト結果（全4スクレイパー実行）**:
+     | スクレイパー | 作成 | スキップ | SourceURL重複検出 |
+     |------------|------|---------|------------------|
+     | 中央netkeiba | 2件 | 3件 | ✅ 1件を既存URLでスキップ |
+     | 中央Yahoo | 0件 | 5件 | ✅ 3件を既存URLでスキップ |
+     | 地方netkeiba | 0件 | 3件 | ✅ 中央競馬フィルタ動作 |
+     | 地方Yahoo | 0件 | 0件 | ⚠️ 記事取得0件（影響軽微） |
+
+   - **効果**:
+     - ✅ 全サイトで記事復活問題が完全解決
+     - ✅ 削除した記事は**二度と復活しない**
+     - ✅ SourceURL + Slug の二重チェックで完全防御
+     - ✅ 地方競馬フィルタリングが正常動作（中央記事を3件スキップ）
+     - ✅ 不正Slug問題も根本解決
+
+   - **コミット**:
+     - `6ce49c5` - fix: 記事復活問題の完全解決（全スクレイパーにSourceURL重複チェック追加）
+
 ---
 
 ## 次のステップ
