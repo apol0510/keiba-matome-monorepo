@@ -114,7 +114,6 @@ jobs:
                 "accessSecret": "${{ secrets.YOSOU_X_ACCESS_SECRET }}"
               }
             }
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           # Netlify Build Hooks（サイトごと）
           KEIBA_MATOME_NETLIFY_BUILD_HOOK: ${{ secrets.KEIBA_MATOME_NETLIFY_BUILD_HOOK }}
           CHIHOU_KEIBA_NETLIFY_BUILD_HOOK: ${{ secrets.CHIHOU_KEIBA_NETLIFY_BUILD_HOOK }}
@@ -128,28 +127,3 @@ jobs:
         if: steps.should_run.outputs.result == 'true' && success()
         run: |
           echo "✅ [${{ matrix.site }}] ワークフロー完了"
-
-      - name: Discord通知（失敗時）
-        if: steps.should_run.outputs.result == 'true' && failure()
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
-            # エラーログを取得
-            ERROR_LOG="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
-            curl -X POST "$DISCORD_WEBHOOK_URL" \
-              -H "Content-Type: application/json" \
-              -d "{
-                \"content\": \"@everyone\",
-                \"embeds\": [{
-                  \"title\": \"🚨 ワークフロー失敗\",
-                  \"description\": \"**サイト**: ${{ matrix.site }}\\n**ワークフロー**: ${{ github.event.inputs.workflow || matrix.workflow }}\\n**実行時刻**: $(date '+%Y-%m-%d %H:%M:%S JST')\\n**ログ**: [確認する]($ERROR_LOG)\",
-                  \"color\": 15158332,
-                  \"footer\": {\"text\": \"GitHub Actions\"},
-                  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
-                }]
-              }"
-          fi
-          echo "❌ [${{ matrix.site }}] ワークフロー失敗"
-          exit 1

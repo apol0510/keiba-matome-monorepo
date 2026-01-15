@@ -25,7 +25,6 @@ jobs:
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_API_KEY_YOSOU: ${{ secrets.AIRTABLE_API_KEY_YOSOU }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           node packages/shared/scripts/comprehensive-health-check.cjs

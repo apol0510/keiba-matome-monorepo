@@ -154,19 +154,6 @@ jobs:
         run: |
           echo "✅ [yosou-keiba-matome/南関] ワークフロー完了"
 
-      - name: Discord通知（南関・失敗時）
-        if: failure() && needs.determine-workflow.outputs.nankan == 'true'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
-            ERROR_LOG="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            curl -X POST "$DISCORD_WEBHOOK_URL" \
-              -H "Content-Type: application/json" \
-              -d "{\"content\":\"@everyone\",\"embeds\":[{\"title\":\"🚨 南関メイン予想ワークフロー失敗\",\"description\":\"**サイト**: yosou-keiba-matome\\n**実行時刻**: $(date '+%Y-%m-%d %H:%M:%S JST')\\n**ログ**: [確認する]($ERROR_LOG)\",\"color\":15158332}]}"
-          fi
-          exit 1
-
   run-chuou:
     needs: determine-workflow
     if: needs.determine-workflow.outputs.chuou == 'true'
@@ -235,16 +222,3 @@ jobs:
         if: success() && needs.determine-workflow.outputs.chuou == 'true'
         run: |
           echo "✅ [yosou-keiba-matome/中央] ワークフロー完了"
-
-      - name: Discord通知（中央・失敗時）
-        if: failure() && needs.determine-workflow.outputs.chuou == 'true'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
-            ERROR_LOG="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            curl -X POST "$DISCORD_WEBHOOK_URL" \
-              -H "Content-Type: application/json" \
-              -d "{\"content\":\"@everyone\",\"embeds\":[{\"title\":\"🚨 中央重賞予想ワークフロー失敗\",\"description\":\"**サイト**: yosou-keiba-matome\\n**実行時刻**: $(date '+%Y-%m-%d %H:%M:%S JST')\\n**ログ**: [確認する]($ERROR_LOG)\",\"color\":15158332}]}"
-          fi
-          exit 1
