@@ -277,9 +277,15 @@ async function scrapeNetkeibaChihouNews() {
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
 
-    // netkeibaニュースページにアクセス（中央・地方統合）
+    // netkeiba ニュースページにアクセス（中央・地方統合、地方競馬記事をフィルタリング）
     console.log('🌐 https://news.netkeiba.com/ にアクセス中...');
     await page.goto('https://news.netkeiba.com/', { waitUntil: 'networkidle2', timeout: 60000 });
+
+    // ページ情報を取得（デバッグ用）
+    const pageTitle = await page.title();
+    const pageUrl = page.url();
+    console.log(`📄 ページタイトル: ${pageTitle}`);
+    console.log(`🔗 最終URL: ${pageUrl}`);
 
     // JavaScriptレンダリング完了を待つ
     await page.waitForSelector('.NewsTitle', { timeout: 10000 }).catch(() => {
@@ -290,10 +296,10 @@ async function scrapeNetkeibaChihouNews() {
     const articles = await page.evaluate(() => {
       const items = [];
 
-      // ニュース記事タイトルを取得
+      // ニュース記事タイトルを取得（30件取得して地方競馬記事をフィルタ）
       const newsTitles = Array.from(document.querySelectorAll('h2.NewsTitle'));
 
-      newsTitles.slice(0, 10).forEach((h2) => {
+      newsTitles.slice(0, 30).forEach((h2) => {
         // h2の中または直後のaタグを探す
         const link = h2.querySelector('a') || h2.closest('a') || h2.nextElementSibling?.querySelector('a');
 
@@ -324,9 +330,23 @@ async function scrapeNetkeibaChihouNews() {
       // 見つからない場合は全てのaタグを試す
       if (items.length === 0) {
         const allLinks = Array.from(document.querySelectorAll('a'));
+
+        // デバッグ情報を収集
+        const debugInfo = {
+          totalLinks: allLinks.length,
+          narLinks: 0,
+          newsLinks: 0,
+          validLinks: 0,
+          sampleTitles: []
+        };
+
         allLinks.forEach((link) => {
           let title = link.textContent?.trim() || '';
           const url = link.href || '';
+
+          // デバッグカウント
+          if (url.includes('nar.netkeiba.com')) debugInfo.narLinks++;
+          if (url.includes('/news/')) debugInfo.newsLinks++;
 
           // タイトルクリーンアップ
           title = title
@@ -336,21 +356,46 @@ async function scrapeNetkeibaChihouNews() {
             .replace(/\s+\d+日前.*$/, '')
             .trim();
 
-          // ニュース記事のURLパターン
-          if (title && url && url.includes('news.netkeiba.com') && url.includes('?pid=news_view')) {
+          // ニュース記事のURLパターン（中央・地方統合）
+          if (title && url && url.includes('news.netkeiba.com') && url.includes('?pid=news_view') && title.length > 5) {
             items.push({
               sourceTitle: title,
               sourceURL: url,
               sourceSite: 'netkeiba-chihou',
             });
+            debugInfo.validLinks++;
+            if (debugInfo.sampleTitles.length < 3) {
+              debugInfo.sampleTitles.push({ title: title.substring(0, 40), url });
+            }
           }
         });
+
+        // デバッグ情報を返す（後で出力）
+        items.__debug = debugInfo;
       }
 
       return items; // すべて返す（後でフィルタ）
     });
 
     await browser.close();
+
+    // デバッグ情報を出力
+    if (articles.__debug) {
+      const d = articles.__debug;
+      console.log(`🔍 デバッグ情報:`);
+      console.log(`   - 全リンク数: ${d.totalLinks}個`);
+      console.log(`   - nar.netkeiba.com を含む: ${d.narLinks}個`);
+      console.log(`   - /news/ を含む: ${d.newsLinks}個`);
+      console.log(`   - 有効な記事: ${d.validLinks}個`);
+      if (d.sampleTitles.length > 0) {
+        console.log(`   - サンプル:`);
+        d.sampleTitles.forEach((s, i) => {
+          console.log(`     ${i+1}. ${s.title}...`);
+          console.log(`        ${s.url}`);
+        });
+      }
+      delete articles.__debug; // クリーンアップ
+    }
 
     if (articles.length === 0) {
       console.log('⚠️  記事が見つかりませんでした。モックデータを使用します。');
