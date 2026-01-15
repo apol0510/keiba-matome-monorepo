@@ -635,3 +635,107 @@
 
 ---
 
+### 2026-01-15
+
+1. ✅ **GA4イベントトラッキング実装（効果測定基盤構築）**
+
+   - **目的**: サイト間ファネル分析とnankan-analyticsへの導線効果を測定
+
+   - **実装内容**:
+     - `packages/shared/scripts/ga4-tracking.js` 作成（164行）
+     - 3サイト全てのBaseLayout.astroに統合
+     - 自動イベントトラッキング:
+       - `page_view_enhanced`: ページビュー拡張（site, page_type, page_path）
+       - `site_transition`: サイト間遷移（from_site, to_site, link_location）
+       - `nankan_analytics_click`: nankan-analyticsへのクリック（最終ゴール）
+       - `external_link_click`: 外部リンククリック
+
+   - **ドキュメント作成**:
+     - `docs/GA4-FUNNEL-SETUP.md`: ファネル設定ガイド（288行）
+     - `docs/GA4-CURRENT-STATUS-CHECK.md`: 現状確認チェックリスト（277行）
+
+   - **期待効果**:
+     - サイト間遷移率の可視化（目標: 10-20%）
+     - nankan-analytics遷移率の測定（目標: 5-10%）
+     - データドリブンな改善サイクルの確立
+
+   - **コミット**: `e924afd` - feat: GA4イベントトラッキング実装
+
+2. ✅ **3サイトSEO完全修正（sitemap自動生成 + Airtable API統一）**
+
+   - **問題の発見**:
+     - yosou-keiba-matome: sitemap.xmlに9 URLsのみ（実際は26記事）
+       - Organic Search 0%、インデックス率 13% (3/22)
+       - 月間訪問者20人（他サイトの1/15）
+     - keiba-matome & chihou-keiba-matome: sitemap.xmlが古い、APIキー期限切れ
+
+   - **根本原因**:
+     1. Status='published'（英語）と'公開'（日本語）の不一致
+     2. sitemap.xmlが手動で作成された静的ファイル（更新されない）
+     3. SSRモード（output: 'server'）で自動生成が機能しない
+     4. Airtable APIキーが期限切れ（401エラー）
+
+   - **実施した修正**:
+
+     **①  sitemap自動生成スクリプト作成**
+     - `packages/shared/scripts/generate-sitemap.cjs` 作成（232行）
+     - Status='published' OR '公開' 両対応
+     - Airtableから全記事取得してsitemap.xml生成
+     - 3サイト共通で使用可能
+
+     **② yosou-keiba-matomeの修正**
+     - astro.config.mjsのsite URL修正
+       - 誤: `https://keiba-matome.jp`
+       - 正: `https://yosou.keiba-matome.jp`
+     - sitemap.xml再生成: 9 URLs → 27 URLs (+200%)
+     - ファイルサイズ: 1.8 KB → 5.97 KB
+
+     **③ 新しいAirtable Personal Access Token統一**
+     - 全3サイト対応の統一トークン作成
+     - Scopes: data.records:read, data.records:write, schema.bases:read
+     - Access: keiba-matome, chihou-keiba-matome, yosou-keiba-matome
+     - 3サイトの.envファイルを新トークンに更新
+
+     **④ keiba-matome & chihou-keiba-matomeのsitemap再生成**
+     - keiba-matome: 264 URLs（トップページ + 263記事）130.74 KB
+     - chihou-keiba-matome: 8 URLs（トップページ + 7記事）3.75 KB
+       - ※ 記事数が少ないのは、古い記事表示バグ修正時にユーザーがAirtableから削除したため
+
+     **⑤ GitHub Actions統合**
+     - `.github/workflows/unified-yosou.yml` 修正
+     - 南関・中央ワークフロー完了後にsitemap.xml自動更新
+     - 新記事追加時に常に最新状態を維持
+
+   - **修正結果**:
+     | サイト | 従来sitemap | 修正後sitemap | 改善率 |
+     |--------|------------|--------------|--------|
+     | keiba-matome | 不明（古い） | 264 URLs (130.74 KB) | +∞ |
+     | chihou-keiba-matome | 不明（古い） | 8 URLs (3.75 KB) | +∞ |
+     | yosou-keiba-matome | 9 URLs | 27 URLs (5.97 KB) | +200% |
+     | **合計** | - | **299 URLs** | - |
+
+   - **期待効果（2-4週間後）**:
+     | サイト | インデックス率目標 | Organic Search目標 | 訪問者数目標 |
+     |--------|------------------|-------------------|-------------|
+     | keiba-matome | 80-100% (210-264ページ) | 30-50% | 500-700人/月 |
+     | chihou-keiba-matome | 80-100% (6-8ページ) | 20-40% | 400-500人/月 |
+     | yosou-keiba-matome | 80-100% (20-26ページ) | 20-40% | 150-250人/月 |
+
+   - **コミット**:
+     - `f4c5786` - fix: yosou-keiba-matome SEO完全修正 - sitemap 9→27 URLs
+     - `100772d` - fix: keiba-matome & chihou SEO完全修正 - sitemap 自動生成
+
+   - **次のステップ（ユーザーが実施）**:
+     1. GitHub Secretsを新しいAirtable APIキーに更新
+     2. Google Search Consoleで3サイトすべて再送信
+     3. 24-48時間後にインデックス状況確認
+     4. 1週間後にOrganic Search改善を測定
+
+   - **教訓**:
+     - SEO問題の根本原因は複合的（API、Status値、手動sitemap、SSRモード）
+     - sitemap自動生成により運用負荷が大幅削減
+     - GitHub Actions統合で常に最新状態を維持
+     - データドリブンな効果測定基盤の構築が最優先
+
+---
+

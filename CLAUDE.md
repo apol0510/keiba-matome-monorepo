@@ -7,7 +7,10 @@
 **運用状況**:
 - ✅ 完全自動化済み（1日3回スクレイピング + コメント生成 + デプロイ）
 - ✅ GitHub Actions安定稼働中（成功率100%）
-- ✅ 3サイト合計: 447記事、17,351コメント（2026-01-13時点）
+- ✅ 3サイト合計: 296記事、17,000+コメント（2026-01-15時点）
+  - keiba-matome: 263記事（中央競馬）
+  - chihou-keiba-matome: 7記事（地方競馬）※バグ修正時に古い記事削除
+  - yosou-keiba-matome: 26記事（競馬予想）
 
 **運用コスト**:
 - 約¥700/日（¥20,000/月） - Claude APIのみ
@@ -299,3 +302,29 @@ cat packages/keiba-matome/.env
 4. **作業履歴はHISTORY.mdに記録**
    - このファイルは簡潔に保つ
    - 詳細な履歴は別ファイルに
+
+---
+
+## 🆕 最近の主要更新（2026-01-15）
+
+### ✅ SEO完全修正 + 効果測定基盤構築
+
+**sitemap自動生成システム構築**:
+- `packages/shared/scripts/generate-sitemap.cjs` 実装
+- 3サイト合計299 URLs（keiba-matome: 264, chihou: 8, yosou: 27）
+- GitHub Actions統合（自動更新）
+
+**GA4イベントトラッキング実装**:
+- サイト間ファネル分析（site_transition, nankan_analytics_click）
+- `docs/GA4-FUNNEL-SETUP.md`, `docs/GA4-CURRENT-STATUS-CHECK.md` 作成
+
+**Airtable API統一**:
+- 全3サイト対応の統一Personal Access Token
+- .envファイル更新完了
+
+**期待効果（2-4週間後）**:
+- Organic Search: 30-50%（現在: 1.74%）
+- インデックス率: 80-100%（現在: 13%）
+- 月間訪問者: 1,050-1,450人（現在: 688人）
+
+詳細: `HISTORY.md`（2026-01-15セクション）
