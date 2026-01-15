@@ -9,7 +9,7 @@ const env = loadEnv('', process.cwd(), '');
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://keiba-matome.jp',
+  site: 'https://yosou.keiba-matome.jp',
   server: {
     port: 4323,
   },

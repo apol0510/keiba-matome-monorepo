@@ -140,6 +140,14 @@ jobs:
             --site=yosou-keiba-matome \
             --workflow=nankan-daily
 
+      - name: sitemap.xml更新（南関）
+        if: success() && needs.determine-workflow.outputs.nankan == 'true'
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+        run: |
+          cd packages/yosou-keiba-matome
+          node ../shared/scripts/generate-sitemap.cjs --site=yosou-keiba-matome
+
       - name: 完了ログ出力（南関）
         if: success() && needs.determine-workflow.outputs.nankan == 'true'
         run: |
@@ -212,6 +220,14 @@ jobs:
           node packages/shared/scripts/run-workflow.cjs \
             --site=yosou-keiba-matome \
             --workflow=chuou-weekly
+
+      - name: sitemap.xml更新（中央）
+        if: success() && needs.determine-workflow.outputs.chuou == 'true'
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+        run: |
+          cd packages/yosou-keiba-matome
+          node ../shared/scripts/generate-sitemap.cjs --site=yosou-keiba-matome
 
       - name: 完了ログ出力（中央）
         if: success() && needs.determine-workflow.outputs.chuou == 'true'
