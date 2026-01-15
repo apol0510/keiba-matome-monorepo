@@ -237,11 +237,39 @@ async function scrapeYahooChihouNews() {
         const url = link.href || '';
         const rawText = link.textContent?.trim() || '';
 
-        // 日付情報を抽出（例: "3日前", "12時間前"）
+        // 日付情報を抽出（親要素から「M/D(曜日) H:MM」形式を探す）
         let daysAgo = null;
-        const dayMatch = rawText.match(/(\d+)日前/);
-        if (dayMatch) {
-          daysAgo = parseInt(dayMatch[1], 10);
+        const parentText = link.parentElement?.textContent || '';
+
+        // パターン1: 「1/15(木) 7:13」形式（Yahoo検索結果）
+        const dateMatch = parentText.match(/(\d{1,2})\/(\d{1,2})\([月火水木金土日]\)\s+(\d{1,2}):(\d{2})/);
+        if (dateMatch) {
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          const month = parseInt(dateMatch[1], 10);
+          const day = parseInt(dateMatch[2], 10);
+          const hour = parseInt(dateMatch[3], 10);
+          const minute = parseInt(dateMatch[4], 10);
+
+          // 記事の日時を作成（年は現在年と仮定）
+          const articleDate = new Date(currentYear, month - 1, day, hour, minute);
+
+          // 年をまたぐ場合の処理（1月の記事で現在が12月の場合など）
+          if (articleDate > now) {
+            articleDate.setFullYear(currentYear - 1);
+          }
+
+          // 日数差分を計算
+          const diffMs = now - articleDate;
+          daysAgo = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        }
+
+        // パターン2: 「X日前」形式（フォールバック）
+        if (daysAgo === null) {
+          const dayMatch = parentText.match(/(\d+)日前/);
+          if (dayMatch) {
+            daysAgo = parseInt(dayMatch[1], 10);
+          }
         }
 
         // Yahoo記事かチェック
@@ -645,7 +673,7 @@ async function saveToAirtable(articles) {
         continue;
       }
 
-      // PublishedAt優先順位: ページから取得のみ（daysAgoは信頼性が低いため使用しない）
+      // PublishedAt優先順位: ページから取得 > Yahoo検索結果のdaysAgoから計算
       let publishedAt;
 
       // 1. Yahoo記事ページから取得した日時を優先（ISO形式に正規化）
@@ -654,9 +682,16 @@ async function saveToAirtable(articles) {
         publishedAt = normalizedDate;
         console.log(`  📅 公開日時: ${publishedAt} (ページから取得, ISO正規化済み)`);
       }
-      // 2. ページから取得できない場合はスキップ（daysAgoは不正確なため使用しない）
+      // 2. ページから取得できない場合、Yahoo検索結果から計算したdaysAgoを使用
+      else if (article.daysAgo !== null && Number.isFinite(article.daysAgo)) {
+        const now = new Date();
+        const articleDate = new Date(now.getTime() - article.daysAgo * 24 * 60 * 60 * 1000);
+        publishedAt = articleDate.toISOString();
+        console.log(`  📅 公開日時: ${publishedAt} (Yahoo検索結果から計算, ${article.daysAgo}日前)`);
+      }
+      // 3. どちらも取得できない場合はスキップ
       else {
-        console.log(`⏭️  スキップ: ${title} (ページから公開日時取得失敗 - daysAgo=${article.daysAgo})`);
+        console.log(`⏭️  スキップ: ${title} (公開日時取得失敗 - daysAgo=${article.daysAgo})`);
         skipped++;
         continue;
       }
