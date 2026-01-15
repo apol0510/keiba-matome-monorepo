@@ -144,6 +144,7 @@ jobs:
         if: success() && needs.determine-workflow.outputs.nankan == 'true'
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
         run: |
           cd packages/yosou-keiba-matome
           node ../shared/scripts/generate-sitemap.cjs --site=yosou-keiba-matome
@@ -225,6 +226,7 @@ jobs:
         if: success() && needs.determine-workflow.outputs.chuou == 'true'
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
         run: |
           cd packages/yosou-keiba-matome
           node ../shared/scripts/generate-sitemap.cjs --site=yosou-keiba-matome
