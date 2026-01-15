@@ -221,6 +221,17 @@ async function scrapeYahooChihouNews() {
       // 除外メディア名リスト（記事タイトルから検出）
       const excludedMedia = ['スポーツ報知', '報知', 'スポニチ', 'スポニチアネックス', 'Sponichi', 'Hochi'];
 
+      // デバッグ情報収集
+      const debugInfo = {
+        totalLinks: links.length,
+        yahooArticles: 0,
+        excludedByDomain: 0,
+        excludedByMedia: 0,
+        excludedByAge: 0,
+        validArticles: 0,
+        samples: []
+      };
+
       links.forEach((link) => {
         let title = link.textContent?.trim() || '';
         const url = link.href || '';
@@ -233,37 +244,80 @@ async function scrapeYahooChihouNews() {
           daysAgo = parseInt(dayMatch[1], 10);
         }
 
-        // タイトルクリーンアップ
-        title = title
-          .replace(/\n.*$/s, '')
-          .replace(/\s+\d+分前.*$/, '')
-          .replace(/\s+\d+時間前.*$/, '')
-          .replace(/\s+\d+日前.*$/, '')
-          .trim();
+        // Yahoo記事かチェック
+        if (url.includes('news.yahoo.co.jp/articles/')) {
+          debugInfo.yahooArticles++;
 
-        // 除外ドメインチェック
-        const isExcluded = excludedDomains.some(domain => url.includes(domain));
+          // タイトルクリーンアップ（より正確に）
+          title = title
+            .replace(/\n.*$/s, '')  // 改行以降削除
+            .replace(/\s+\d+分前.*$/, '')  // 時刻情報削除
+            .replace(/\s+\d+時間前.*$/, '')
+            .replace(/\s+\d+日前.*$/, '')
+            .replace(/^.*?\s*·\s*/, '')  // メディア名プレフィックス削除（例: "スポニチ · タイトル"）
+            .trim();
 
-        // 除外メディアチェック（タイトルのみで判定、fullText不要）
-        const isExcludedMedia = excludedMedia.some(media => title.includes(media));
+          // 除外ドメインチェック
+          const isExcluded = excludedDomains.some(domain => url.includes(domain));
+          if (isExcluded) {
+            debugInfo.excludedByDomain++;
+            return;
+          }
 
-        // 14日以上前の記事を除外（daysAgo取れない場合は古い扱い）
-        const safeDaysAgo = Number.isFinite(daysAgo) && daysAgo !== null ? daysAgo : 9999;
-        const isTooOld = safeDaysAgo > 14;
+          // 除外メディアチェック（タイトルのみで判定、fullText不要）
+          const isExcludedMedia = excludedMedia.some(media => title.includes(media));
+          if (isExcludedMedia) {
+            debugInfo.excludedByMedia++;
+            return;
+          }
 
-        // 記事URLパターン（除外ドメイン・除外メディア・古い記事を弾く）
-        if (title && url && url.includes('news.yahoo.co.jp/articles/') && title.length > 10 && !isExcluded && !isExcludedMedia && !isTooOld) {
-          items.push({
-            sourceTitle: title,
-            sourceURL: url,
-            sourceSite: 'yahoo',
-            daysAgo: daysAgo,
-          });
+          // 14日以上前の記事を除外（daysAgo取れない場合は許容）
+          const safeDaysAgo = Number.isFinite(daysAgo) && daysAgo !== null ? daysAgo : 0;
+          const isTooOld = safeDaysAgo > 14;
+          if (isTooOld) {
+            debugInfo.excludedByAge++;
+            return;
+          }
+
+          // 有効な記事
+          if (title && title.length > 10) {
+            items.push({
+              sourceTitle: title,
+              sourceURL: url,
+              sourceSite: 'yahoo',
+              daysAgo: daysAgo,
+            });
+            debugInfo.validArticles++;
+            if (debugInfo.samples.length < 3) {
+              debugInfo.samples.push({ title: title.substring(0, 40), daysAgo });
+            }
+          }
         }
       });
 
+      // デバッグ情報を添付
+      items.__debug = debugInfo;
       return items;
     });
+
+    // デバッグ情報を出力
+    if (articles.__debug) {
+      const d = articles.__debug;
+      console.log(`🔍 Yahoo検索結果デバッグ:`);
+      console.log(`   - 全リンク数: ${d.totalLinks}個`);
+      console.log(`   - Yahoo記事URL: ${d.yahooArticles}個`);
+      console.log(`   - 除外（ドメイン）: ${d.excludedByDomain}個`);
+      console.log(`   - 除外（メディア）: ${d.excludedByMedia}個`);
+      console.log(`   - 除外（古い記事）: ${d.excludedByAge}個`);
+      console.log(`   - 有効な記事: ${d.validArticles}個`);
+      if (d.samples.length > 0) {
+        console.log(`   - サンプル:`);
+        d.samples.forEach((s, i) => {
+          console.log(`     ${i+1}. ${s.title}... (${s.daysAgo || '?'}日前)`);
+        });
+      }
+      delete articles.__debug; // クリーンアップ
+    }
 
     if (articles.length === 0) {
       await browser.close();
