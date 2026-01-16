@@ -91,22 +91,29 @@ async function fetchGradeRacePredictions() {
 }
 
 /**
- * Slug生成（日本語そのまま）
+ * Slug生成（英数字のみ、日付+トラック+グレード）
  */
-function generateSlug(title) {
-  let cleaned = title
-    .replace(/【|】|\[|\]|「|」|『|』/g, '')
-    .replace(/[　\s]+/g, '')
-    .replace(/[!！?？。、，,\.]/g, '')
-    .replace(/\-/g, '')
-    .trim();
+function generateSlug(track, grade, date) {
+  // トラック名をローマ字に変換
+  const trackMap = {
+    '中山': 'nakayama',
+    '京都': 'kyoto',
+    '阪神': 'hanshin',
+    '中京': 'chukyo',
+    '東京': 'tokyo',
+    '新潟': 'niigata',
+    '福島': 'fukushima',
+    '小倉': 'kokura',
+    '札幌': 'sapporo',
+    '函館': 'hakodate',
+    '中央競馬場': 'chuou'
+  };
 
-  // 50文字に制限
-  if (cleaned.length > 50) {
-    cleaned = cleaned.substring(0, 50);
-  }
+  const trackSlug = trackMap[track] || 'chuou';
+  const gradeSlug = grade.toLowerCase();
+  const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
 
-  return cleaned;
+  return `${trackSlug}-${gradeSlug}-${dateStr}`;
 }
 
 /**
@@ -160,8 +167,8 @@ function formatArticle(article) {
   // タイトル生成（2ch風、日付付き）
   const title = `【${track} ${grade}】${raceName} 予想スレ【${dateStr}】`;
 
-  // Slug生成
-  const slug = generateSlug(title);
+  // Slug生成（英数字のみ）
+  const slug = generateSlug(track, grade, today);
 
   // 要約生成
   const summary = `${raceName}（${grade}）の予想情報\n\n※ 詳細はYahoo!スポーツをご確認ください`;
