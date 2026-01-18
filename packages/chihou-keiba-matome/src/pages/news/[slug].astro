@@ -6,6 +6,7 @@ export const prerender = false;
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getNewsBySlug, getLatestNews, getCommentsByNewsId } from '../../lib/news';
 import { config } from '../../config';
+import NankanAnalyticsCTA from '../../components/NankanAnalyticsCTA.astro';
 
 const { slug } = Astro.params;
 
@@ -298,6 +299,9 @@ const finalStructuredData = article.structuredData || JSON.stringify(structuredD
       })
     )}
   </div>
+
+  <!-- nankan-analytics CTA（地方競馬特化AI予想） -->
+  <NankanAnalyticsCTA />
 
   <!-- CTA: 記事下バナー -->
   <div style="background-color: #fff3cd; border: 2px solid #ea8b00; padding: 16px; margin: 16px 0; text-align: center;">
