@@ -189,7 +189,7 @@ GA4は自動的にイベントを認識しますが、明示的に定義する�
   - placement = sidebar_related_sites
 
 ステップ3: page_view
-  - ページの場所に次を含む: nankan-analytics.com
+  - ページの場所に次を含む: nankan-analytics.keiba.link
 ```
 
 #### パターンB: keiba-matome → chihou → nankan-analytics
@@ -208,7 +208,7 @@ GA4は自動的にイベントを認識しますが、明示的に定義する�
   - placement = sidebar_related_sites
 
 ステップ5: page_view
-  - ページの場所に次を含む: nankan-analytics.com
+  - ページの場所に次を含む: nankan-analytics.keiba.link
 ```
 
 ### 4.2 ファネルの保存とダッシュボード追加

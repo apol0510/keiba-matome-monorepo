@@ -41,7 +41,7 @@
     if (url.includes('yosou.keiba-matome.jp')) {
       return 'yosou-keiba-matome';
     }
-    if (url.includes('nankan-analytics.com')) {
+    if (url.includes('nankan-analytics.keiba.link')) {
       return 'nankan-analytics';
     }
     return null;
