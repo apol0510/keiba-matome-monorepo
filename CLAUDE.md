@@ -7,10 +7,10 @@
 **運用状況**:
 - ✅ 完全自動化済み（1日3回スクレイピング + コメント生成 + デプロイ）
 - ✅ GitHub Actions安定稼働中（成功率100%）
-- ✅ 3サイト合計: 296記事、17,000+コメント（2026-01-15時点）
-  - keiba-matome: 263記事（中央競馬）
-  - chihou-keiba-matome: 7記事（地方競馬）※バグ修正時に古い記事削除
-  - yosou-keiba-matome: 26記事（競馬予想）
+- ✅ 3サイト合計: 377記事、17,000+コメント（2026-01-22時点）
+  - keiba-matome: 302記事（中央競馬）
+  - chihou-keiba-matome: 42記事（地方競馬）
+  - yosou-keiba-matome: 33記事（競馬予想）
 
 **運用コスト**:
 - 約¥700/日（¥20,000/月） - Claude APIのみ
@@ -61,17 +61,29 @@ npm run build
 cd packages/keiba-matome && npm run build
 ```
 
-### 環境変数設定
+### 環境変数設定（monorepoルート統一管理）
 
-各サイトに `.env` ファイルが必要：
+**重要**: 環境変数は**monorepoルート（.env）で一元管理**しています。
 
 ```bash
-# packages/keiba-matome/.env
-AIRTABLE_API_KEY=patXXX...
-AIRTABLE_BASE_ID=appdHJSC4F9pTIoDj
-PUBLIC_SITE_URL=https://keiba-matome.jp
-PUBLIC_GA_ID=G-XXXXXXXXXX
+# /keiba-matome-monorepo/.env（ルートに配置）
+# 全3サイト共通の環境変数を一元管理
+
+# Airtable（統一Personal Access Token）
+AIRTABLE_API_KEY=patvXXX...
+
+# 各サイトのBase ID
+KEIBA_MATOME_AIRTABLE_BASE_ID=appdHJSC4F9pTIoDj
+CHIHOU_KEIBA_AIRTABLE_BASE_ID=appt25zmKxQDiSCwh
+YOSOU_KEIBA_AIRTABLE_BASE_ID=appKPasSpjpTtabnv
+
+# Claude API、X API、Discord Webhook等も同様に統一管理
 ```
+
+**メリット**:
+- ✅ APIキー更新は1箇所のみ（3ファイル編集不要）
+- ✅ 同期ミスが発生しない
+- ✅ GitHub Secretsとの一致確認が容易
 
 ---
 
@@ -259,9 +271,40 @@ gh run view <run_id> --log
 rm -rf node_modules package-lock.json
 npm install
 
-# .envファイルを確認
-cat packages/keiba-matome/.env
+# .envファイルを確認（monorepoルート）
+cat .env
 ```
+
+### Airtable APIキーエラーが出る場合
+
+**症状**: `AUTHENTICATION_REQUIRED` エラー
+
+**原因と解決策**:
+1. **ローカル.envが古い**
+   - monorepoルートの `.env` を確認
+   - GitHub Secretsが成功している場合、ローカルのみ無効化
+
+2. **解決手順**:
+   ```bash
+   # 1. Airtable管理画面で新Token作成
+   # https://airtable.com/create/tokens
+   # 3つのBase（keiba, chihou, yosou）にアクセス許可
+
+   # 2. monorepoルートの.envを更新
+   AIRTABLE_API_KEY=新しいToken
+
+   # 3. GitHub Secretsも更新
+   gh secret set AIRTABLE_API_KEY --body "新しいToken"
+   ```
+
+3. **確認方法**:
+   ```bash
+   # GitHub Actionsが成功しているか確認
+   gh run list --limit 5
+
+   # 最新のworkflowが success なら、システムは正常
+   # ローカルの.envのみ更新すればOK
+   ```
 
 ---
 
@@ -270,7 +313,7 @@ cat packages/keiba-matome/.env
 - **メンテナー**: @apol0510
 - **リポジトリ**: https://github.com/apol0510/keiba-matome-monorepo
 - **作成日**: 2025-12-21
-- **最終更新**: 2026-01-15（簡潔版にリファクタリング）
+- **最終更新**: 2026-01-22（.env統一管理 + トラブルシューティング追加）
 
 ---
 
@@ -305,22 +348,36 @@ cat packages/keiba-matome/.env
 
 ---
 
-## 🆕 最近の主要更新（2026-01-15）
+## 🆕 最近の主要更新
 
-### ✅ SEO完全修正 + 効果測定基盤構築
+### 2026-01-22: .env統一管理 + GSC 404エラー解決
+
+**monorepoルートに.env統一管理**:
+- 3サイト個別管理 → **monorepoルート1箇所**に統一
+- APIキー更新が1回で完了（保守性向上）
+- GitHub Secretsとの同期が容易に
+
+**sitemap.xml再生成成功**:
+- keiba-matome: 303 URLs（+39件）
+- chihou: 43 URLs（+35件）
+- yosou: 34 URLs（+7件）
+- **合計**: 380 URLs
+
+**GSC 404エラーの根本原因特定**:
+- keiba-matome: 135件（削除済み地方競馬記事）
+- yosou: 1件（日本語Slug→英数字変更の旧URL）
+- **解決策**: sitemap.xml再送信 + 自然消滅待ち（2-4週間）
+
+詳細: `HISTORY.md`（2026-01-22セクション）
+
+### 2026-01-15: SEO完全修正 + 効果測定基盤構築
 
 **sitemap自動生成システム構築**:
 - `packages/shared/scripts/generate-sitemap.cjs` 実装
-- 3サイト合計299 URLs（keiba-matome: 264, chihou: 8, yosou: 27）
 - GitHub Actions統合（自動更新）
 
 **GA4イベントトラッキング実装**:
 - サイト間ファネル分析（site_transition, nankan_analytics_click）
-- `docs/GA4-FUNNEL-SETUP.md`, `docs/GA4-CURRENT-STATUS-CHECK.md` 作成
-
-**Airtable API統一**:
-- 全3サイト対応の統一Personal Access Token
-- .envファイル更新完了
 
 **期待効果（2-4週間後）**:
 - Organic Search: 30-50%（現在: 1.74%）

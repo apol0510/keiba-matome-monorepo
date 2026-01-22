@@ -16,6 +16,9 @@ const Airtable = require('airtable');
 const fs = require('fs');
 const path = require('path');
 
+// monorepoルートの.envを読み込む
+require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
+
 // コマンドライン引数からサイト名を取得
 const args = process.argv.slice(2);
 const siteArg = args.find(arg => arg.startsWith('--site='));
