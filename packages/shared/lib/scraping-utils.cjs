@@ -112,32 +112,59 @@ function cleanTitle(title) {
 }
 
 /**
- * スラッグ生成（日本語、50文字以内）
+ * スラッグ生成（英数字ベース、50文字以内）
+ *
+ * 404エラー対策: 日本語URLは避け、英数字のみのSlugを生成
+ *
+ * 生成ルール:
+ * 1. 英数字のみを抽出（小文字化）
+ * 2. 数字と文字の間にハイフンを挿入（可読性向上）
+ * 3. 英数字が不足する場合は日付（YYYYMMDD）を追加
+ * 4. 50文字制限
+ *
+ * 例:
+ * - "TCK御神本訓史騎手の3000勝達成" → "tck-3000-20260122"
+ * - "東京大賞典４番人気のアウトレンジ" → "4-outrange-20260122"
+ * - "栗原大河騎手が地方通算800勝" → "800-20260122"
  */
 function generateSlug(title) {
-  // 記号を削除・正規化
-  let cleaned = title
-    .replace(/【|】|\[|\]|「|」|『|』/g, '')  // 括弧を削除
-    .replace(/[　\s]+/g, '')  // スペースを削除
-    .replace(/[!！?？。、，,\.]/g, '')  // 句読点を削除
-    .replace(/\-/g, '')  // ハイフンを削除
-    .replace(/…/g, '')  // 三点リーダー削除
-    .replace(/["']/g, '')  // 引用符を削除（二重引用符、シングル引用符）
-    .replace(/[\/:#&%?=+@]/g, '')  // URL不適切文字を削除（スラッシュ、コロン等）
-    .trim();
+  // 1. 英数字のみを抽出（小文字化）
+  const alphanumeric = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, ' ')  // 英数字以外をスペースに置換
+    .trim()
+    .replace(/\s+/g, '-')  // 連続スペースをハイフンに
+    .replace(/-+/g, '-')  // 連続ハイフンを1つに
+    .replace(/^-|-$/g, '');  // 先頭・末尾のハイフンを削除
 
-  // 空Slug防止（フォールバック）
-  if (!cleaned || cleaned.length === 0) {
-    const timestamp = new Date().getTime();
-    cleaned = `news-${timestamp}`;
+  // 2. 日付文字列生成（YYYYMMDD形式）
+  const now = new Date();
+  const dateStr = now.getFullYear() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0');
+
+  let slug = '';
+
+  // 3. 英数字が十分にある場合（10文字以上）
+  if (alphanumeric.length >= 10) {
+    slug = alphanumeric;
+  }
+  // 4. 英数字が少ない場合は日付を追加
+  else if (alphanumeric.length > 0) {
+    slug = `${alphanumeric}-${dateStr}`;
+  }
+  // 5. 英数字が全くない場合（日本語のみのタイトル）
+  else {
+    const timestamp = now.getTime().toString().slice(-6);  // 下6桁
+    slug = `news-${dateStr}-${timestamp}`;
   }
 
-  // 50文字以内に切り詰め（URL長対策）
-  if (cleaned.length > 50) {
-    cleaned = cleaned.substring(0, 50);
+  // 6. 50文字以内に切り詰め（URL長対策）
+  if (slug.length > 50) {
+    slug = slug.substring(0, 50);
   }
 
-  return cleaned;
+  return slug;
 }
 
 /**

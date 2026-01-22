@@ -1,0 +1,95 @@
+name: Fix Japanese Slugs (一時実行用)
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: '修正対象プロジェクト'
+        required: true
+        type: choice
+        options:
+          - chihou-keiba-matome
+          - keiba-matome
+          - yosou-keiba-matome
+          - all
+      dry_run:
+        description: 'Dry Run（確認のみ、実際には更新しない）'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  fix-slugs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Fix Japanese Slugs (chihou-keiba-matome)
+        if: inputs.project == 'chihou-keiba-matome' || inputs.project == 'all'
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+        run: |
+          if [ "${{ inputs.dry_run }}" == "true" ]; then
+            echo "🔍 Dry Run: chihou-keiba-matome"
+            node packages/shared/scripts/fix-japanese-slugs.cjs --project=chihou-keiba-matome --dry-run
+          else
+            echo "🚀 実行: chihou-keiba-matome"
+            node packages/shared/scripts/fix-japanese-slugs.cjs --project=chihou-keiba-matome --auto
+          fi
+
+      - name: Fix Japanese Slugs (keiba-matome)
+        if: inputs.project == 'keiba-matome' || inputs.project == 'all'
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+        run: |
+          if [ "${{ inputs.dry_run }}" == "true" ]; then
+            echo "🔍 Dry Run: keiba-matome"
+            node packages/shared/scripts/fix-japanese-slugs.cjs --project=keiba-matome --dry-run
+          else
+            echo "🚀 実行: keiba-matome"
+            node packages/shared/scripts/fix-japanese-slugs.cjs --project=keiba-matome --auto
+          fi
+
+      - name: Fix Japanese Slugs (yosou-keiba-matome)
+        if: inputs.project == 'yosou-keiba-matome' || inputs.project == 'all'
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+        run: |
+          if [ "${{ inputs.dry_run }}" == "true" ]; then
+            echo "🔍 Dry Run: yosou-keiba-matome"
+            node packages/shared/scripts/fix-japanese-slugs.cjs --project=yosou-keiba-matome --dry-run
+          else
+            echo "🚀 実行: yosou-keiba-matome"
+            node packages/shared/scripts/fix-japanese-slugs.cjs --project=yosou-keiba-matome --auto
+          fi
+
+      - name: 実行結果サマリー
+        run: |
+          echo "## Slug修正完了" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- プロジェクト: ${{ inputs.project }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Dry Run: ${{ inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.dry_run }}" == "true" ]; then
+            echo "⚠️ Dry Runモードで実行しました（実際には更新していません）" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "実際に修正する場合は、Dry Runをfalseにして再実行してください。" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ 実際にSlugを更新しました" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "次のステップ:" >> $GITHUB_STEP_SUMMARY
+            echo "1. sitemap.xmlを再生成" >> $GITHUB_STEP_SUMMARY
+            echo "2. デプロイ" >> $GITHUB_STEP_SUMMARY
+            echo "3. Google Search Consoleでサイトマップ再送信" >> $GITHUB_STEP_SUMMARY
+          fi
