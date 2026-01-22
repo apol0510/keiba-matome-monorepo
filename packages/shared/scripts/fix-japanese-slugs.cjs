@@ -124,22 +124,58 @@ async function fixJapaneseSlugs() {
 
     let successCount = 0;
     let errorCount = 0;
+    const rollbackLog = []; // ロールバック用のログ
+
+    // Slug重複チェック用の既存Slugリスト
+    const existingSlugs = new Set(
+      records.map(r => r.get('Slug')).filter(Boolean)
+    );
 
     // 一括更新（10件ずつバッチ処理）
     for (let i = 0; i < japaneseSlugRecords.length; i += 10) {
       const batch = japaneseSlugRecords.slice(i, i + 10);
 
-      const updates = batch.map(r => {
+      const updates = [];
+      for (const r of batch) {
         const title = r.get('SourceTitle') || r.get('Title');
-        const newSlug = generateSlug(title);
+        const oldSlug = r.get('Slug');
+        let newSlug = generateSlug(title);
 
-        return {
+        // Slug重複チェック（無限ループ防止）
+        let counter = 1;
+        const originalNewSlug = newSlug;
+        while (existingSlugs.has(newSlug) && newSlug !== oldSlug) {
+          // 重複する場合は番号を追加（例: tck-3000-20260122-2）
+          newSlug = `${originalNewSlug}-${counter}`;
+          counter++;
+
+          // 安全装置：100回試行しても重複する場合は中断
+          if (counter > 100) {
+            console.error(`❌ エラー: Slug重複解消に失敗 (${title})`);
+            errorCount++;
+            continue;
+          }
+        }
+
+        // ロールバック用ログ
+        rollbackLog.push({
+          id: r.id,
+          title: title?.substring(0, 40),
+          oldSlug: oldSlug,
+          newSlug: newSlug
+        });
+
+        // 既存Slugセットに追加
+        existingSlugs.delete(oldSlug);
+        existingSlugs.add(newSlug);
+
+        updates.push({
           id: r.id,
           fields: {
             Slug: newSlug
           }
-        };
-      });
+        });
+      }
 
       try {
         await base('News').update(updates);
@@ -157,6 +193,33 @@ async function fixJapaneseSlugs() {
     console.log('\n=== 修正完了 ===\n');
     console.log(`✅ 成功: ${successCount}件`);
     console.log(`❌ 失敗: ${errorCount}件\n`);
+
+    // ロールバックログを保存
+    if (rollbackLog.length > 0) {
+      const fs = require('fs');
+      const path = require('path');
+      const logDir = path.join(__dirname, '..', '..', 'rollback-logs');
+
+      // ディレクトリ作成
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+      const logFile = path.join(logDir, `slug-fix-${projectName}-${timestamp}.json`);
+
+      fs.writeFileSync(logFile, JSON.stringify({
+        project: projectName,
+        timestamp: new Date().toISOString(),
+        totalRecords: rollbackLog.length,
+        successCount,
+        errorCount,
+        changes: rollbackLog
+      }, null, 2));
+
+      console.log(`📝 ロールバックログを保存: ${logFile}\n`);
+      console.log('⚠️  問題があれば、このログから元のSlugに戻せます\n');
+    }
 
   } catch (error) {
     console.error('❌ エラー:', error.message);
