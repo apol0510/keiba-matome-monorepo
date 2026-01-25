@@ -3,8 +3,8 @@
 ## 🚨 プロジェクト識別
 
 **このプロジェクト**: yosou-keiba-matome (中央重賞＋南関重賞の予想まとめ)
-**作業ディレクトリ**: `/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/keiba-matome-monorepo/packages/yosou-keiba-matome/`
-**monorepoルート**: `/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/keiba-matome-monorepo/`
+**作業ディレクトリ**: `/Users/apolon/Projects/keiba-matome-monorepo/packages/yosou-keiba-matome/`
+**monorepoルート**: `/Users/apolon/Projects/keiba-matome-monorepo/`
 **リポジトリ**: https://github.com/apol0510/keiba-matome-monorepo
 **Netlifyサイト**: (未設定)
 **ドメイン**: yosou.keiba-matome.jp (予定)

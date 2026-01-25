@@ -3,8 +3,8 @@
 ## 🚨 プロジェクト識別
 
 **このプロジェクト**: keiba-matome (中央競馬ニュースまとめ)
-**作業ディレクトリ**: `/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/keiba-matome-monorepo/packages/keiba-matome/`
-**monorepoルート**: `/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/keiba-matome-monorepo/`
+**作業ディレクトリ**: `/Users/apolon/Projects/keiba-matome-monorepo/packages/keiba-matome/`
+**monorepoルート**: `/Users/apolon/Projects/keiba-matome-monorepo/`
 **リポジトリ**: https://github.com/apol0510/keiba-matome-monorepo
 **旧リポジトリ**: https://github.com/apol0510/keiba-matome (アーカイブ済み)
 **Netlifyサイト**: https://keiba-matome.jp

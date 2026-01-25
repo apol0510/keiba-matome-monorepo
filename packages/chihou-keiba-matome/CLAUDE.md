@@ -3,8 +3,8 @@
 ## 🚨 プロジェクト識別
 
 **このプロジェクト**: chihou-keiba-matome (地方競馬ニュースまとめ)
-**作業ディレクトリ**: `/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/keiba-matome-monorepo/packages/chihou-keiba-matome/`
-**monorepoルート**: `/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/keiba-matome-monorepo/`
+**作業ディレクトリ**: `/Users/apolon/Projects/keiba-matome-monorepo/packages/chihou-keiba-matome/`
+**monorepoルート**: `/Users/apolon/Projects/keiba-matome-monorepo/`
 **リポジトリ**: https://github.com/apol0510/keiba-matome-monorepo
 **旧リポジトリ**: https://github.com/apol0510/chihou-keiba-matome (アーカイブ済み)
 **サブドメイン**: https://chihou.keiba-matome.jp
