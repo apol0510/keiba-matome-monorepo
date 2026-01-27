@@ -3,12 +3,10 @@ name: Unified Yosou Workflow (競馬予想統合)
 on:
   schedule:
     # 南関メイン: 月〜金 朝6時、昼12時、夕方18時（JST）
+    # 中央重賞: 火曜・金曜 18時に自動実行（determine-workflowで判定）
     - cron: '0 21 * * 0-4'  # 日〜木の21時UTC = 月〜金の6時JST
     - cron: '0 3 * * 1-5'   # 月〜金の3時UTC = 月〜金の12時JST
     - cron: '0 9 * * 1-5'   # 月〜金の9時UTC = 月〜金の18時JST
-    # 中央重賞: 火曜・金曜 18時（JST）
-    - cron: '0 9 * * 2'     # 火曜 9時UTC = 火曜 18時JST
-    - cron: '0 9 * * 5'     # 金曜 9時UTC = 金曜 18時JST
   workflow_dispatch:
     inputs:
       workflow:
@@ -46,21 +44,27 @@ jobs:
           fi
 
           # スケジュール実行時：曜日と時刻で判定
-          DAY=$(date +%u)  # 1=月曜、7=日曜
+          DAY=$(date +%u)  # 1=月曜、2=火曜、...、5=金曜、7=日曜
           HOUR=$(date +%H)
+
+          echo "📅 実行時刻: 曜日=$DAY, 時刻(UTC)=$HOUR"
 
           # 南関メイン（月〜金の6/12/18時）
           if [ $DAY -ge 1 ] && [ $DAY -le 5 ]; then
             echo "nankan=true" >> $GITHUB_OUTPUT
+            echo "✅ 南関メイン実行"
           else
             echo "nankan=false" >> $GITHUB_OUTPUT
+            echo "⏭️  南関メインスキップ（土日）"
           fi
 
-          # 中央重賞（火曜・金曜の18時）
+          # 中央重賞（火曜・金曜の18時JST = 9時UTC）
           if ([ $DAY -eq 2 ] || [ $DAY -eq 5 ]) && [ "$HOUR" == "09" ]; then
             echo "chuou=true" >> $GITHUB_OUTPUT
+            echo "✅ 中央重賞実行（火曜または金曜の18時）"
           else
             echo "chuou=false" >> $GITHUB_OUTPUT
+            echo "⏭️  中央重賞スキップ"
           fi
 
   run-nankan:
