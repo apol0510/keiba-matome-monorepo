@@ -1,0 +1,80 @@
+name: Yosou Chuou (中央重賞予想)
+
+on:
+  schedule:
+    # 中央重賞: 火曜・金曜 18時（JST）
+    - cron: '0 9 * * 2'     # 火曜 9時UTC = 火曜 18時JST
+    - cron: '0 9 * * 5'     # 金曜 9時UTC = 金曜 18時JST
+  workflow_dispatch:
+
+concurrency:
+  group: yosou-chuou-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  run-chuou:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js 20セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 依存関係をインストール
+        run: npm install
+
+      - name: ランダム待機（アカウントロック防止）
+        run: |
+          # 0-3分のランダム待機（GitHub Actions無料枠最適化）
+          DELAY=$((RANDOM % 180))
+          echo "⏱️  ランダム待機: ${DELAY}秒"
+          sleep $DELAY
+
+      - name: ワークフロー実行（中央重賞）
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          X_CREDENTIALS_JSON: |
+            {
+              "KEIBA_MATOME_X": {
+                "apiKey": "${{ secrets.KEIBA_MATOME_X_API_KEY }}",
+                "apiSecret": "${{ secrets.KEIBA_MATOME_X_API_SECRET }}",
+                "accessToken": "${{ secrets.KEIBA_MATOME_X_ACCESS_TOKEN }}",
+                "accessSecret": "${{ secrets.KEIBA_MATOME_X_ACCESS_SECRET }}"
+              },
+              "CHIHOU_X": {
+                "apiKey": "${{ secrets.CHIHOU_X_API_KEY }}",
+                "apiSecret": "${{ secrets.CHIHOU_X_API_SECRET }}",
+                "accessToken": "${{ secrets.CHIHOU_X_ACCESS_TOKEN }}",
+                "accessSecret": "${{ secrets.CHIHOU_X_ACCESS_SECRET }}"
+              },
+              "YOSOU_X": {
+                "apiKey": "${{ secrets.YOSOU_X_API_KEY }}",
+                "apiSecret": "${{ secrets.YOSOU_X_API_SECRET }}",
+                "accessToken": "${{ secrets.YOSOU_X_ACCESS_TOKEN }}",
+                "accessSecret": "${{ secrets.YOSOU_X_ACCESS_SECRET }}"
+              }
+            }
+          YOSOU_KEIBA_NETLIFY_BUILD_HOOK: ${{ secrets.YOSOU_KEIBA_NETLIFY_BUILD_HOOK }}
+        run: |
+          node packages/shared/scripts/run-workflow.cjs \
+            --site=yosou-keiba-matome \
+            --workflow=chuou-weekly
+
+      - name: sitemap.xml更新（中央）
+        if: success()
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
+        run: |
+          cd packages/yosou-keiba-matome
+          node ../shared/scripts/generate-sitemap.cjs --site=yosou-keiba-matome
+
+      - name: 完了ログ出力（中央）
+        if: success()
+        run: |
+          echo "✅ [yosou-keiba-matome/中央] ワークフロー完了"

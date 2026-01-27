@@ -1,0 +1,103 @@
+name: Yosou Nankan (南関メイン予想)
+
+on:
+  schedule:
+    # 南関メイン: 月〜金 朝6時、昼12時、夕方18時（JST）
+    - cron: '0 21 * * 0-4'  # 日〜木の21時UTC = 月〜金の6時JST
+    - cron: '0 3 * * 1-5'   # 月〜金の3時UTC = 月〜金の12時JST
+    - cron: '0 9 * * 1-5'   # 月〜金の9時UTC = 月〜金の18時JST
+  workflow_dispatch:
+
+concurrency:
+  group: yosou-nankan-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  run-nankan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: nankan-analytics リポジトリをチェックアウト
+        uses: actions/checkout@v4
+        with:
+          repository: apol0510/nankan-analytics
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          path: nankan-analytics
+
+      - name: Node.js 20セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 依存関係をインストール
+        run: npm install
+
+      - name: nankan-analyticsデータ確認
+        id: check_data
+        run: |
+          DATA_FILE="nankan-analytics/astro-site/src/data/allRacesPrediction.json"
+          if [ ! -f "$DATA_FILE" ]; then
+            echo "status=no_data" >> $GITHUB_OUTPUT
+            echo "⚠️  nankan-analyticsのデータファイルが見つかりません"
+          else
+            echo "status=ok" >> $GITHUB_OUTPUT
+            echo "✅ nankan-analyticsのデータファイルを確認"
+          fi
+
+      - name: ランダム待機（アカウントロック防止）
+        if: steps.check_data.outputs.status == 'ok'
+        run: |
+          # 0-3分のランダム待機（GitHub Actions無料枠最適化）
+          DELAY=$((RANDOM % 180))
+          echo "⏱️  ランダム待機: ${DELAY}秒"
+          sleep $DELAY
+
+      - name: ワークフロー実行（南関メイン）
+        if: steps.check_data.outputs.status == 'ok'
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          X_CREDENTIALS_JSON: |
+            {
+              "KEIBA_MATOME_X": {
+                "apiKey": "${{ secrets.KEIBA_MATOME_X_API_KEY }}",
+                "apiSecret": "${{ secrets.KEIBA_MATOME_X_API_SECRET }}",
+                "accessToken": "${{ secrets.KEIBA_MATOME_X_ACCESS_TOKEN }}",
+                "accessSecret": "${{ secrets.KEIBA_MATOME_X_ACCESS_SECRET }}"
+              },
+              "CHIHOU_X": {
+                "apiKey": "${{ secrets.CHIHOU_X_API_KEY }}",
+                "apiSecret": "${{ secrets.CHIHOU_X_API_SECRET }}",
+                "accessToken": "${{ secrets.CHIHOU_X_ACCESS_TOKEN }}",
+                "accessSecret": "${{ secrets.CHIHOU_X_ACCESS_SECRET }}"
+              },
+              "YOSOU_X": {
+                "apiKey": "${{ secrets.YOSOU_X_API_KEY }}",
+                "apiSecret": "${{ secrets.YOSOU_X_API_SECRET }}",
+                "accessToken": "${{ secrets.YOSOU_X_ACCESS_TOKEN }}",
+                "accessSecret": "${{ secrets.YOSOU_X_ACCESS_SECRET }}"
+              }
+            }
+          YOSOU_KEIBA_NETLIFY_BUILD_HOOK: ${{ secrets.YOSOU_KEIBA_NETLIFY_BUILD_HOOK }}
+          NANKAN_JSON_PATH: ${{ github.workspace }}/nankan-analytics/astro-site/src/data/allRacesPrediction.json
+        run: |
+          node packages/shared/scripts/run-workflow.cjs \
+            --site=yosou-keiba-matome \
+            --workflow=nankan-daily
+
+      - name: sitemap.xml更新（南関）
+        if: success()
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.YOSOU_KEIBA_AIRTABLE_BASE_ID }}
+        run: |
+          cd packages/yosou-keiba-matome
+          node ../shared/scripts/generate-sitemap.cjs --site=yosou-keiba-matome
+
+      - name: 完了ログ出力（南関）
+        if: success()
+        run: |
+          echo "✅ [yosou-keiba-matome/南関] ワークフロー完了"
