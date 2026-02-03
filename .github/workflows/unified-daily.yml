@@ -2,8 +2,9 @@ name: Unified Daily Workflow (全サイト統合)
 
 on:
   schedule:
-    # 毎日 AM 6:00, 12:00, 18:00 JST（UTC 21:00, 3:00, 9:00）に実行
-    - cron: '0 21 * * *'  # AM 6:00 JST
+    # 毎日 AM 6:05, 12:00, 18:00 JST（UTC 21:05, 3:00, 9:00）に実行
+    # 21:05に変更 - yosou-nankanとの競合回避（21:00起動）
+    - cron: '5 21 * * *'  # AM 6:05 JST（競合回避のため5分遅延）
     - cron: '0 3 * * *'   # PM 12:00 JST
     - cron: '0 9 * * *'   # PM 18:00 JST
   workflow_dispatch:
@@ -29,6 +30,7 @@ concurrency:
 jobs:
   run-workflow:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # タイムアウト設定（ハングアップ防止）
     strategy:
       matrix:
         include:
@@ -88,8 +90,17 @@ jobs:
           echo "⏱️  ランダム待機: ${DELAY}秒"
           sleep $DELAY
 
-      - name: ワークフロー実行
+      - name: ワークフロー実行（リトライ付き）
         if: steps.should_run.outputs.result == 'true'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 25
+          max_attempts: 3
+          retry_wait_seconds: 60
+          command: |
+            node packages/shared/scripts/run-workflow.cjs \
+              --site=${{ matrix.site }} \
+              --workflow=${{ github.event.inputs.workflow || matrix.workflow }}
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -118,10 +129,6 @@ jobs:
           KEIBA_MATOME_NETLIFY_BUILD_HOOK: ${{ secrets.KEIBA_MATOME_NETLIFY_BUILD_HOOK }}
           CHIHOU_KEIBA_NETLIFY_BUILD_HOOK: ${{ secrets.CHIHOU_KEIBA_NETLIFY_BUILD_HOOK }}
           YOSOU_KEIBA_NETLIFY_BUILD_HOOK: ${{ secrets.YOSOU_KEIBA_NETLIFY_BUILD_HOOK }}
-        run: |
-          node packages/shared/scripts/run-workflow.cjs \
-            --site=${{ matrix.site }} \
-            --workflow=${{ github.event.inputs.workflow || matrix.workflow }}
 
       - name: 完了ログ出力
         if: steps.should_run.outputs.result == 'true' && success()

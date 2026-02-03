@@ -15,6 +15,7 @@ concurrency:
 jobs:
   run-nankan:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # タイムアウト設定（ハングアップ防止）
     steps:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
@@ -55,8 +56,17 @@ jobs:
           echo "⏱️  ランダム待機: ${DELAY}秒"
           sleep $DELAY
 
-      - name: ワークフロー実行（南関メイン）
+      - name: ワークフロー実行（南関メイン）リトライ付き
         if: steps.check_data.outputs.status == 'ok'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 25
+          max_attempts: 3
+          retry_wait_seconds: 60
+          command: |
+            node packages/shared/scripts/run-workflow.cjs \
+              --site=yosou-keiba-matome \
+              --workflow=nankan-daily
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -83,10 +93,6 @@ jobs:
             }
           YOSOU_KEIBA_NETLIFY_BUILD_HOOK: ${{ secrets.YOSOU_KEIBA_NETLIFY_BUILD_HOOK }}
           NANKAN_JSON_PATH: ${{ github.workspace }}/nankan-analytics/astro-site/src/data/allRacesPrediction.json
-        run: |
-          node packages/shared/scripts/run-workflow.cjs \
-            --site=yosou-keiba-matome \
-            --workflow=nankan-daily
 
       - name: sitemap.xml更新（南関）
         if: success()
