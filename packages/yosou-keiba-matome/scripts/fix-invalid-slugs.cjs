@@ -39,12 +39,33 @@ async function main() {
   console.log('🔍 不正なSlugを持つ記事を検索中...\n');
 
   try {
-    // 全ての記事を取得（publishedとdraftの両方）
-    const records = await base('News')
-      .select({
-        fields: ['Title', 'Slug', 'Status', 'PublishedAt']
-      })
-      .all();
+    // 全ての記事を取得（publishedとdraftの両方） - Airtable API 500エラー対策
+    let records;
+    const MAX_AIRTABLE_RETRIES = 3;
+
+    for (let attempt = 1; attempt <= MAX_AIRTABLE_RETRIES; attempt++) {
+      try {
+        records = await base('News')
+          .select({
+            fields: ['Title', 'Slug', 'Status', 'PublishedAt']
+          })
+          .all();
+        break; // 成功したらループを抜ける
+
+      } catch (error) {
+        const isAirtableServerError = error.statusCode === 500 || error.error === 'SERVER_ERROR';
+        const isLastAttempt = attempt === MAX_AIRTABLE_RETRIES;
+
+        if (isAirtableServerError && !isLastAttempt) {
+          const waitTime = 10000 * attempt; // 10秒, 20秒, 30秒
+          console.log(`⚠️  Airtable API server error (${attempt}/${MAX_AIRTABLE_RETRIES})`);
+          console.log(`   Retrying in ${waitTime/1000} seconds...\n`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        } else {
+          throw error; // リトライ不可 or 最終試行失敗
+        }
+      }
+    }
 
     console.log(`📊 全記事数: ${records.length}件\n`);
 

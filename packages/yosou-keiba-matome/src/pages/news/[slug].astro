@@ -186,7 +186,8 @@ const finalStructuredData = article.structuredData || JSON.stringify(structuredD
     "discussionUrl": articleUrl,
     "author": {
       "@type": "Person",
-      "name": "名無しさん@競馬板"
+      "name": "名無しさん@競馬板",
+      "url": siteUrl
     },
     "publisher": {
       "@type": "Organization",
@@ -203,7 +204,8 @@ const finalStructuredData = article.structuredData || JSON.stringify(structuredD
       "dateCreated": new Date(comment.createdAt).toISOString(),
       "author": {
         "@type": "Person",
-        "name": "名無しさん@競馬板"
+        "name": "名無しさん@競馬板",
+        "url": siteUrl
       }
     }))
   })} />

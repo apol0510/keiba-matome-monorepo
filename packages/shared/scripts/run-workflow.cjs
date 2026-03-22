@@ -99,7 +99,12 @@ const workingDir = path.join(__dirname, `../../../packages/${siteName}`);
 
 async function runScript(scriptConfig, index, total, retryCount = 0) {
   const MAX_RETRIES = 3;
-  const RETRY_DELAY = 5000; // 5秒
+
+  // Exponential Backoff: 5秒 → 15秒 → 45秒
+  const getRetryDelay = (attemptNumber) => {
+    const baseDelay = 5000; // 5秒
+    return baseDelay * Math.pow(3, attemptNumber - 1);
+  };
 
   return new Promise((resolve, reject) => {
     const retryLabel = retryCount > 0 ? ` (リトライ ${retryCount}/${MAX_RETRIES})` : '';
@@ -150,10 +155,11 @@ async function runScript(scriptConfig, index, total, retryCount = 0) {
         const isRetryable = code !== 1 || retryCount < MAX_RETRIES;
 
         if (isRetryable && retryCount < MAX_RETRIES) {
-          console.log(`  ⏳ ${RETRY_DELAY/1000}秒後にリトライします...`);
+          const retryDelay = getRetryDelay(retryCount + 1);
+          console.log(`  ⏳ ${retryDelay/1000}秒後にリトライします（Exponential Backoff）...`);
           console.log('');
 
-          await new Promise(r => setTimeout(r, RETRY_DELAY));
+          await new Promise(r => setTimeout(r, retryDelay));
 
           try {
             await runScript(scriptConfig, index, total, retryCount + 1);

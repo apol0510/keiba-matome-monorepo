@@ -127,19 +127,40 @@ async function main() {
   const base = new Airtable({ apiKey: airtableKey }).base(projectConfig.baseId);
   const client = new Anthropic({ apiKey: anthropicKey });
 
-  // 新規記事（MetaTitleが空）を取得
+  // 新規記事（MetaTitleが空）を取得（Airtable API 500エラー対策）
   console.log('📥 Fetching new articles (MetaTitle is empty)...\n');
 
   const titleField = projectConfig.tableName === 'Articles' ? 'RaceTitle' : 'Title';
   const summaryField = projectConfig.tableName === 'Articles' ? 'Prediction' : 'Summary';
 
-  const records = await base(projectConfig.tableName)
-    .select({
-      filterByFormula: `AND({Status} = 'published', OR({MetaTitle} = '', {MetaTitle} = BLANK()))`,
-      maxRecords: 20,
-      sort: [{ field: 'PublishedAt', direction: 'desc' }],
-    })
-    .all();
+  let records;
+  const MAX_AIRTABLE_RETRIES = 3;
+
+  for (let attempt = 1; attempt <= MAX_AIRTABLE_RETRIES; attempt++) {
+    try {
+      records = await base(projectConfig.tableName)
+        .select({
+          filterByFormula: `AND({Status} = 'published', OR({MetaTitle} = '', {MetaTitle} = BLANK()))`,
+          maxRecords: 20,
+          sort: [{ field: 'PublishedAt', direction: 'desc' }],
+        })
+        .all();
+      break; // 成功したらループを抜ける
+
+    } catch (error) {
+      const isAirtableServerError = error.statusCode === 500;
+      const isLastAttempt = attempt === MAX_AIRTABLE_RETRIES;
+
+      if (isAirtableServerError && !isLastAttempt) {
+        const waitTime = 10000 * attempt; // 10秒, 20秒, 30秒
+        console.log(`⚠️  Airtable API server error (${attempt}/${MAX_AIRTABLE_RETRIES})`);
+        console.log(`   Retrying in ${waitTime/1000} seconds...\n`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else {
+        throw error; // リトライ不可 or 最終試行失敗
+      }
+    }
+  }
 
   if (records.length === 0) {
     console.log('✅ No new articles found. All articles already have SEO metadata.\n');
