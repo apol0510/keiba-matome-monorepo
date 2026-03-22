@@ -35,16 +35,18 @@
   force = true
   conditions = { Host = ["keiba-matome.netlify.app"] }
 
-# 不正Slug（数字・記号のみ）を404にリダイレクト
-# 注意: 日本語Slugは正常なのでリダイレクトしない
+# 不正Slugの処理はSSR側（[slug].astro）で410 Goneを返す
+# netlify.tomlのワイルドカードは正常記事を巻き込むため削除
+
+# 存在しないエンドポイントに410を返す（GSC 404対策）
 [[redirects]]
-  from = "/news/*-*-*"
+  from = "/api/contact"
   to = "/404"
-  status = 404
+  status = 410
   force = true
 
 [[redirects]]
-  from = "/news/*-*"
-  to = "/404"
-  status = 404
+  from = "/news/"
+  to = "/"
+  status = 301
   force = true

@@ -12,9 +12,10 @@ const { slug } = Astro.params;
 // 記事を取得
 const article = await getNewsBySlug(slug as string);
 
-// 記事が存在しない場合は404
+// 記事が存在しない場合は410 Gone（削除済み記事としてGoogleに通知）
+// GSCの404エラー183件対策: 削除済み記事にはHTTP 410を返し、インデックスからの除外を促進
 if (!article) {
-  return Astro.redirect('/404', 404);
+  return new Response(null, { status: 410, statusText: 'Gone' });
 }
 
 // SSGモードではPOSTリクエストを処理できないため、削除
