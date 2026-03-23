@@ -100,34 +100,8 @@ try {
   console.warn('関連記事の取得に失敗しました');
 }
 
-// 古い構造化データは削除（上で定義済み）
-// 構造化データ
 const siteUrl = config.siteUrl;
 const articleUrl = `${siteUrl}/news/${slug}/`;
-const oldStructuredData = {
-  '@context': 'https://schema.org',
-  '@type': 'NewsArticle',
-  headline: article.title,
-  description: article.excerpt,
-  image: article.thumbnail || `${siteUrl}/og-image.png`,
-  url: articleUrl,
-  datePublished: new Date(article.publishedAt).toISOString(),
-  dateModified: new Date(article.publishedAt).toISOString(),
-  author: {
-    '@type': 'Person',
-    name: article.author || 'AI編集部',
-  },
-  publisher: {
-    '@type': 'Organization',
-    name: config.name,
-    url: siteUrl,
-    logo: {
-      '@type': 'ImageObject',
-      url: `${siteUrl}/logo.png`,
-    }
-  },
-  inLanguage: 'ja-JP',
-};
 
 // Markdownを簡易的にHTMLに変換
 function markdownToHtml(markdown: string): string {
@@ -145,8 +119,8 @@ function markdownToHtml(markdown: string): string {
 
 const htmlContent = markdownToHtml(article.content);
 
-// Airtableのstructured dataを優先、なければローカル生成を使用
-const finalStructuredData = article.structuredData || JSON.stringify(structuredData);
+// 常にローカル生成の構造化データを使用（Airtableの古いデータにauthor.url欠落があるため）
+const finalStructuredData = JSON.stringify(structuredData);
 ---
 
 <BaseLayout
