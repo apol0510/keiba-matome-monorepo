@@ -11,9 +11,9 @@ interface CacheEntry<T> {
 const cache = new Map<string, CacheEntry<any>>();
 
 // キャッシュ有効期限（秒）
-// SSR環境ではFunctionインスタンスが生きている間キャッシュが有効
-// 60秒だとコールドスタート直後に全コメント再取得→タイムアウトの原因になる
-const CACHE_TTL = 300; // 5分
+// SSGビルド時: 全304記事を処理する間キャッシュを保持する必要がある
+// 短いTTLだとビルド中にキャッシュ切れ→Airtable再取得→タイムアウトの連鎖
+const CACHE_TTL = 1800; // 30分（ビルド完了まで十分な時間）
 
 export function getCache<T>(key: string): T | null {
   const entry = cache.get(key);

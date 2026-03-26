@@ -398,18 +398,19 @@ export async function getCommentsByNewsId(newsId: string): Promise<Comment[]> {
     let allRecords = getCache<any[]>(allCommentsCacheKey);
 
     if (!allRecords) {
+      // ビルド時は全コメント（17,000+件）を1回取得してキャッシュ
+      // タイムアウトは120秒（Airtableのページネーションに時間がかかるため）
       allRecords = await withTimeout(
         base('Comments')
           .select({
             sort: [{ field: 'CreatedAt', direction: 'asc' }],
           })
           .all(),
-        8000,
+        120000,
         []
       );
-      if (allRecords.length > 0) {
-        setCache(allCommentsCacheKey, allRecords);
-      }
+      // 成功・失敗に関わらずキャッシュ（失敗時は空配列をキャッシュして再試行を防ぐ）
+      setCache(allCommentsCacheKey, allRecords);
       console.log(`💾 全コメント取得完了: ${allRecords.length}件`);
     }
 
