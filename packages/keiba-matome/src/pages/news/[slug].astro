@@ -18,7 +18,15 @@ export async function getStaticPaths() {
     return [];
   }
 
-  return articles.map(article => ({
+  const valid = articles.filter(a => a.slug && a.slug.trim() !== '');
+  const skipped = articles.length - valid.length;
+  if (skipped > 0) {
+    console.warn(`⚠️ slug欠損記事を除外: ${skipped}件 / 全${articles.length}件`);
+    console.warn('欠損ID:', articles.filter(a => !a.slug || a.slug.trim() === '').map(a => a.id));
+  }
+  console.log(`✅ getStaticPaths: ${valid.length}件の記事ページを生成`);
+
+  return valid.map(article => ({
     params: { slug: article.slug },
     props: { article },
   }));
