@@ -11,7 +11,9 @@ interface CacheEntry<T> {
 const cache = new Map<string, CacheEntry<any>>();
 
 // キャッシュ有効期限（秒）
-const CACHE_TTL = 60; // 60秒
+// SSR環境ではFunctionインスタンスが生きている間キャッシュが有効
+// 60秒だとコールドスタート直後に全コメント再取得→タイムアウトの原因になる
+const CACHE_TTL = 300; // 5分
 
 export function getCache<T>(key: string): T | null {
   const entry = cache.get(key);

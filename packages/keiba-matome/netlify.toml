@@ -4,6 +4,11 @@
 
 [functions]
   directory = "packages/keiba-matome/netlify/functions"
+  external_node_modules = ["airtable"]
+  node_bundler = "esbuild"
+
+[functions."entry"]
+  timeout = 60
 
 # 静的ファイルのキャッシュ（1年間）
 [[headers]]
@@ -16,12 +21,18 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# 静的記事ページのキャッシュ（CDNで1日、stale-while-revalidateで7日）
+[[headers]]
+  for = "/news/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+
 # HTMLのキャッシュ（1時間、CDNで1日）
 [[headers]]
   for = "/keiba-yosou/*"
   [headers.values]
     Cache-Control = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
-    
+
 [[headers]]
   for = "/*.html"
   [headers.values]

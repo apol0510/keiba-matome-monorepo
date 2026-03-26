@@ -1,34 +1,42 @@
 ---
-// SSRモード（新しいコメントを即座に表示）
-// ※ キャッシュシステムで高速化維持
-export const prerender = false;
+// SSG（静的生成）モード
+// ビルド時にAirtableからデータ取得 → 静的HTML生成 → CDN配信
+// リクエスト時にAirtableを呼ばないため502が発生しない
+export const prerender = true;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getNewsBySlug, getLatestNews, getCommentsByNewsId } from '../../lib/news';
+import { getAllNews, getLatestNews, getCommentsByNewsId } from '../../lib/news';
 import { config } from '../../config';
 
-const { slug } = Astro.params;
+// ビルド時に全記事のパスを生成
+export async function getStaticPaths() {
+  let articles = [];
+  try {
+    articles = await getAllNews();
+  } catch (error) {
+    console.error('getStaticPaths: 記事取得失敗', error);
+    return [];
+  }
 
-// 記事を取得
-const article = await getNewsBySlug(slug as string);
+  const paths = [];
+  for (const article of articles) {
+    let comments = [];
+    try {
+      comments = await getCommentsByNewsId(article.id);
+    } catch (error) {
+      console.error(`コメント取得失敗 (${article.slug}):`, error);
+    }
 
-// 記事が存在しない場合は410 Gone（削除済み記事としてGoogleに通知）
-// GSCの404エラー183件対策: 削除済み記事にはHTTP 410を返し、インデックスからの除外を促進
-if (!article) {
-  return new Response(null, { status: 410, statusText: 'Gone' });
+    paths.push({
+      params: { slug: article.slug },
+      props: { article, comments },
+    });
+  }
+
+  return paths;
 }
 
-// SSGモードではPOSTリクエストを処理できないため、削除
-// コメント投稿はNetlify Functionsで処理
-
-// 2ch風コメントを取得
-let comments = [];
-try {
-  comments = await getCommentsByNewsId(article.id);
-  console.log(`✅ コメントを${comments.length}件取得しました (${article.title})`);
-} catch (error) {
-  console.error('コメント取得エラー:', error);
-}
+const { article, comments } = Astro.props;
 
 // 構造化データ（JSON-LD）
 const structuredData = {
@@ -63,7 +71,7 @@ const structuredData = {
   "inLanguage": "ja-JP"
 };
 
-// 相対時間フォーマット
+// 相対時間フォーマット（ビルド時の時刻基準）
 function formatTime(date: Date): string {
   const now = new Date();
   const diff = now.getTime() - date.getTime();
@@ -80,7 +88,6 @@ function formatTime(date: Date): string {
   } else if (days < 7) {
     return `${days}日前`;
   } else {
-    // 7日以上前の場合は日付表示
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -89,19 +96,19 @@ function formatTime(date: Date): string {
   }
 }
 
-// 関連記事を取得
+// 関連記事を取得（ビルド時に解決済み）
 let relatedArticles = [];
 try {
   const allArticles = await getLatestNews(10);
   relatedArticles = allArticles
-    .filter(a => a.slug !== slug && a.category === article.category)
+    .filter(a => a.slug !== article.slug && a.category === article.category)
     .slice(0, 3);
 } catch (error) {
   console.warn('関連記事の取得に失敗しました');
 }
 
 const siteUrl = config.siteUrl;
-const articleUrl = `${siteUrl}/news/${slug}/`;
+const articleUrl = `${siteUrl}/news/${article.slug}/`;
 
 // Markdownを簡易的にHTMLに変換
 function markdownToHtml(markdown: string): string {
@@ -134,7 +141,6 @@ const finalStructuredData = JSON.stringify(structuredData);
   keywords={article.keywords}
   structuredData={finalStructuredData}
 >
-  <!-- 構造化データ（JSON-LD） - BaseLayoutで出力するため削除 -->
   <!-- モバイル対応CSS -->
   <style>
     /* レスポンシブ対応 */
@@ -255,7 +261,6 @@ const finalStructuredData = JSON.stringify(structuredData);
     ) : (
       comments.map((comment, index) => {
         const bgColor = comment.number % 2 === 0 ? '#fafafa' : '#fff';
-        const opBadge = comment.isOP ? '<span style="margin-left: 4px; padding: 1px 4px; background-color: #ea8b00; color: #fff; font-size: 9px; border-radius: 2px;">スレ主</span>' : '';
         const timeStr = formatTime(new Date(comment.createdAt));
 
         return (
@@ -403,11 +408,6 @@ const finalStructuredData = JSON.stringify(structuredData);
       if (typeof turnstile !== 'undefined') {
         turnstileToken = turnstile.getResponse();
       }
-      // CAPTCHAチェックは一旦無効化（Turnstileが正しく設定されていないため）
-      // if (!turnstileToken) {
-      //   showMessage('CAPTCHA認証が必要です', 'error');
-      //   return;
-      // }
 
       // 送信中表示
       const submitButton = form.querySelector('button[type="submit"]');
@@ -434,7 +434,6 @@ const finalStructuredData = JSON.stringify(structuredData);
         if (contentType && contentType.includes('application/json')) {
           result = await response.json();
         } else {
-          // JSONでない場合（HTMLエラーページなど）
           const text = await response.text();
           console.error('Non-JSON response:', text.substring(0, 200));
           throw new Error('サーバーエラーが発生しました（JSON形式でないレスポンス）');

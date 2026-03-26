@@ -7,6 +7,22 @@ import Airtable from 'airtable';
 import { config } from '../config';
 import { getCache, setCache } from './cache.js';
 
+/**
+ * タイムアウト付きでPromiseを実行
+ * Airtable APIが遅延した場合にNetlify Functionsタイムアウト（502）を防ぐ
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) =>
+      setTimeout(() => {
+        console.warn(`⚠️ Airtable API タイムアウト (${ms}ms) - fallbackを返します`);
+        resolve(fallback);
+      }, ms)
+    ),
+  ]);
+}
+
 // Airtableクライアントの初期化
 let base: ReturnType<ReturnType<typeof Airtable>['base']> | null = null;
 
@@ -239,12 +255,16 @@ export async function getNewsBySlug(slug: string): Promise<NewsArticle | null> {
     }
 
     const base = getBase();
-    const records = await base('News')
-      .select({
-        maxRecords: 1,
-        filterByFormula: `AND({Status} = "published", {Slug} = "${slug}")`,
-      })
-      .all();
+    const records = await withTimeout(
+      base('News')
+        .select({
+          maxRecords: 1,
+          filterByFormula: `AND({Status} = "published", {Slug} = "${slug}")`,
+        })
+        .all(),
+      5000,
+      []
+    );
 
     if (records.length === 0) {
       setCache(cacheKey, null);
@@ -378,12 +398,18 @@ export async function getCommentsByNewsId(newsId: string): Promise<Comment[]> {
     let allRecords = getCache<any[]>(allCommentsCacheKey);
 
     if (!allRecords) {
-      allRecords = await base('Comments')
-        .select({
-          sort: [{ field: 'CreatedAt', direction: 'asc' }],
-        })
-        .all();
-      setCache(allCommentsCacheKey, allRecords);
+      allRecords = await withTimeout(
+        base('Comments')
+          .select({
+            sort: [{ field: 'CreatedAt', direction: 'asc' }],
+          })
+          .all(),
+        8000,
+        []
+      );
+      if (allRecords.length > 0) {
+        setCache(allCommentsCacheKey, allRecords);
+      }
       console.log(`💾 全コメント取得完了: ${allRecords.length}件`);
     }
 
