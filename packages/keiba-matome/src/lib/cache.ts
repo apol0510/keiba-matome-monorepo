@@ -11,9 +11,7 @@ interface CacheEntry<T> {
 const cache = new Map<string, CacheEntry<any>>();
 
 // キャッシュ有効期限（秒）
-// SSGビルド時: 全304記事を処理する間キャッシュを保持する必要がある
-// 短いTTLだとビルド中にキャッシュ切れ→Airtable再取得→タイムアウトの連鎖
-const CACHE_TTL = 1800; // 30分（ビルド完了まで十分な時間）
+const CACHE_TTL = 60; // 60秒
 
 export function getCache<T>(key: string): T | null {
   const entry = cache.get(key);

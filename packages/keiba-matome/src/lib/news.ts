@@ -7,22 +7,6 @@ import Airtable from 'airtable';
 import { config } from '../config';
 import { getCache, setCache } from './cache.js';
 
-/**
- * タイムアウト付きでPromiseを実行
- * Airtable APIが遅延した場合にNetlify Functionsタイムアウト（502）を防ぐ
- */
-function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolve) =>
-      setTimeout(() => {
-        console.warn(`⚠️ Airtable API タイムアウト (${ms}ms) - fallbackを返します`);
-        resolve(fallback);
-      }, ms)
-    ),
-  ]);
-}
-
 // Airtableクライアントの初期化
 let base: ReturnType<ReturnType<typeof Airtable>['base']> | null = null;
 
@@ -255,16 +239,12 @@ export async function getNewsBySlug(slug: string): Promise<NewsArticle | null> {
     }
 
     const base = getBase();
-    const records = await withTimeout(
-      base('News')
-        .select({
-          maxRecords: 1,
-          filterByFormula: `AND({Status} = "published", {Slug} = "${slug}")`,
-        })
-        .all(),
-      5000,
-      []
-    );
+    const records = await base('News')
+      .select({
+        maxRecords: 1,
+        filterByFormula: `AND({Status} = "published", {Slug} = "${slug}")`,
+      })
+      .all();
 
     if (records.length === 0) {
       setCache(cacheKey, null);
@@ -398,18 +378,11 @@ export async function getCommentsByNewsId(newsId: string): Promise<Comment[]> {
     let allRecords = getCache<any[]>(allCommentsCacheKey);
 
     if (!allRecords) {
-      // ビルド時は全コメント（17,000+件）を1回取得してキャッシュ
-      // タイムアウトは120秒（Airtableのページネーションに時間がかかるため）
-      allRecords = await withTimeout(
-        base('Comments')
-          .select({
-            sort: [{ field: 'CreatedAt', direction: 'asc' }],
-          })
-          .all(),
-        120000,
-        []
-      );
-      // 成功・失敗に関わらずキャッシュ（失敗時は空配列をキャッシュして再試行を防ぐ）
+      allRecords = await base('Comments')
+        .select({
+          sort: [{ field: 'CreatedAt', direction: 'asc' }],
+        })
+        .all();
       setCache(allCommentsCacheKey, allRecords);
       console.log(`💾 全コメント取得完了: ${allRecords.length}件`);
     }

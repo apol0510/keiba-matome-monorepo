@@ -1,38 +1,34 @@
 ---
-// SSG（静的生成）モード
-// ビルド時にAirtableからデータ取得 → 静的HTML生成 → CDN配信
-// リクエスト時にAirtableを呼ばないため502が発生しない
-export const prerender = true;
+// SSRモード（新しいコメントを即座に表示）
+// ※ キャッシュシステムで高速化維持
+export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getAllNews, getLatestNews } from '../../lib/news';
+import { getNewsBySlug, getLatestNews, getCommentsByNewsId } from '../../lib/news';
 import { config } from '../../config';
 
-// ビルド時に全記事のパスを生成（コメントはクライアント側で取得）
-export async function getStaticPaths() {
-  let articles = [];
-  try {
-    articles = await getAllNews();
-  } catch (error) {
-    console.error('getStaticPaths: 記事取得失敗', error);
-    return [];
-  }
+const { slug } = Astro.params;
 
-  const valid = articles.filter(a => a.slug && a.slug.trim() !== '');
-  const skipped = articles.length - valid.length;
-  if (skipped > 0) {
-    console.warn(`⚠️ slug欠損記事を除外: ${skipped}件 / 全${articles.length}件`);
-    console.warn('欠損ID:', articles.filter(a => !a.slug || a.slug.trim() === '').map(a => a.id));
-  }
-  console.log(`✅ getStaticPaths: ${valid.length}件の記事ページを生成`);
+// 記事を取得
+const article = await getNewsBySlug(slug as string);
 
-  return valid.map(article => ({
-    params: { slug: article.slug },
-    props: { article },
-  }));
+// 記事が存在しない場合は410 Gone（削除済み記事としてGoogleに通知）
+// GSCの404エラー183件対策: 削除済み記事にはHTTP 410を返し、インデックスからの除外を促進
+if (!article) {
+  return new Response(null, { status: 410, statusText: 'Gone' });
 }
 
-const { article } = Astro.props;
+// SSGモードではPOSTリクエストを処理できないため、削除
+// コメント投稿はNetlify Functionsで処理
+
+// 2ch風コメントを取得
+let comments = [];
+try {
+  comments = await getCommentsByNewsId(article.id);
+  console.log(`✅ コメントを${comments.length}件取得しました (${article.title})`);
+} catch (error) {
+  console.error('コメント取得エラー:', error);
+}
 
 // 構造化データ（JSON-LD）
 const structuredData = {
@@ -61,25 +57,51 @@ const structuredData = {
     "@type": "WebPage",
     "@id": `${config.siteUrl}/news/${article.slug}/`
   },
-  "commentCount": 0,
+  "commentCount": comments.length,
   "articleSection": article.category || "競馬ニュース",
   "keywords": article.tags?.join(', ') || "競馬",
   "inLanguage": "ja-JP"
 };
 
-// 関連記事を取得（ビルド時に解決済み）
+// 相対時間フォーマット
+function formatTime(date: Date): string {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
+
+  if (minutes < 1) {
+    return 'たった今';
+  } else if (hours < 1) {
+    return `${minutes}分前`;
+  } else if (hours < 24) {
+    return `${hours}時間前`;
+  } else if (days < 7) {
+    return `${days}日前`;
+  } else {
+    // 7日以上前の場合は日付表示
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+    return `${year}/${month}/${day}(${dayOfWeek})`;
+  }
+}
+
+// 関連記事を取得
 let relatedArticles = [];
 try {
   const allArticles = await getLatestNews(10);
   relatedArticles = allArticles
-    .filter(a => a.slug !== article.slug && a.category === article.category)
+    .filter(a => a.slug !== slug && a.category === article.category)
     .slice(0, 3);
 } catch (error) {
   console.warn('関連記事の取得に失敗しました');
 }
 
 const siteUrl = config.siteUrl;
-const articleUrl = `${siteUrl}/news/${article.slug}/`;
+const articleUrl = `${siteUrl}/news/${slug}/`;
 
 // Markdownを簡易的にHTMLに変換
 function markdownToHtml(markdown: string): string {
@@ -112,6 +134,7 @@ const finalStructuredData = JSON.stringify(structuredData);
   keywords={article.keywords}
   structuredData={finalStructuredData}
 >
+  <!-- 構造化データ（JSON-LD） - BaseLayoutで出力するため削除 -->
   <!-- モバイル対応CSS -->
   <style>
     /* レスポンシブ対応 */
@@ -177,7 +200,7 @@ const finalStructuredData = JSON.stringify(structuredData);
     }
   </style>
 
-  <!-- 構造化データ（DiscussionForumPosting） — commentCountはクライアント側で更新 -->
+  <!-- 構造化データ（DiscussionForumPosting） -->
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "DiscussionForumPosting",
@@ -185,7 +208,7 @@ const finalStructuredData = JSON.stringify(structuredData);
     "text": article.excerpt || article.title,
     "datePublished": new Date(article.publishedAt).toISOString(),
     "url": articleUrl,
-    "commentCount": 0,
+    "commentCount": comments.length,
     "discussionUrl": articleUrl,
     "author": {
       "@type": "Person",
@@ -200,7 +223,17 @@ const finalStructuredData = JSON.stringify(structuredData);
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": articleUrl
-    }
+    },
+    "comment": comments.slice(0, 10).map(comment => ({
+      "@type": "Comment",
+      "text": comment.content,
+      "dateCreated": comment.createdAt.toISOString(),
+      "author": {
+        "@type": "Person",
+        "name": "名無しさん@競馬板",
+        "url": siteUrl
+      }
+    }))
   })} />
 
   <!-- スレッド情報 -->
@@ -209,15 +242,38 @@ const finalStructuredData = JSON.stringify(structuredData);
     <p style="margin: 0; font-size: 11px; color: #666;">
       カテゴリ: {article.category} |
       公開日: {new Date(article.publishedAt).toLocaleDateString('ja-JP')} |
-      レス数: <span id="comment-count">...</span>件
+      レス数: {comments.length}件
     </p>
   </div>
 
-  <!-- レス一覧（クライアント側で動的取得） -->
+  <!-- レス一覧（静的生成 + 動的追加） -->
   <div class="comment-list" style="background-color: #fff; border: 1px solid #999; margin-bottom: 16px;">
-    <div id="comments-loading" style="padding: 12px; text-align: center; color: #666;">
-      コメント読み込み中...
-    </div>
+    {comments.length === 0 ? (
+      <div style="padding: 12px; text-align: center; color: #666;">
+        まだコメントがありません
+      </div>
+    ) : (
+      comments.map((comment, index) => {
+        const bgColor = comment.number % 2 === 0 ? '#fafafa' : '#fff';
+        const opBadge = comment.isOP ? '<span style="margin-left: 4px; padding: 1px 4px; background-color: #ea8b00; color: #fff; font-size: 9px; border-radius: 2px;">スレ主</span>' : '';
+        const timeStr = formatTime(new Date(comment.createdAt));
+
+        return (
+          <div id={`res${comment.number}`} style={`border-bottom: 1px solid #ddd; padding: 12px; background-color: ${bgColor};`}>
+            <div class="comment-header">
+              <span style="font-weight: bold; color: #000;">{comment.number}</span>
+              <span style="margin-left: 8px;">名前：{comment.userName || '名無しさん@競馬板'}</span>
+              {comment.isOP && <span style="margin-left: 4px; padding: 1px 4px; background-color: #ea8b00; color: #fff; font-size: 9px; border-radius: 2px;">スレ主</span>}
+              <span style="margin-left: 8px;">{timeStr}</span>
+              <span style="margin-left: 8px;">{comment.userID}</span>
+            </div>
+            <div class="comment-content" style="margin-top: 8px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">
+              {comment.content}
+            </div>
+          </div>
+        );
+      })
+    )}
   </div>
 
   <!-- CTA: 記事下バナー -->
@@ -313,84 +369,12 @@ const finalStructuredData = JSON.stringify(structuredData);
     </a>
   </div>
 
-  <!-- コメント取得 + 投稿 + 即時反映スクリプト -->
-  <script define:vars={{ articleId: article.id }}>
-    const commentList = document.querySelector('.comment-list');
-    const commentCountEl = document.getElementById('comment-count');
+  <!-- コメント投稿 + 即時反映スクリプト -->
+  <script define:vars={{ articleId: article.id, currentCommentCount: comments.length }}>
+    // フォーム送信処理
     const form = document.getElementById('submit-form');
     const messageArea = document.getElementById('message-area');
 
-    // 相対時間フォーマット
-    function formatTime(dateStr) {
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diff = now.getTime() - date.getTime();
-      const minutes = Math.floor(diff / (1000 * 60));
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const days = Math.floor(hours / 24);
-
-      if (minutes < 1) return 'たった今';
-      if (hours < 1) return minutes + '分前';
-      if (hours < 24) return hours + '時間前';
-      if (days < 7) return days + '日前';
-
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      const dow = ['日','月','火','水','木','金','土'][date.getDay()];
-      return y + '/' + m + '/' + d + '(' + dow + ')';
-    }
-
-    // HTMLエスケープ
-    function esc(s) {
-      const d = document.createElement('div');
-      d.textContent = s;
-      return d.innerHTML;
-    }
-
-    // コメントHTML生成
-    function renderComment(c) {
-      const bg = c.number % 2 === 0 ? '#fafafa' : '#fff';
-      const opBadge = c.isOP
-        ? '<span style="margin-left:4px;padding:1px 4px;background-color:#ea8b00;color:#fff;font-size:9px;border-radius:2px;">スレ主</span>'
-        : '';
-      return '<div id="res' + c.number + '" style="border-bottom:1px solid #ddd;padding:12px;background-color:' + bg + ';">'
-        + '<div class="comment-header">'
-        + '<span style="font-weight:bold;color:#000;">' + c.number + '</span>'
-        + '<span style="margin-left:8px;">名前：' + esc(c.userName || '名無しさん@競馬板') + '</span>'
-        + opBadge
-        + '<span style="margin-left:8px;">' + formatTime(c.createdAt) + '</span>'
-        + '<span style="margin-left:8px;">' + esc(c.userID) + '</span>'
-        + '</div>'
-        + '<div class="comment-content" style="margin-top:8px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word;">'
-        + esc(c.content)
-        + '</div></div>';
-    }
-
-    // コメント取得（クライアント側）
-    async function loadComments() {
-      try {
-        const res = await fetch('/api/comments?id=' + encodeURIComponent(articleId));
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        const comments = data.comments || [];
-
-        commentCountEl.textContent = comments.length;
-        if (comments.length === 0) {
-          commentList.innerHTML = '<div style="padding:12px;text-align:center;color:#666;">まだコメントがありません</div>';
-        } else {
-          commentList.innerHTML = comments.map(renderComment).join('');
-        }
-      } catch (err) {
-        console.error('コメント取得失敗:', err);
-        commentCountEl.textContent = '-';
-        commentList.innerHTML = '<div style="padding:12px;text-align:center;color:#666;">コメントの読み込みに失敗しました</div>';
-      }
-    }
-
-    loadComments();
-
-    // フォーム送信処理
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -398,30 +382,41 @@ const finalStructuredData = JSON.stringify(structuredData);
       const content = formData.get('content');
       const userName = formData.get('userName') || '名無しさん@競馬板';
 
+      // バリデーション
       if (!content || content.length < 2) {
         showMessage('コメントは2文字以上入力してください', 'error');
         return;
       }
+
       if (content.length > 500) {
         showMessage('コメントは500文字以内で入力してください', 'error');
         return;
       }
+
       if (content.match(/https?:\/\//) || content.match(/www\./)) {
         showMessage('URLを含むコメントは投稿できません', 'error');
         return;
       }
 
+      // Cloudflare Turnstile トークン取得（存在しない場合はスキップ）
       let turnstileToken = null;
       if (typeof turnstile !== 'undefined') {
         turnstileToken = turnstile.getResponse();
       }
+      // CAPTCHAチェックは一旦無効化（Turnstileが正しく設定されていないため）
+      // if (!turnstileToken) {
+      //   showMessage('CAPTCHA認証が必要です', 'error');
+      //   return;
+      // }
 
+      // 送信中表示
       const submitButton = form.querySelector('button[type="submit"]');
       const originalButtonText = submitButton.textContent;
       submitButton.disabled = true;
       submitButton.textContent = '送信中...';
 
       try {
+        // Netlify Functionsにリクエスト
         const response = await fetch('/api/submit-comment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -433,68 +428,94 @@ const finalStructuredData = JSON.stringify(structuredData);
           }),
         });
 
+        // レスポンスがJSONでない場合のエラーハンドリング
         let result;
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           result = await response.json();
         } else {
+          // JSONでない場合（HTMLエラーページなど）
           const text = await response.text();
           console.error('Non-JSON response:', text.substring(0, 200));
-          throw new Error('サーバーエラーが発生しました');
+          throw new Error('サーバーエラーが発生しました（JSON形式でないレスポンス）');
         }
 
         if (!response.ok) {
           throw new Error(result.error || 'コメント投稿に失敗しました');
         }
 
-        showMessage('コメントを投稿しました（レス番号: ' + result.comment.number + '）', 'success');
+        // 成功メッセージ
+        showMessage(`✅ コメントを投稿しました！（レス番号: ${result.comment.number}）`, 'success');
 
-        // DOMに追加
-        const newHtml = renderComment({
-          number: result.comment.number,
-          userName: result.comment.userName,
-          userID: result.comment.userId,
-          content: result.comment.content,
-          isOP: false,
-          createdAt: result.comment.createdAt,
-        });
+        // コメントを即座に追加（DOM操作）
+        addCommentToDOM(result.comment);
 
-        // 「まだコメントがありません」を消す
-        const empty = commentList.querySelector('[style*="text-align:center"]');
-        if (empty && empty.textContent.includes('まだコメント')) {
-          empty.remove();
-        }
-
-        commentList.insertAdjacentHTML('beforeend', newHtml);
-        commentCountEl.textContent = parseInt(commentCountEl.textContent || '0') + 1;
-
+        // フォームをリセット
         form.reset();
 
+        // スクロール
         setTimeout(() => {
-          const el = document.getElementById('res' + result.comment.number);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            el.style.transition = 'background-color 0.3s';
-            el.style.backgroundColor = '#fff9c4';
-            setTimeout(() => { el.style.backgroundColor = ''; }, 3000);
+          const newComment = document.getElementById(`res${result.comment.number}`);
+          if (newComment) {
+            newComment.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            newComment.style.transition = 'background-color 0.3s';
+            newComment.style.backgroundColor = '#fff9c4';
+            setTimeout(() => {
+              newComment.style.backgroundColor = '';
+            }, 3000);
           }
         }, 100);
 
       } catch (error) {
         console.error('Comment submission error:', error);
-        showMessage(error.message, 'error');
+        showMessage('❌ ' + error.message, 'error');
       } finally {
         submitButton.disabled = false;
         submitButton.textContent = originalButtonText;
       }
     });
 
+    // メッセージ表示関数
     function showMessage(message, type) {
       const bgColor = type === 'success' ? '#d4edda' : '#f8d7da';
       const borderColor = type === 'success' ? '#c3e6cb' : '#f5c6cb';
       const textColor = type === 'success' ? '#155724' : '#721c24';
-      messageArea.innerHTML = '<div style="background-color:' + bgColor + ';border:1px solid ' + borderColor + ';padding:12px;margin-bottom:12px;font-size:13px;color:' + textColor + ';">' + esc(message) + '</div>';
-      setTimeout(() => { messageArea.innerHTML = ''; }, 5000);
+
+      messageArea.innerHTML = `
+        <div style="background-color: ${bgColor}; border: 1px solid ${borderColor}; padding: 12px; margin-bottom: 12px; font-size: 13px; color: ${textColor};">
+          ${message}
+        </div>
+      `;
+
+      // 5秒後に自動削除
+      setTimeout(() => {
+        messageArea.innerHTML = '';
+      }, 5000);
+    }
+
+    // コメントをDOMに追加する関数
+    function addCommentToDOM(comment) {
+      const commentList = document.querySelector('.comment-list');
+      if (!commentList) return;
+
+      const commentNumber = comment.number;
+      const bgColor = commentNumber % 2 === 0 ? '#fafafa' : '#fff';
+
+      const commentHtml = `
+        <div id="res${commentNumber}" style="border-bottom: 1px solid #ddd; padding: 12px; background-color: ${bgColor};">
+          <div class="comment-header" style="font-size: 11px; color: #666; margin-bottom: 6px; word-wrap: break-word;">
+            <span style="font-weight: bold; color: #000;">${commentNumber}</span>
+            <span style="margin-left: 8px;">名前：${comment.userName}</span>
+            <span style="margin-left: 8px;">たった今</span>
+            <span style="margin-left: 8px;">${comment.userId}</span>
+          </div>
+          <div class="comment-content" style="font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; margin-top: 8px;">
+            ${comment.content}
+          </div>
+        </div>
+      `;
+
+      commentList.insertAdjacentHTML('beforeend', commentHtml);
     }
   </script>
 
