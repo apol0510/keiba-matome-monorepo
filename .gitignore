@@ -10,3 +10,7 @@ temp/
 # Nighttime task outputs
 packages/backups/
 packages/test-reports/
+node_modules
+dist
+.astro
+.env.*
