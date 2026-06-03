@@ -148,12 +148,15 @@ async function main() {
       break; // 成功したらループを抜ける
 
     } catch (error) {
-      const isAirtableServerError = error.statusCode === 500;
+      // Airtable側の一時的なエラー（406含む）はリトライ対象
+      // 406: UNEXPECTED_ERROR（プロキシ/WAF由来の一時障害）, 429: レート制限, 5xx: サーバーエラー
+      const TRANSIENT_STATUS = [406, 429, 500, 502, 503, 504];
+      const isTransientError = TRANSIENT_STATUS.includes(error.statusCode);
       const isLastAttempt = attempt === MAX_AIRTABLE_RETRIES;
 
-      if (isAirtableServerError && !isLastAttempt) {
+      if (isTransientError && !isLastAttempt) {
         const waitTime = 10000 * attempt; // 10秒, 20秒, 30秒
-        console.log(`⚠️  Airtable API server error (${attempt}/${MAX_AIRTABLE_RETRIES})`);
+        console.log(`⚠️  Airtable API transient error ${error.statusCode} (${attempt}/${MAX_AIRTABLE_RETRIES})`);
         console.log(`   Retrying in ${waitTime/1000} seconds...\n`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       } else {
