@@ -183,6 +183,13 @@ async function runWorkflow() {
     try {
       await runScript(scripts[i], i + 1, scripts.length);
     } catch (error) {
+      // optional: true のステップは失敗しても後続を止めない
+      // （例: generate-seo はSEOメタデータ生成のみで、未生成でも次回実行で補完される）
+      if (scripts[i].optional) {
+        console.error(`⚠️  オプションステップ ${i + 1} (${scripts[i].name}) が失敗しましたが、ワークフローを継続します`);
+        console.log('');
+        continue;
+      }
       console.error(`ワークフローがステップ ${i + 1} で失敗しました`);
       process.exit(1);
     }
